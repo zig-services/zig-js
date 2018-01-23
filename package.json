@@ -1,0 +1,15 @@
+{
+  "name": "zig-client-js",
+  "version": "1.0.0",
+  "description": "",
+  "main": "zig.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "typescript": "^2.6.2",
+    "uglify-js": "^3.3.8"
+  }
+}

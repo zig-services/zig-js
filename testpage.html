@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Test page</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        html {
+            padding: 0;
+            margin: 0;
+        }
+
+        body {
+            padding: 1em;
+            margin: 0;
+        }
+
+        #config > input {
+            display: block;
+            padding: 0.5em;
+            margin-bottom: 0.5em;
+            border: 1px solid #aaa;
+            background: white;
+        }
+
+        #config > input[type=text] {
+            width: 100%;
+        }
+
+        #game-container > iframe {
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+
+<form id="config">
+    <input type="text" id="endpoint"
+           value="http://localhost:3080/tenants/thelotter/sites/com/games/sofortlotto/customers/123">
+
+    <input type="text" id="frontend" value="http://127.0.0.1:8000/game/outer.html">
+
+    <input type="submit" value="Open">
+</form>
+
+<pre id="integration"></pre>
+
+<div id="game-container"></div>
+
+<script src="integration.js"></script>
+<script>
+    document.querySelector("#config").addEventListener("submit", event => {
+        event.preventDefault();
+
+        // remove all previous frames
+        document.querySelector("#game-container").innerHTML = "";
+
+        const endpoint = document.querySelector("#endpoint").value;
+        const frontend = document.querySelector("#frontend").value;
+
+        const config = {endpoint: endpoint, headers: {}};
+
+        const testConfig = Object.assign({}, config, {withCredentials: true});
+        includeZigGame("#game-container", frontend, testConfig);
+
+        document.querySelector("#integration").innerHTML =
+            `includeZigGame("#game-container", "${frontend}", ${JSON.stringify(config, null, "  ")});`;
+    });
+</script>
+
+</body>
+</html>
