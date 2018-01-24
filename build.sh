@@ -3,10 +3,24 @@
 set -e -o pipefail
 
 npm install
-node_modules/.bin/tsc "$@"
 
-for FILE in *.js ; do
-    node_modules/.bin/uglifyjs --mangle --compress -o $FILE -- $FILE
+for DIR in zig integration wrapper ; do
+    (
+        cd $DIR
+        ../node_modules/.bin/tsc
+    )
 done
 
-ls -la *.js
+mkdir -p out
+
+for DIR in zig integration wrapper ; do
+    (
+        echo '!function(){'
+        node_modules/.bin/uglifyjs --mangle toplevel --compress -- $DIR/*.js
+        echo '}();'
+    ) > out/$DIR.min.js
+done
+
+#
+# s3cmd put -P --mime-type="application/javascript" --add-header='Cache-Control:public, no-store, no-cache' *.min.js s3://zig.js/latest/
+#
