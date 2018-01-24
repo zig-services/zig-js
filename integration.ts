@@ -1,4 +1,10 @@
 (function () {
+    function log(...text: any[]) {
+        try {
+            console.log("[zig-int]", ...text);
+        } catch {
+        }
+    }
 
     class Integration {
         private readonly boundMessageListener: (event: MessageEvent) => void;
@@ -10,7 +16,7 @@
         }
 
         public destroy(): void {
-            console.log("Destroy event listeners from frame");
+            log("Destroy event listeners from frame");
             window.removeEventListener("message", this.boundMessageListener);
         }
 
@@ -23,7 +29,7 @@
             // get the message content and dispatch to the
             // message handler functions
             const message = event.data || {};
-            console.log("Got message from game: ", message);
+            log("Got message from game: ", message);
 
             if (message.command === "updateGameHeight") {
                 this.updateGameHeight(message.height);

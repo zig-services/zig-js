@@ -25,7 +25,8 @@ interface ZigClient {
 
     /**
      * Tracks the height of the game by tracking the top position of
-     * the given marker object.
+     * the given marker object. The object needs to be at the very bottom of
+     * the page.
      */
     trackGameHeight(marker: HTMLElement): void;
 }
@@ -39,6 +40,13 @@ interface IGameConfig {
 }
 
 const ZigClient: ZigClient = (function () {
+    function log(...text: any[]) {
+        try {
+            console.log("[zig-client]", ...text);
+        } catch {
+        }
+    }
+
     class ZigClientImpl implements ZigClient {
         constructor(private gameConfig: IGameConfig) {
         }
@@ -72,7 +80,7 @@ const ZigClient: ZigClient = (function () {
                 // forward the requested headers
                 for (const headerName of Object.keys(this.gameConfig.headers)) {
                     const headerValue = this.gameConfig.headers[headerName];
-                    console.log(headerName, headerValue);
+                    log(headerName, headerValue);
                     req.setRequestHeader(headerName, headerValue);
                 }
 
@@ -98,14 +106,14 @@ const ZigClient: ZigClient = (function () {
 
                 if (difference > 1) {
                     previousMarkerTop = markerTop;
-                    this.publish("updateGameHeight", {height: markerTop});
+                    this.publishMessage("updateGameHeight", {height: markerTop});
                 }
             }, 100);
         }
 
-        private publish(command: string, extras: object): void {
+        private publishMessage(command: string, extras: object): void {
             const message = Object.assign({command}, extras);
-            console.log("Publishing message ", message);
+            log("Publishing message ", message);
             window.parent.postMessage(message, "*");
         }
     }
