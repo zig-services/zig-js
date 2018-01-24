@@ -1,28 +1,8 @@
 ///<reference path="../_common/common.ts"/>
 
-interface ZigClient {
-    /**
-     * Buy a ticket for the current game. Will return the ITicket instance on success
-     * and reject the promise with an IError if an error occurs.
-     */
-    buyTicket(gameInput?: object): PromiseLike<ITicket>;
-
-    /**
-     * Settles the ticket identified by the given id.
-     */
-    settleTicket(id: TicketId): PromiseLike<void>;
-
-    /**
-     * Tracks the height of the game by tracking the top position of
-     * the given marker object. The object needs to be at the very bottom of
-     * the page.
-     */
-    trackGameHeight(marker: HTMLElement): void;
-}
-
 const log = logger("[zig-client]");
 
-class ZigClientImpl implements ZigClient {
+class ZigClientImpl {
     constructor(private gameConfig: IGameConfig) {
     }
 
@@ -30,8 +10,12 @@ class ZigClientImpl implements ZigClient {
         return this.request<ITicket>("POST", this.gameConfig.endpoint + "/tickets", payload);
     }
 
+    public demoTicket(payload: any = {}): Promise<ITicket> {
+        return this.request<ITicket>("POST", this.gameConfig.endpoint + "/demo", payload);
+    }
+
     public settleTicket(id: string): Promise<void> {
-        return this.request<void>("POST", this.gameConfig.endpoint + "/settle/" + id);
+        return this.request<void>("POST", this.gameConfig.endpoint + "/tickets/" + encodeURIComponent(id) + "/settle");
     }
 
     private async request<T>(method: string, url: string, body: any = null): Promise<T> {
@@ -41,7 +25,7 @@ class ZigClientImpl implements ZigClient {
             req.onreadystatechange = () => {
                 if (req.readyState === XMLHttpRequest.DONE) {
                     if (Math.floor(req.status / 100) === 2) {
-                        resolve(JSON.parse(req.responseText));
+                        resolve(JSON.parse(req.responseText || "null"));
                     } else {
                         reject(parseErrorValue(req));
                     }

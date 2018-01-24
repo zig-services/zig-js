@@ -1,15 +1,12 @@
-interface IGameSettings {
-    index: string;
-    aspect: number;
-}
+///<reference path="../_common/common.ts"/>
 
 const log = logger("[zig-wrapper]");
 
 /**
  * Get game config from window
  */
-const GameConfig = <IGameSettings>window["GameSettings"];
-if (GameConfig == null) {
+const GameSettings = <IGameSettings>window["GameSettings"];
+if (GameSettings == null) {
     throw new Error("window.GameConfig must be initialized.");
 }
 
@@ -31,12 +28,14 @@ function initializeStyle() {
     let style = document.createElement("style");
     style.textContent = `
         html, body, iframe {
-          width: 100%;
-          height: 100%;
-    
-          border: 0;
-          margin: 0;
-          padding: 0;
+            width: 100%;
+            height: 100%;
+            
+            border: 0;
+            margin: 0;
+            padding: 0;
+          
+            font-family: sans-serif;
         }
         
         .zig-overlay {
@@ -66,7 +65,6 @@ function initializeStyle() {
             border-radius: 0.25em;
             
             color: black;
-            font-family: sans-serif;
         }
         
         .zig-alert__title {
@@ -92,6 +90,20 @@ function initializeStyle() {
             color: #f08;
             background: #eee;
         }
+        
+        .zig-start-button {
+            position: absolute;
+            display: block;
+            right: 4em;
+            bottom: 4em;
+            padding: 1em;
+            background: white;
+            box-shadow: 0 0 0.5em rgba(0, 0, 0, 0.25);
+            
+            color: black;
+            font-weight: bold;
+            text-decoration: none;
+        }
     `;
 
     document.head.appendChild(style);
@@ -104,14 +116,19 @@ function initializeStyle() {
 function initializeInnerFrame(): HTMLIFrameElement {
     const config = extractConfigParameter();
 
-    const sep = GameConfig.index.indexOf("?") === -1 ? "?" : "&";
-    const url = GameConfig.index + sep + "config=" + config;
+    const sep = GameSettings.index.indexOf("?") === -1 ? "?" : "&";
+    const url = GameSettings.index + sep + "config=" + config;
 
     // create iframe and insert into document.
     const iframe = document.createElement("iframe");
     iframe.src = url;
     iframe.allowFullscreen = true;
     iframe.scrolling = "no";
+
+    // send the new config to the parent
+    const message = {command: "updateGameSettings", gameSettings: GameSettings};
+    parent.postMessage(message, "*");
+
     document.body.appendChild(iframe);
 
     return iframe;
@@ -163,11 +180,36 @@ function initializeMessageProxy(iframe: HTMLIFrameElement) {
                 return;
             }
 
+            if (message.command === "gameLoaded" || message.command === "gameFinished") {
+                showControls(iframe);
+                return;
+            }
+
             log("Proxying message from child to parent:", message);
             window.parent.postMessage(message, "*");
         }
     });
 }
+
+function showControls(iframe: HTMLIFrameElement) {
+    if (document.querySelector(".zig-start-button") != null) {
+        return
+    }
+
+    const div = document.createElement("a");
+    div.className = "zig-start-button";
+    div.innerText = "Start game";
+    div.href = "#";
+    document.body.appendChild(div);
+
+    div.onclick = ev => {
+        ev.preventDefault();
+
+        iframe.contentWindow.postMessage("playGame", "*");
+        div.parentNode.removeChild(div);
+    }
+}
+
 
 document.addEventListener("DOMContentLoaded", () => {
     initializeStyle();

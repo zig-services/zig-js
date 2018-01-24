@@ -5,7 +5,7 @@ const log = logger("[zig-int]");
 class Integration {
     private readonly boundMessageListener: (event: MessageEvent) => void;
 
-    constructor(private frame: HTMLIFrameElement) {
+    constructor(private wrapper: HTMLDivElement, private frame: HTMLIFrameElement) {
         // create a listener for message events that arrive from the game frame.
         this.boundMessageListener = ev => this.frameMessageListener(ev);
         window.addEventListener("message", this.boundMessageListener);
@@ -31,15 +31,29 @@ class Integration {
             this.updateGameHeight(message.height);
             return;
         }
+
+        if (message.command === "updateGameSettings") {
+            this.updateGameSettings(message.gameSettings);
+        }
     }
 
     private updateGameHeight(height: number): void {
         this.frame.style.height = height + "px";
     }
+
+    private updateGameSettings(gameSettings: IGameSettings): void {
+        if (gameSettings.aspect > 0) {
+            this.wrapper.style.position = "relative";
+            this.wrapper.style.paddingBottom = (100 / gameSettings.aspect) + "%";
+
+            this.frame.style.position = "absolute";
+            this.frame.style.height = "100%";
+        }
+    }
 }
 
-function zigObserveGame(frame: HTMLIFrameElement) {
-    const game = new Integration(frame);
+function zigObserveGame(wrapper: HTMLDivElement, frame: HTMLIFrameElement) {
+    const game = new Integration(wrapper, frame);
 
     const mutationObserver = new MutationObserver(mu => {
         for (const record of mu) {
@@ -57,7 +71,7 @@ function zigObserveGame(frame: HTMLIFrameElement) {
         }
     });
 
-    mutationObserver.observe(frame.parentNode, {childList: true});
+    mutationObserver.observe(wrapper, {childList: true});
 }
 
 function includeZigGame(targetSelector: string, url: string, config: IGameConfig): void {
@@ -69,11 +83,16 @@ function includeZigGame(targetSelector: string, url: string, config: IGameConfig
     frame.allowFullscreen = true;
     frame.scrolling = "no";
     frame.style.border = "0";
+    frame.style.width = "100%";
+
+    const wrapper = document.createElement("div");
+    wrapper.style.width = "100%";
+    wrapper.appendChild(frame);
 
     const target = document.querySelector(targetSelector);
-    target.appendChild(frame);
+    target.appendChild(wrapper);
 
-    zigObserveGame(frame);
+    zigObserveGame(wrapper, frame);
 }
 
 // expose to the client.

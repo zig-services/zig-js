@@ -68,14 +68,29 @@
         const endpoint = document.querySelector("#endpoint").value;
         const frontend = document.querySelector("#frontend").value;
 
+        try {
+            localStorage.setItem("endpoint", endpoint);
+            localStorage.setItem("frontend", frontend);
+        } catch (err) {
+        }
+
         const config = {endpoint: endpoint, headers: {}};
 
         const testConfig = Object.assign({}, config, {withCredentials: true});
         includeZigGame("#game-container", frontend, testConfig);
 
         document.querySelector("#integration").innerHTML =
-            `includeZigGame("#game-container", "${frontend}", ${JSON.stringify(config, null, "  ")});`;
+                `includeZigGame("#game-container", "${frontend}", ${JSON.stringify(config, null, "  ")});`;
     });
+
+    try {
+        // restore values from last time
+        if (localStorage.getItem("endpoint") != null) {
+            document.querySelector("#endpoint").value = localStorage.getItem("endpoint");
+            document.querySelector("#frontend").value = localStorage.getItem("frontend");
+        }
+    } catch (err) {
+    }
 </script>
 
 </body>

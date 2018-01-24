@@ -26,3 +26,7 @@ interface IGameConfig {
     withCredentials?: boolean
 }
 
+interface IGameSettings {
+    index: string;
+    aspect: number;
+}
