@@ -3,19 +3,59 @@
 const log = logger("[zig-client]");
 
 class ZigClientImpl {
+    private readonly messageClient: PostMessageCommunication;
+
     constructor(private gameConfig: IGameConfig) {
+        this.messageClient = new PostMessageCommunication(window.parent);
     }
 
-    public buyTicket(payload: any = {}): Promise<ITicket> {
-        return this.request<ITicket>("POST", this.gameConfig.endpoint + "/tickets", payload);
+    public async buyTicket(payload: any = {}): Promise<ITicket> {
+        return await this.propagateErrors(async () => {
+            const ticket = await this.request<ITicket>("POST", this.gameConfig.endpoint + "/tickets", payload);
+
+            this.messageClient.send({
+                command: "gameStarted",
+                ticket: ticket,
+            });
+
+            return ticket
+        });
     }
 
-    public demoTicket(payload: any = {}): Promise<ITicket> {
-        return this.request<ITicket>("POST", this.gameConfig.endpoint + "/demo", payload);
+    public async demoTicket(payload: any = {}): Promise<ITicket> {
+        return await this.propagateErrors(async () => {
+            let ticket = await this.request<ITicket>("POST", this.gameConfig.endpoint + "/demo", payload);
+
+            this.messageClient.send({
+                command: "gameStarted",
+                ticket: ticket,
+            });
+
+            return ticket;
+        });
     }
 
-    public settleTicket(id: string): Promise<void> {
-        return this.request<void>("POST", this.gameConfig.endpoint + "/tickets/" + encodeURIComponent(id) + "/settle");
+    public async settleTicket(id: string): Promise<void> {
+        return await this.propagateErrors(async () => {
+            const url = this.gameConfig.endpoint + "/tickets/" + encodeURIComponent(id) + "/settle";
+            const response = await this.request<any>("POST", url);
+
+            this.messageClient.send({
+                command: "gameSettled",
+                response: response,
+            });
+
+            return
+        });
+    }
+
+    private async propagateErrors<T>(fn: () => Promise<T>): Promise<T> {
+        try {
+            return await fn()
+        } catch (err) {
+            this.messageClient.sendError(err);
+            throw err;
+        }
     }
 
     private async request<T>(method: string, url: string, body: any = null): Promise<T> {
@@ -27,7 +67,7 @@ class ZigClientImpl {
                     if (Math.floor(req.status / 100) === 2) {
                         resolve(JSON.parse(req.responseText || "null"));
                     } else {
-                        reject(parseErrorValue(req));
+                        reject(toErrorValue(req));
                     }
                 }
             };
@@ -78,39 +118,6 @@ class ZigClientImpl {
 }
 
 /**
- * Tries to make sense of the response of a request.
- * @param {XMLHttpRequest} req
- * @returns {IError}
- */
-function parseErrorValue(req: XMLHttpRequest): IError {
-    try {
-        const parsed = JSON.parse(req.responseText);
-        if (parsed.error && parsed.status) {
-            return {
-                type: "urn:x-tipp24:remote-client-error",
-                title: "Remote error",
-                details: parsed.error,
-                status: parsed.status
-            }
-        }
-
-        // looks like a properly formatted error
-        if (parsed.type && parsed.title && parsed.details) {
-            return <IError> parsed;
-        }
-    } catch {
-        // probably json decoding error, just continue with a default error.
-    }
-
-    return {
-        type: "urn:x-tipp24:remote-client-error",
-        title: "Remote error",
-        status: req.status,
-        details: req.responseText,
-    }
-}
-
-/**
  * Extracts the game config from the pages url.
  * Throws an error if extraction is not possible.
  */
@@ -133,5 +140,69 @@ function extractGameConfig(): IGameConfig {
     return config;
 }
 
-window["ZigClient"] = new ZigClientImpl(extractGameConfig());
+function monkeyPatchLegacyGames(gameConfig: IGameConfig) {
+    const log = logger("[zig-xhr]");
+    const XMLHttpRequest = window["XMLHttpRequest"];
+
+    function XHR() {
+        const xhr: XMLHttpRequest = new XMLHttpRequest();
+
+        const xhrOpen = xhr.open;
+        xhr.open = function (method: string, url: string, ...args: any[]): void {
+            if (new RegExp("/product/iwg/[a-z]+/tickets(\\?|$)").test(url)) {
+                log("rewrite buy ticket url");
+                url = gameConfig.endpoint + "/tickets";
+            }
+
+            if (new RegExp("/product/iwg/[a-z]+/demoticket(\\?|$)").test(url)) {
+                log("rewrite demo ticket url");
+                url = gameConfig.endpoint + "/demo";
+            }
+
+            const match = new RegExp("/product/iwg/crossword/tickets/([^/]+)/settle(\\?|$)").exec(url);
+            if (match !== null) {
+                log("rewrite settle url");
+
+                const id = match[1];
+                url = gameConfig.endpoint + "/tickets/" + encodeURIComponent(id) + "/settle";
+            }
+
+            // if (url.indexOf("/state") !== -1) {
+            //     xhr.setRequestHeader = () => {
+            //     };
+            //
+            //     xhr.send = function () {
+            //         Object.defineProperty(xhr, "readyState", {get: () => -1});
+            //         (xhr as any).onreadystatechange(xhr, null);
+            //     };
+            //
+            //     return;
+            // }
+
+            xhr.withCredentials = (gameConfig.withCredentials === true);
+            xhrOpen.call(xhr, method, url, ...args);
+
+            // forward the requested headers
+            for (const headerName of Object.keys(gameConfig.headers)) {
+                const headerValue = gameConfig.headers[headerName];
+                xhr.setRequestHeader(headerName, headerValue);
+            }
+        };
+
+
+        return xhr;
+    }
+
+    Object.keys(XMLHttpRequest).forEach(key => {
+        XHR[key] = XMLHttpRequest[key];
+    });
+
+    window["XMLHttpRequest"] = XHR;
+}
+
+const gameConfig = extractGameConfig();
+
+monkeyPatchLegacyGames(gameConfig);
+
+window["ZigClient"] = new ZigClientImpl(gameConfig);
 

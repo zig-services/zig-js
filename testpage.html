@@ -58,6 +58,7 @@
 <div id="game-container"></div>
 
 <script src="integration.js"></script>
+
 <script>
     document.querySelector("#config").addEventListener("submit", event => {
         event.preventDefault();
@@ -74,13 +75,19 @@
         } catch (err) {
         }
 
-        const config = {endpoint: endpoint, headers: {}};
+        const config = {endpoint, headers: {}};
+
+        // modify the config for testing.
 
         const testConfig = Object.assign({}, config, {withCredentials: true});
-        includeZigGame("#game-container", frontend, testConfig);
+        const testFrontend = frontend
+            .replace(/^https?:\/\/srv-git-01-hh1.alinghi.tipp24.net\//, "/github/raw/")
+            .replace("/blob/", "/");
+
+        includeZigGame("#game-container", testFrontend, testConfig);
 
         document.querySelector("#integration").innerHTML =
-                `includeZigGame("#game-container", "${frontend}", ${JSON.stringify(config, null, "  ")});`;
+            `includeZigGame("#game-container", "${frontend}", ${JSON.stringify(config, null, "  ")});`;
     });
 
     try {
