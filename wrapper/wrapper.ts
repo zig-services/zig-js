@@ -23,6 +23,13 @@ function extractConfigParameter(): string {
     return match[1];
 }
 
+/**
+ * Returns true, if this wrapper should pass all messages.
+ */
+function isPassthrough(): boolean {
+    return /\bpassthrough=true\b/i.test(location.href);
+}
+
 // Initializes the css styles for the wrapper frame.
 function initializeStyle() {
     let style = document.createElement("style");
@@ -113,7 +120,7 @@ function initializeStyle() {
  * Create and load the real game inside the iframe.
  * This method will add the iframe to the body of the page.
  */
-function initializeInnerFrame(): HTMLIFrameElement {
+function initializeGame(): void {
     const config = extractConfigParameter();
 
     const sep = GameSettings.index.indexOf("?") === -1 ? "?" : "&";
@@ -129,13 +136,15 @@ function initializeInnerFrame(): HTMLIFrameElement {
     iframe.allowFullscreen = true;
     iframe.scrolling = "no";
 
-    // send the new config to the parent
-    const message = {command: "updateGameSettings", gameSettings: GameSettings};
-    parent.postMessage(message, "*");
+    // send the new config to the parent so it can update the frame size
+    const parentMessageClient = new MessageClient(window.parent);
+    parentMessageClient.send({command: "updateGameSettings", gameSettings: GameSettings});
 
+    // add game to window
     document.body.appendChild(iframe);
 
-    return iframe;
+    const innerMessageClient = new MessageClient(iframe.contentWindow);
+    initializeMessageProxy(parentMessageClient, innerMessageClient);
 }
 
 /**
@@ -169,33 +178,22 @@ function showErrorDialog(error: IError) {
  * Set up a proxy for post messages. Everything coming from the iframe will be forwarded
  * to the parent, and everything coming from the parent will be send to the iframe.
  */
-function initializeMessageProxy(iframe: HTMLIFrameElement) {
-    window.addEventListener("message", event => {
-        const message = event.data;
+function initializeMessageProxy(parentMessageClient: MessageClient, innerMessageClient: MessageClient): void {
+    // proxy between both windows
+    innerMessageClient.registerWildcard(ev => parentMessageClient.send(ev));
+    parentMessageClient.registerWildcard(ev => innerMessageClient.send(ev));
 
-        if (event.source === window.parent) {
-            log("Proxying message from parent to child", message);
-            iframe.contentWindow.postMessage(message, "*");
-        }
+    if (!isPassthrough()) {
+        log("Register messages listeners for overlay");
 
-        if (event.source === iframe.contentWindow) {
-            if (message.command == null && message.type != "") {
-                showErrorDialog(<IError> message);
-                return;
-            }
-
-            if (message.command === "gameLoaded" || message.command === "gameFinished") {
-                showControls(iframe);
-                return;
-            }
-
-            log("Proxying message from child to parent:", message);
-            window.parent.postMessage(message, "*");
-        }
-    });
+        // handle some messages in the integration
+        innerMessageClient.register("gameLoaded", () => showControls(innerMessageClient));
+        innerMessageClient.register("gameFinished", () => showControls(innerMessageClient));
+        innerMessageClient.register("error", ev => showErrorDialog(ev as any));
+    }
 }
 
-function showControls(iframe: HTMLIFrameElement) {
+function showControls(messageClient: MessageClient) {
     if (document.querySelector(".zig-start-button") != null) {
         return
     }
@@ -209,7 +207,7 @@ function showControls(iframe: HTMLIFrameElement) {
     div.onclick = ev => {
         ev.preventDefault();
 
-        iframe.contentWindow.postMessage("playGame", "*");
+        messageClient.send("playGame");
         div.parentNode.removeChild(div);
     }
 }
@@ -217,7 +215,5 @@ function showControls(iframe: HTMLIFrameElement) {
 
 document.addEventListener("DOMContentLoaded", () => {
     initializeStyle();
-
-    const iframe = initializeInnerFrame();
-    initializeMessageProxy(iframe);
+    initializeGame();
 });

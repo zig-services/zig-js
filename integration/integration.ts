@@ -3,38 +3,18 @@
 const log = logger("[zig-int]");
 
 class Integration {
-    private readonly boundMessageListener: (event: MessageEvent) => void;
+    private readonly messageClient: MessageClient;
 
     constructor(private wrapper: HTMLDivElement, private frame: HTMLIFrameElement) {
-        // create a listener for message events that arrive from the game frame.
-        this.boundMessageListener = ev => this.frameMessageListener(ev);
-        window.addEventListener("message", this.boundMessageListener);
+        this.messageClient = new MessageClient(frame.contentWindow);
+        this.messageClient.register("updateGameHeight", ev => this.updateGameHeight(ev.height));
+        this.messageClient.register("updateGameSettings", ev => this.updateGameSettings(ev.gameSettings));
+        this.messageClient.registerWildcard(ev => log(`Got message of type ${ev.command}`))
     }
 
     public destroy(): void {
         log("Destroy event listeners from frame");
-        window.removeEventListener("message", this.boundMessageListener);
-    }
-
-    private frameMessageListener(event: MessageEvent): void {
-        if (event.source !== this.frame.contentWindow) {
-            // skip messages from different sources.
-            return;
-        }
-
-        // get the message content and dispatch to the
-        // message handler functions
-        const message = event.data || {};
-        log("Got message from game: ", message);
-
-        if (message.command === "updateGameHeight") {
-            this.updateGameHeight(message.height);
-            return;
-        }
-
-        if (message.command === "updateGameSettings") {
-            this.updateGameSettings(message.gameSettings);
-        }
+        this.messageClient.close();
     }
 
     private updateGameHeight(height: number): void {

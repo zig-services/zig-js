@@ -22,7 +22,7 @@ class MessageClient {
         window.removeEventListener("message", this.eventHandler);
     }
 
-    public send(message: IMessage): void {
+    public send(message: any): void {
         if (message == null) {
             return;
         }
@@ -48,17 +48,25 @@ class MessageClient {
     }
 
     private handleEvent(ev: MessageEvent): void {
-        const commandType = (ev.data || {}).command || ev.data;
+        let commandType = typeof ev.data === "string" ? ev.data : (ev.data || {}).command;
+        if (commandType == null && ev.data && ev.data.type != null) {
+            commandType = "error";
+        }
 
         if (typeof commandType !== "string") {
             return;
         }
 
-        const message: IMessage = typeof ev.data === "string" ? {command: commandType} : ev.data;
+        const message: IMessage = typeof ev.data === "string" ? {} : ev.data;
+        message.command = commandType;
 
         // now dispatch to the registered handlers and to all wildcard handlers.
-        this.dispatch(message, this.handlers[commandType] || []);
-        this.dispatch(message, this.handlers["*"] || []);
+        const handlers = this.handlers[commandType] || [];
+        if (handlers && handlers.length) {
+            this.dispatch(message, handlers);
+        } else {
+            this.dispatch(message, this.handlers["*"] || []);
+        }
     }
 
     private dispatch(message: IMessage, handlers: ((msg: IMessage) => void)[]) {
@@ -66,7 +74,7 @@ class MessageClient {
             try {
                 handler(message);
             } catch (err) {
-                log("Error in handling message %s: %s", message, err);
+                log(`Error in handling message ${message}:`, err);
             }
         })
     }
