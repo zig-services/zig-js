@@ -21,6 +21,10 @@
             margin: 0;
         }
 
+        body, input {
+            font-family: sans-serif;
+        }
+
         #config > input {
             display: block;
             padding: 0.5em;
@@ -39,6 +43,13 @@
 
         #game-container > iframe {
             width: 100%;
+        }
+
+        .zig-frontend-link {
+            display: inline-block;
+            margin-right: 0.5em;
+            color: #aaa;
+            text-decoration: none;
         }
     </style>
 </head>
@@ -98,6 +109,40 @@
         }
     } catch (err) {
     }
+
+    async function populateFrontendSelect() {
+        const response = await fetch("https://srv-git-01-hh1.alinghi.tipp24.net/api/v3/orgs/zig/repos?per_page=100");
+        const repos = await response.json();
+
+        // sort them by alphabet
+        repos.sort((a, b) => a.name.localeCompare(b.name));
+
+        repos.forEach(repo => {
+            const [, name] = repo.name.match(/^zig-(.*)-mylotto24$/) || [];
+            if (!name) {
+                return;
+            }
+
+            const frontend = `http://s3.eu-west-2.amazonaws.com/zig.iwg.mylotto24/frontends/${name}/latest/tipp24_com/game/outer.html`;
+            const endpoint = `http://localhost:3080/tenants/mylotto24/sites/tipp24_com/games/${name}/customers/123`;
+
+            const link = document.createElement("a");
+            link.href = "#";
+            link.className = "zig-frontend-link";
+            link.innerText = name;
+
+            link.onclick = () => {
+                document.querySelector("#frontend").value = frontend;
+                document.querySelector("#endpoint").value = endpoint;
+                document.querySelector("#config [type=submit]").click();
+            };
+
+            document.body.appendChild(link)
+        })
+    }
+
+    addEventListener("load", () => populateFrontendSelect());
+
 </script>
 
 </body>

@@ -7,7 +7,9 @@ interface IMessage {
     [key: string]: any;
 }
 
-class PostMessageCommunication {
+class MessageClient {
+    private static log = logger("[zig-msg]");
+
     private readonly eventHandler: (ev) => void;
     private readonly handlers: { [key: string]: ((msg: IMessage) => void)[]; } = {};
 
@@ -21,12 +23,18 @@ class PostMessageCommunication {
     }
 
     public send(message: IMessage): void {
+        if (message == null) {
+            return;
+        }
+
+        MessageClient.log(`Send message of type ${message.command}`, message);
         this.partnerWindow.postMessage(message, "*");
     }
 
     public sendError(err: any): void {
         const errorValue = toErrorValue(err);
         if (errorValue != null) {
+            MessageClient.log("Sending error value:", errorValue);
             this.partnerWindow.postMessage(errorValue, "*");
         }
     }
@@ -113,3 +121,6 @@ function toErrorValue(err: any): IError | null {
         details: err.toString(),
     }
 }
+
+// expose this
+window["ZigMessageClient"] = MessageClient;

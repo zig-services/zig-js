@@ -3,10 +3,10 @@
 const log = logger("[zig-client]");
 
 class ZigClientImpl {
-    private readonly messageClient: PostMessageCommunication;
+    private readonly messageClient: MessageClient;
 
     constructor(private gameConfig: IGameConfig) {
-        this.messageClient = new PostMessageCommunication(window.parent);
+        this.messageClient = new MessageClient(window.parent);
     }
 
     public async buyTicket(payload: any = {}): Promise<ITicket> {
@@ -140,69 +140,12 @@ function extractGameConfig(): IGameConfig {
     return config;
 }
 
-function monkeyPatchLegacyGames(gameConfig: IGameConfig) {
-    const log = logger("[zig-xhr]");
-    const XMLHttpRequest = window["XMLHttpRequest"];
-
-    function XHR() {
-        const xhr: XMLHttpRequest = new XMLHttpRequest();
-
-        const xhrOpen = xhr.open;
-        xhr.open = function (method: string, url: string, ...args: any[]): void {
-            if (new RegExp("/product/iwg/[a-z]+/tickets(\\?|$)").test(url)) {
-                log("rewrite buy ticket url");
-                url = gameConfig.endpoint + "/tickets";
-            }
-
-            if (new RegExp("/product/iwg/[a-z]+/demoticket(\\?|$)").test(url)) {
-                log("rewrite demo ticket url");
-                url = gameConfig.endpoint + "/demo";
-            }
-
-            const match = new RegExp("/product/iwg/crossword/tickets/([^/]+)/settle(\\?|$)").exec(url);
-            if (match !== null) {
-                log("rewrite settle url");
-
-                const id = match[1];
-                url = gameConfig.endpoint + "/tickets/" + encodeURIComponent(id) + "/settle";
-            }
-
-            // if (url.indexOf("/state") !== -1) {
-            //     xhr.setRequestHeader = () => {
-            //     };
-            //
-            //     xhr.send = function () {
-            //         Object.defineProperty(xhr, "readyState", {get: () => -1});
-            //         (xhr as any).onreadystatechange(xhr, null);
-            //     };
-            //
-            //     return;
-            // }
-
-            xhr.withCredentials = (gameConfig.withCredentials === true);
-            xhrOpen.call(xhr, method, url, ...args);
-
-            // forward the requested headers
-            for (const headerName of Object.keys(gameConfig.headers)) {
-                const headerValue = gameConfig.headers[headerName];
-                xhr.setRequestHeader(headerName, headerValue);
-            }
-        };
-
-
-        return xhr;
-    }
-
-    Object.keys(XMLHttpRequest).forEach(key => {
-        XHR[key] = XMLHttpRequest[key];
-    });
-
-    window["XMLHttpRequest"] = XHR;
-}
-
 const gameConfig = extractGameConfig();
 
-monkeyPatchLegacyGames(gameConfig);
+if (isLegacyGame()) {
+    log("Enable legacy game patches");
+    patchLegacyGame(gameConfig);
+}
 
 window["ZigClient"] = new ZigClientImpl(gameConfig);
 

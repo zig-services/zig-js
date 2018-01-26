@@ -117,7 +117,11 @@ function initializeInnerFrame(): HTMLIFrameElement {
     const config = extractConfigParameter();
 
     const sep = GameSettings.index.indexOf("?") === -1 ? "?" : "&";
-    const url = GameSettings.index + sep + "config=" + config;
+    let url = GameSettings.index + sep + "config=" + config;
+
+    if (GameSettings.legacyGame === true) {
+        url += "&legacyGame=true";
+    }
 
     // create iframe and insert into document.
     const iframe = document.createElement("iframe");

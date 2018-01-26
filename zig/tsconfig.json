@@ -11,6 +11,7 @@
   },
   "include": [
     "../_common/*.ts",
+    "zig-legacy.ts",
     "zig.ts"
   ],
   "exclude": [

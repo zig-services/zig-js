@@ -29,4 +29,5 @@ interface IGameConfig {
 interface IGameSettings {
     index: string;
     aspect: number;
+    legacyGame: boolean;
 }
