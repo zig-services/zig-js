@@ -23,14 +23,20 @@
 
         body, input {
             font-family: sans-serif;
+            font-size: 1em;
         }
 
-        #config > input {
+        #config > input, #config > label {
             display: block;
             padding: 0.5em;
             margin-bottom: 0.5em;
             border: 1px solid #aaa;
             background: white;
+            font-size: 0.8em;
+        }
+
+        #config input {
+            vertical-align: middle;
         }
 
         #config > input[type=text] {
@@ -61,6 +67,11 @@
 
     <input type="text" id="frontend" value="http://127.0.0.1:8000/game/outer.html">
 
+    <label>
+        <input type="checkbox" id="noOverlay">
+        Disable overlay
+    </label>
+
     <input type="submit" value="Open">
 </form>
 
@@ -86,7 +97,10 @@
         } catch (err) {
         }
 
-        const config = {endpoint, headers: {}};
+        const config = {
+            endpoint,
+            noOverlay: document.querySelector("#noOverlay").checked,
+        };
 
         // modify the config for testing.
 

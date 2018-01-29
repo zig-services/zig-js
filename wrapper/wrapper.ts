@@ -1,4 +1,4 @@
-import {IError, IGameSettings, logger} from "../_common/common";
+import {IError, IGameConfig, IGameSettings, logger} from "../_common/common";
 import {MessageClient} from "../_common/communication";
 
 const log = logger("[zig-wrapper]");
@@ -11,6 +11,9 @@ if (GameSettings == null) {
     throw new Error("window.GameConfig must be initialized.");
 }
 
+const GameConfig: IGameConfig = JSON.parse(atob(extractConfigParameter()));
+
+
 /**
  * Get the config parameter from the current location. This parameter will be
  * forwarded to the inner iframe.
@@ -22,13 +25,6 @@ function extractConfigParameter(): string {
     }
 
     return match[1];
-}
-
-/**
- * Returns true, if this wrapper should pass all messages.
- */
-function isPassthrough(): boolean {
-    return /\bpassthrough=true\b/i.test(location.href);
 }
 
 // Initializes the css styles for the wrapper frame.
@@ -184,7 +180,7 @@ function initializeMessageProxy(parentMessageClient: MessageClient, innerMessage
     innerMessageClient.registerWildcard(ev => parentMessageClient.send(ev));
     parentMessageClient.registerWildcard(ev => innerMessageClient.send(ev));
 
-    if (!isPassthrough()) {
+    if (!GameConfig.noOverlay) {
         log("Register messages listeners for overlay");
 
         // handle some messages in the integration

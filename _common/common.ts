@@ -22,8 +22,11 @@ export interface IGameConfig {
     endpoint: string;
     headers: { [key: string]: string; };
 
+    // disable overlay in the outer.html
+    noOverlay?: boolean;
+
     // for testing only. Enables xhr.withCredentials if set.
-    withCredentials?: boolean
+    withCredentials?: boolean;
 }
 
 export interface IGameSettings {
