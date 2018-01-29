@@ -1,4 +1,5 @@
-///<reference path="../_common/common.ts"/>
+import {IGameConfig, IGameSettings, logger} from "../_common/common";
+import {MessageClient} from "../_common/communication";
 
 const log = logger("[zig-int]");
 

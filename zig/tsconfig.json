@@ -1,18 +1,17 @@
 {
   "compilerOptions": {
     "target": "es5",
-    "module": "none",
+    "module": "amd",
     "lib": [
       "es2015",
       "es2015.promise",
       "dom"
-    ],
-    "outFile": "zig.js"
+    ]
   },
   "include": [
     "../_common/*.ts",
-    "zig-legacy.ts",
-    "zig.ts"
+    "zig.ts",
+    "zig-legacy.ts"
   ],
   "exclude": [
     "node_modules/**"

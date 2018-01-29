@@ -1,13 +1,12 @@
 {
   "compilerOptions": {
     "target": "es5",
-    "module": "none",
+    "module": "amd",
     "lib": [
       "es2015",
       "es2015.promise",
       "dom"
-    ],
-    "outFile": "integration.js"
+    ]
   },
   "include": [
     "../_common/*.ts",

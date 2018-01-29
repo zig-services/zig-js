@@ -1,4 +1,6 @@
-///<reference path="../_common/common.ts"/>
+import {isLegacyGame, patchLegacyGame} from "./zig-legacy";
+import {IGameConfig, ITicket, logger} from "../_common/common";
+import {MessageClient, toErrorValue} from "../_common/communication";
 
 const log = logger("[zig-client]");
 
@@ -147,5 +149,6 @@ if (isLegacyGame()) {
     patchLegacyGame(gameConfig);
 }
 
+// expose types to user of this library
+window["ZigMessageClient"] = MessageClient;
 window["ZigClient"] = new ZigClientImpl(gameConfig);
-

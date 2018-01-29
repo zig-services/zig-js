@@ -1,14 +1,14 @@
-///<reference path="../_common/common.ts"/>
-///<reference path="../_common/dom.ts"/>
-
 /**
  * Test if we want do enable legacy game patching.
  */
-function isLegacyGame(): boolean {
+import {IGameConfig, logger} from "../_common/common";
+import {injectStyle} from "../_common/dom";
+
+export function isLegacyGame(): boolean {
     return /\blegacyGame=true\b/.test(location.href);
 }
 
-function patchLegacyGame(gameConfig: IGameConfig) {
+export function patchLegacyGame(gameConfig: IGameConfig) {
     const log = logger("[zig-xhr]");
 
     const XMLHttpRequest = window["XMLHttpRequest"];

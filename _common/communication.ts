@@ -1,15 +1,17 @@
-type CommandType = string
+import {IError, logger} from "./common";
 
-interface IMessage {
+export type CommandType = string
+
+export interface IMessage {
     command: CommandType;
 
     // message specific payload
     [key: string]: any;
 }
 
-class MessageClient {
-    private static log = logger("[zig-msg]");
+const log = logger("[zig-msg]");
 
+export class MessageClient {
     private readonly eventHandler: (ev) => void;
     private readonly handlers: { [key: string]: ((msg: IMessage) => void)[]; } = {};
 
@@ -27,14 +29,14 @@ class MessageClient {
             return;
         }
 
-        MessageClient.log(`Send message of type ${message.command}`, message);
+        log(`Send message of type ${message.command}`, message);
         this.partnerWindow.postMessage(message, "*");
     }
 
     public sendError(err: any): void {
         const errorValue = toErrorValue(err);
         if (errorValue != null) {
-            MessageClient.log("Sending error value:", errorValue);
+            log("Sending error value:", errorValue);
             this.partnerWindow.postMessage(errorValue, "*");
         }
     }
@@ -83,7 +85,7 @@ class MessageClient {
 /**
  * Tries to make sense of the response of a request.
  */
-function toErrorValue(err: any): IError | null {
+export function toErrorValue(err: any): IError | null {
     if (err == null) {
         return null;
     }
@@ -129,6 +131,3 @@ function toErrorValue(err: any): IError | null {
         details: err.toString(),
     }
 }
-
-// expose this
-window["ZigMessageClient"] = MessageClient;
