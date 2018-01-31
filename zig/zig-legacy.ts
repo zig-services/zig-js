@@ -166,16 +166,6 @@ function patchInstantWinGamingStyles() {
 function patchInstantWinGamingScripts() {
     const log = logger("[zig-legacy]");
 
-    const _parent = window.parent;
-    const _postMessage = _parent.postMessage;
-
-    // fake only what we need on the parent.
-    const parent: any = {
-        location: _parent.location
-    };
-
-    Object.defineProperty(window, "parent", parent);
-
     let ticketInfo: any = null;
 
     if (window["jQuery"]) {
@@ -211,30 +201,39 @@ function patchInstantWinGamingScripts() {
         });
     }
 
-    parent.postMessage = function (message: any): void {
-        try {
-            // test if we need to intercept this message
-            if (ticketInfo && message && message.command === "gameStarted") {
-                log("Intercepted gameStarted message");
+    const _parent = window.parent;
+    const _postMessage = window.parent.postMessage;
 
-                // copy values to the object, not overwriting already set values
-                ["ticketId", "externalId", "ticketNumber"].forEach((name: string) => {
-                    if (message[name] == null && ticketInfo[name] != null) {
-                        log(`Adding ${name} = ${ticketInfo[name]} to post message`);
-                        message[name] = ticketInfo[name];
-                    }
-                });
+    const parent: any = {
+        location: window.parent.location,
 
-                // clear the info after using it as it belongs to only one /tickets request
-                ticketInfo = null;
+        postMessage(message: any, ...args: any[]): void {
+            try {
+                // test if we need to intercept this message
+                if (ticketInfo && message && message.command === "gameStarted") {
+                    log("Intercepted gameStarted message");
+
+                    // copy values to the object, not overwriting already set values
+                    ["ticketId", "externalId", "ticketNumber"].forEach((name: string) => {
+                        if (message[name] == null && ticketInfo[name] != null) {
+                            log(`Adding ${name} = ${ticketInfo[name]} to post message`);
+                            message[name] = ticketInfo[name];
+                        }
+                    });
+
+                    // clear the info after using it as it belongs to only one /tickets request
+                    ticketInfo = null;
+                }
+            } catch (err) {
+                log("Could not add ticketInfo to message", err);
             }
-        } catch (err) {
-            log("Could not add ticketInfo to message", err);
-        }
 
-        // call original function and forward parameters
-        return _postMessage.apply(_parent, arguments);
+            // call original function and forward parameters
+            return _postMessage.call(_parent, message, ...args);
+        }
     };
+
+    Object.defineProperty(window, "parent", {get: () => parent});
 }
 
 export function isLegacyGame(): boolean {
