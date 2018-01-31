@@ -4,22 +4,17 @@
 import {IGameConfig, logger} from "../_common/common";
 import {injectStyle} from "../_common/dom";
 
-export function isLegacyGame(): boolean {
-    return /\blegacyGame=true\b/.test(location.href);
+function replaceResponseText(xhr: XMLHttpRequest, statusCode: number, responseText: string): void {
+    Object.defineProperty(xhr, "readyState", {get: () => 4});
+    Object.defineProperty(xhr, "status", {get: () => statusCode});
+    Object.defineProperty(xhr, "responseText", {get: () => responseText});
 }
 
-export function patchLegacyGame(gameConfig: IGameConfig) {
+function patchXMLHttpRequest(gameConfig: IGameConfig) {
     const log = logger("[zig-xhr]");
-
     const XMLHttpRequest = window["XMLHttpRequest"];
 
-    function replaceResponseText(xhr: XMLHttpRequest, statusCode: number, responseText: string): void {
-        Object.defineProperty(xhr, "readyState", {get: () => 4});
-        Object.defineProperty(xhr, "status", {get: () => statusCode});
-        Object.defineProperty(xhr, "responseText", {get: () => responseText});
-    }
-
-    function FakeXHR() {
+    function ZigXMLHttpRequest() {
         const xhr: XMLHttpRequest = new XMLHttpRequest();
 
         // Do not let the script set its own headers.
@@ -131,18 +126,147 @@ export function patchLegacyGame(gameConfig: IGameConfig) {
     // Copy static fields from the original XMLHttpRequest
     Object.keys(XMLHttpRequest).forEach(key => {
         log(`Copy static field ${key} to fake XHR object.`);
-        FakeXHR[key] = XMLHttpRequest[key];
+        ZigXMLHttpRequest[key] = XMLHttpRequest[key];
     });
 
-    window["XMLHttpRequest"] = FakeXHR;
+    window["XMLHttpRequest"] = ZigXMLHttpRequest;
+}
 
-
+function patchInstantWinGamingStyles() {
     // add script for old instant win gaming games to improve scaling
     // of the background screen
     injectStyle(`
-        #loaderImageHolder > img {
-            width: 100;
-            max-width: unset !important;
+        #loader img { 
+          max-width: inherit;
+          width: 100%;
+          max-height: 100%;
         }
+        #loaderImageHolder img { 
+          -webkit-transform: none;
+          transform: none;
+          position: absolute;
+          top: 0;
+          left: 0;
+        }
+        #loaderImageHolder { 
+          position: absolute;
+          width: 100%; 
+          top: 0;
+          left: 0;
+          -webkit-transform: none;
+          transform: none;
+          max-height: !inherit;
+          height: 100%; 
+        }
+        #loadingBarHolder { z-index: 1; }
+        #loadingBarHolder.loaded { display: none !important; }
     `);
+}
+
+function patchInstantWinGamingScripts() {
+    const log = logger("[zig-legacy]");
+
+    const _parent = window.parent;
+    const _postMessage = _parent.postMessage;
+
+    // fake only what we need on the parent.
+    const parent: any = {
+        location: _parent.location
+    };
+
+    Object.defineProperty(window, "parent", parent);
+
+    let ticketInfo: any = null;
+
+    if (window["jQuery"]) {
+        const jQuery: any = window["jQuery"];
+
+        // jQuery ajax prefilter gets called with the options passed to jQuery.ajax before executing
+        // the ajax request. We use it to replace the "success"-callback to inject a piece of code
+        // to extract the ticket info from the response. The ticket info is then stored as "ticketInfo".
+        jQuery.ajaxPrefilter((options: any) => {
+            if ((options.url || "").match("/tickets$")) {
+                const _success: any = options.success || function () {
+                };
+                options.success = function (data: any, status: number, xhr: XMLHttpRequest) {
+                    try {
+                        // extract data only if response looks good
+                        if (data && data.id && data.externalId) {
+                            log("Remember ticket info for later");
+
+                            ticketInfo = {
+                                ticketId: data.id,
+                                externalId: data.externalId,
+                                ticketNumber: data.ticketNumber
+                            };
+                        }
+                    } catch (err) {
+                        log("Could not get ticketInfo from response", err);
+                    }
+
+                    // call original function
+                    return _success.call(this, data, status, xhr);
+                };
+            }
+        });
+    }
+
+    parent.postMessage = function (message: any): void {
+        try {
+            // test if we need to intercept this message
+            if (ticketInfo && message && message.command === "gameStarted") {
+                log("Intercepted gameStarted message");
+
+                // copy values to the object, not overwriting already set values
+                ["ticketId", "externalId", "ticketNumber"].forEach((name: string) => {
+                    if (message[name] == null && ticketInfo[name] != null) {
+                        log(`Adding ${name} = ${ticketInfo[name]} to post message`);
+                        message[name] = ticketInfo[name];
+                    }
+                });
+
+                // clear the info after using it as it belongs to only one /tickets request
+                ticketInfo = null;
+            }
+        } catch (err) {
+            log("Could not add ticketInfo to message", err);
+        }
+
+        // call original function and forward parameters
+        return _postMessage.apply(_parent, arguments);
+    };
+}
+
+export function isLegacyGame(): boolean {
+    return /\blegacyGame=true\b/.test(location.href);
+}
+
+
+export function patchLegacyGame(gameConfig: IGameConfig) {
+    // Inject code to rewrite request rules and everything.
+    patchXMLHttpRequest(gameConfig);
+
+
+    window.addEventListener("DOMContentLoaded", () => {
+        let log = logger("[zig-legacy]");
+
+        // check if it is an instant win gaming game
+        if (document.querySelector("#gamecontainer") == null)
+            return;
+
+        log("Detected instant win gaming game.");
+
+        // Add extra styles to fix scaling of loader screens and scroll bar.
+        patchInstantWinGamingStyles();
+
+        window.addEventListener("load", () => {
+            log("Do extra monkey patching for instant win gaming games");
+            try {
+                // Add extra scripts for instant win gaming to save and restore extra ticket data.
+                patchInstantWinGamingScripts();
+            } catch (err) {
+                log("Could not patch legacy game:", err)
+            }
+        });
+    });
 }

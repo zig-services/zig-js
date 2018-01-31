@@ -29,7 +29,7 @@ export class MessageClient {
             return;
         }
 
-        log(`Send message of type ${message.command}`, message);
+        log(`Send message of type ${message.command || message}`, message);
         this.partnerWindow.postMessage(message, "*");
     }
 
@@ -50,6 +50,10 @@ export class MessageClient {
     }
 
     private handleEvent(ev: MessageEvent): void {
+        if (ev.source !== this.partnerWindow) {
+            return;
+        }
+
         let commandType = typeof ev.data === "string" ? ev.data : (ev.data || {}).command;
         if (commandType == null && ev.data && ev.data.type != null) {
             commandType = "error";
@@ -59,8 +63,7 @@ export class MessageClient {
             return;
         }
 
-        const message: IMessage = typeof ev.data === "string" ? {} : ev.data;
-        message.command = commandType;
+        const message = ev.data;
 
         // now dispatch to the registered handlers and to all wildcard handlers.
         const handlers = this.handlers[commandType] || [];
