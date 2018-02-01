@@ -55,7 +55,7 @@ function zigObserveGame(wrapper: HTMLDivElement, frame: HTMLIFrameElement) {
     mutationObserver.observe(wrapper, {childList: true});
 }
 
-function includeZigGame(targetSelector: string, url: string, config: IGameConfig): void {
+export function includeZigGame(targetSelector: string, url: string, config: IGameConfig): void {
     const encodedConfig = btoa(JSON.stringify(config));
     const frameSource = url = url + "?config=" + encodedConfig;
 
