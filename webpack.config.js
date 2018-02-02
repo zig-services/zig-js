@@ -5,7 +5,7 @@ module.exports = {
         zig: "./zig/zig.ts",
     },
     output: {
-        filename: './out/[name].js',
+        filename: './out/[name].min.js',
     },
 
     resolve: {
