@@ -47,12 +47,9 @@ fi
 
 echo "Building version $NEXT_VERSION..."
 
-./build-in-docker.sh
+./upload.sh $NEXT_VERSION
 
 if [ -n "$NEXT_VERSION" ] ; then
-  # TODO
-  # upload *.js to S3
-
   git tag "$NEXT_VERSION"
 fi
 
