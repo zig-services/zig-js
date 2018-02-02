@@ -1,5 +1,7 @@
 #!/bin/sh
 
+set -e
+
 ./build-in-docker.sh
 
 if [ -n "$1" ] ; then
