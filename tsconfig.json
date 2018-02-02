@@ -8,10 +8,6 @@
       "dom"
     ]
   },
-  "include": [
-    "../_common/*.ts",
-    "wrapper.ts"
-  ],
   "exclude": [
     "node_modules/**"
   ]

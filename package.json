@@ -5,11 +5,9 @@
   "main": "zig.js",
   "author": "",
   "license": "MIT",
-  "dependencies": {
-    "typescript": "^2.6.2",
-    "uglify-js": "^3.3.8"
-  },
   "devDependencies": {
+    "typescript": "^2.7.0",
+    "uglify-js": "^3.3.8",
     "ts-loader": "^3.3.1",
     "uglifyjs-webpack-plugin": "^1.1.6",
     "webpack": "^3.10.0"
