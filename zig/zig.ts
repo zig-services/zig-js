@@ -4,6 +4,17 @@ import {MessageClient, toErrorValue} from "../_common/communication";
 
 const log = logger("[zig-client]");
 
+function guessQuantity(payload: any | undefined): number {
+    if (payload != null && typeof payload === "object") {
+        if (payload.rows && payload.rows.length) {
+            // sofortlotto like payload
+            return payload.rows.length;
+        }
+    }
+
+    return 1;
+}
+
 class ZigClientImpl {
     private readonly messageClient: MessageClient;
 
@@ -11,9 +22,10 @@ class ZigClientImpl {
         this.messageClient = new MessageClient(window.parent);
     }
 
-    public async buyTicket(payload: any = {}): Promise<ITicket> {
+    public async buyTicket(payload: any = {}, quantity: number | null = guessQuantity(payload)): Promise<ITicket> {
         return await this.propagateErrors(async () => {
-            const ticket = await this.request<ITicket>("POST", this.gameConfig.endpoint + "/tickets", payload);
+            const url = this.gameConfig.endpoint + "/tickets?quantity=" + quantity;
+            const ticket = await this.request<ITicket>("POST", url, payload);
 
             this.messageClient.send({
                 command: "gameStarted",
@@ -24,9 +36,10 @@ class ZigClientImpl {
         });
     }
 
-    public async demoTicket(payload: any = {}): Promise<ITicket> {
+    public async demoTicket(payload: any = {}, quantity: number | null = guessQuantity(payload)): Promise<ITicket> {
         return await this.propagateErrors(async () => {
-            let ticket = await this.request<ITicket>("POST", this.gameConfig.endpoint + "/demo", payload);
+            const url = this.gameConfig.endpoint + "/demo?quantity=" + quantity;
+            let ticket = await this.request<ITicket>("POST", url, payload);
 
             this.messageClient.send({
                 command: "gameStarted",
