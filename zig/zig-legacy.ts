@@ -21,13 +21,12 @@ function patchXMLHttpRequest(gameConfig: IGameConfig) {
         //
         const xhrSetRequestHeader = xhr.setRequestHeader;
         xhr.setRequestHeader = (key: string, value: string) => {
-            if (key.toLowerCase() === "content-type") {
-                if (xhr.readyState == XMLHttpRequest.OPENED) {
+            if (xhr.readyState == XMLHttpRequest.OPENED) {
+                if (key.toLowerCase() === "content-type") {
                     log(`Set Content-Type header with value ${value}`);
                     xhrSetRequestHeader.call(xhr, key, value);
+                    return;
                 }
-
-                return;
             }
 
             log(`Ignoring '${key}: ${value}' header set by script.`)
