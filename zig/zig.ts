@@ -155,7 +155,23 @@ function extractGameConfig(): IGameConfig {
     return config;
 }
 
-const gameConfig = extractGameConfig();
+class UpdatingGameConfig implements IGameConfig {
+    endpoint: string;
+    headers: { [p: string]: string };
+
+    constructor(config: IGameConfig) {
+        Object.assign(this, config);
+
+        const messageClient = new MessageClient(window.parent);
+        messageClient.register("updateRequestHeaders", message => {
+            if (typeof message.headers === "object") {
+                this.headers = message.headers;
+            }
+        });
+    }
+}
+
+const gameConfig = new UpdatingGameConfig(extractGameConfig());
 
 if (isLegacyGame()) {
     log("Enable legacy game patches");
