@@ -59,6 +59,14 @@ function patchXMLHttpRequest(gameConfig: IGameConfig) {
                 url = gameConfig.endpoint + "/tickets/" + encodeURIComponent(id) + "/settle";
             }
 
+            const matchBundle = url.match("/iwg/bundles/([0-9]+)(?:\\?|$)");
+            if (matchBundle !== null) {
+                log(`Rewrite bundle ticket url using game config endpoint ${gameConfig.endpoint}`);
+
+                const id = matchBundle[1];
+                url = gameConfig.endpoint + "/bundles/" + id;
+            }
+
             // Handle the key/value endpoint by delegating it to localStorage.
             const matchState = url.match("/product/iwg/[^/]+/tickets/([^/]+)/state$");
             if (matchState !== null) {
