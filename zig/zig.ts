@@ -15,7 +15,7 @@ function guessQuantity(payload: any | undefined): number {
     return 1;
 }
 
-class ZigClientImpl {
+class ZigClient {
     private readonly messageClient: MessageClient;
 
     constructor(private gameConfig: IGameConfig) {
@@ -102,7 +102,7 @@ class ZigClientImpl {
         });
     }
 
-    public trackGameHeight(marker: HTMLElement): void {
+    public trackGameHeight(markerOrSelector: HTMLElement | string): void {
         let previousMarkerTop = 0;
 
         function topOf(element: HTMLElement): number {
@@ -114,7 +114,22 @@ class ZigClientImpl {
             return topOf(<HTMLElement>element.offsetParent) + element.offsetTop;
         }
 
+        let marker: HTMLElement | null = null;
+        if (typeof markerOrSelector !== "string") {
+            marker = markerOrSelector;
+        }
+
         window.setInterval(() => {
+            // if we don't have a marker yet, we'll look for it
+            if (marker == null && typeof markerOrSelector === "string") {
+                marker = document.querySelector(markerOrSelector);
+            }
+
+            // if we still don't have a marker, we'll fail.
+            if (marker == null) {
+                return;
+            }
+
             const markerTop = topOf(marker);
             const difference = Math.abs(markerTop - previousMarkerTop);
 
@@ -180,4 +195,4 @@ if (isLegacyGame()) {
 
 // expose types to user of this library
 window["ZigMessageClient"] = MessageClient;
-window["ZigClient"] = new ZigClientImpl(gameConfig);
+window["ZigClient"] = new ZigClient(gameConfig);
