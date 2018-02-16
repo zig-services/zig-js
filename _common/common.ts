@@ -1,7 +1,13 @@
 export type Logger = (...args: any[]) => void
 
 export function logger(prefix: string): Logger {
-    return (...args: any[]): void => console.log(prefix, ...args);
+    if ((location.href || "").match(/sg-cloud|localhost|devstation/)) {
+        return (...args: any[]): void => console.log(prefix, ...args);
+    } else {
+        return (...args: any[]): void => {
+            // no logging on production
+        };
+    }
 }
 
 
