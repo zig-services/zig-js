@@ -1,6 +1,7 @@
 import {isLegacyGame, patchLegacyGame} from "./zig-legacy";
 import {IGameConfig, ITicket, logger} from "../_common/common";
 import {MessageClient, toErrorValue} from "../_common/communication";
+import {objectAssignPolyfill} from "../_common/polyfill";
 
 const log = logger("[zig-client]");
 
@@ -185,6 +186,10 @@ class UpdatingGameConfig implements IGameConfig {
         });
     }
 }
+
+
+// initialize Object.assign polyfill for ie11.
+objectAssignPolyfill();
 
 const gameConfig = new UpdatingGameConfig(extractGameConfig());
 
