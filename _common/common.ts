@@ -1,7 +1,9 @@
 export type Logger = (...args: any[]) => void
 
 export function logger(prefix: string): Logger {
-    if ((location.href || "").match(/sg-cloud|localhost|devstation|eu-west/)) {
+    const logging: boolean = /zigLogging=true/.test(document.cookie || "");
+
+    if (logging) {
         return (...args: any[]): void => console.log(prefix, ...args);
     } else {
         return (...args: any[]): void => {
