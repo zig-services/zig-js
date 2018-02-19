@@ -1,5 +1,7 @@
 import {IError, IGameConfig, IGameSettings, logger} from "../_common/common";
 import {MessageClient} from "../_common/communication";
+import {injectStyle} from "../_common/dom";
+import {clientVersion} from "../_common/vars";
 
 const log = logger("[zig-wrapper]");
 
@@ -29,11 +31,10 @@ function extractConfigParameter(): string {
 
 // Initializes the css styles for the wrapper frame.
 function initializeStyle() {
-    let style = document.createElement("style");
-    style.textContent = `
+    injectStyle(`
         html, body, iframe {
-            width: 100%;
-            height: 100%;
+            width: 100vw;
+            height: 100vh;
             
             border: 0;
             margin: 0;
@@ -46,8 +47,8 @@ function initializeStyle() {
             position: absolute;
             top: 0;
             left: 0;
-            width: 100%;
-            height: 100%;
+            width: 100vw;
+            height: 100vh;
             background: rgba(0, 0, 0, 0.2);
         }
         
@@ -108,9 +109,7 @@ function initializeStyle() {
             font-weight: bold;
             text-decoration: none;
         }
-    `;
-
-    document.head.appendChild(style);
+    `);
 }
 
 /**
@@ -127,6 +126,14 @@ function initializeGame(): void {
         url += "&legacyGame=true";
     }
 
+    const match = /zigVersion=([0-9.]+|dev|latest)/.exec(location.href);
+    if (match != null) {
+        const zigVersion: string = match[1];
+        url += `&zigVersion=${zigVersion}`;
+    }
+
+    log(`Creating iframe with URL ${url}`);
+
     // create iframe and insert into document.
     const iframe = document.createElement("iframe");
     iframe.src = url;
@@ -140,8 +147,18 @@ function initializeGame(): void {
     // add game to window
     document.body.appendChild(iframe);
 
-    const innerMessageClient = new MessageClient(iframe.contentWindow);
-    initializeMessageProxy(parentMessageClient, innerMessageClient);
+    function trySetupMessageClient(): void {
+        if (iframe.contentWindow == null) {
+            log("contentWindow not yet available, waiting...");
+            setTimeout(trySetupMessageClient, 250);
+            return;
+        }
+
+        const innerMessageClient = new MessageClient(iframe.contentWindow);
+        initializeMessageProxy(parentMessageClient, innerMessageClient);
+    }
+
+    trySetupMessageClient();
 }
 
 /**
@@ -209,8 +226,32 @@ function showControls(messageClient: MessageClient) {
     }
 }
 
+function initialize() {
+    log(`Initializing zig wrapper in ${clientVersion}`);
 
-document.addEventListener("DOMContentLoaded", () => {
+    if (!window["__zig_delegated"]) {
+        window["__zig_delegated"] = true;
+
+        const cookie: string = document.cookie || "";
+        const match = /\bzigVersion=([0-9.]+|dev|latest)\b/.exec(cookie);
+        if (match != null && match[1]) {
+            const version: string = match[1];
+            log(`Delegate to zig wrapper in version ${version}`);
+
+            const scriptTag = document.createElement("script");
+            scriptTag.src = `https://s3.eu-west-2.amazonaws.com/zig.js/${version}/wrapper.min.js`;
+            document.body.appendChild(scriptTag);
+
+            return;
+        }
+    }
+
     initializeStyle();
     initializeGame();
-});
+}
+
+if (window["__zig_delegated"]) {
+    initialize();
+} else {
+    document.addEventListener("DOMContentLoaded", initialize);
+}

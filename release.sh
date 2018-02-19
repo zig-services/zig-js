@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 set -eu -o pipefail
 
+./build-in-docker.sh -p
+
 # update version and push to git - patch by default
 npm version ${1:-patch}
 

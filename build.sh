@@ -6,4 +6,4 @@ npm install
 
 rm -rf out
 mkdir -p out
-node_modules/.bin/webpack -p
+node_modules/.bin/webpack "$@"

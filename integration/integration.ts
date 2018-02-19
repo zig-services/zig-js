@@ -4,7 +4,7 @@ import {MessageClient} from "../_common/communication";
 const log = logger("[zig-int]");
 
 class Integration {
-    private readonly messageClient: MessageClient;
+    readonly messageClient: MessageClient;
 
     constructor(private wrapper: HTMLDivElement, private frame: HTMLIFrameElement) {
         this.messageClient = new MessageClient(frame.contentWindow);
@@ -33,7 +33,7 @@ class Integration {
     }
 }
 
-function zigObserveGame(wrapper: HTMLDivElement, frame: HTMLIFrameElement) {
+function zigObserveGame(wrapper: HTMLDivElement, frame: HTMLIFrameElement): MessageClient {
     const game = new Integration(wrapper, frame);
 
     const mutationObserver = new MutationObserver(mu => {
@@ -53,9 +53,11 @@ function zigObserveGame(wrapper: HTMLDivElement, frame: HTMLIFrameElement) {
     });
 
     mutationObserver.observe(wrapper, {childList: true});
+
+    return game.messageClient;
 }
 
-export function includeZigGame(targetSelector: string, url: string, config: IGameConfig): void {
+export function includeZigGame(targetSelector: string, url: string, config: IGameConfig): MessageClient {
     const encodedConfig = btoa(JSON.stringify(config));
     const frameSource = url = url + "?config=" + encodedConfig;
 
@@ -73,7 +75,7 @@ export function includeZigGame(targetSelector: string, url: string, config: IGam
     const target = document.querySelector(targetSelector);
     target.appendChild(wrapper);
 
-    zigObserveGame(wrapper, frame);
+    return zigObserveGame(wrapper, frame);
 }
 
 // expose to the client.

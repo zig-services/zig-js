@@ -2,7 +2,7 @@
 
 set -e
 
-./build-in-docker.sh
+./build-in-docker.sh -p
 
 if [ -n "$1" ] ; then
     s3cmd put -P \

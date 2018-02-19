@@ -29,8 +29,10 @@ server {
 
 EOF
 
+PORT=${1:-8001}
+
 echo "You can now access the files using 'curl localhost:8001/any/path/zig.min.js'"
 echo "Also you can serve a frontend directly from github by using the /github prefix:"
-echo "  http://localhost:8001/github/raw/zig/zig-supercashbuster-mylotto24/master/frontend/tipp24_com/game/outer.html"
+echo "  http://localhost:$PORT/github/raw/zig/zig-supercashbuster-mylotto24/master/frontend/tipp24_com/game/outer.html"
 echo ""
-docker run --rm -p 8001:80 -v /tmp/zig-nginx.conf:/etc/nginx/conf.d/default.conf:ro -v $PWD:/app:ro nginx:1.13-alpine
+docker run --rm -p $PORT:80 -v /tmp/zig-nginx.conf:/etc/nginx/conf.d/default.conf:ro -v $PWD:/app:ro nginx:1.13-alpine

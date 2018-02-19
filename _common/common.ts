@@ -1,7 +1,7 @@
 export type Logger = (...args: any[]) => void
 
 export function logger(prefix: string): Logger {
-    if ((location.href || "").match(/sg-cloud|localhost|devstation/)) {
+    if ((location.href || "").match(/sg-cloud|localhost|devstation|eu-west/)) {
         return (...args: any[]): void => console.log(prefix, ...args);
     } else {
         return (...args: any[]): void => {
@@ -9,7 +9,6 @@ export function logger(prefix: string): Logger {
         };
     }
 }
-
 
 export type TicketId = string;
 
@@ -33,6 +32,10 @@ export interface IGameConfig {
 
     // for testing only. Enables xhr.withCredentials if set.
     withCredentials?: boolean;
+
+    // overrides the zig client version in the game.
+    // Only useful for testing.
+    zigVersion?: string;
 }
 
 export interface IGameSettings {

@@ -100,16 +100,27 @@
         const config = {
             endpoint,
             noOverlay: document.querySelector("#noOverlay").checked,
+            clientVersion: "dev",
+            withCredentials: true,
         };
 
         // modify the config for testing.
 
-        const testConfig = Object.assign({}, config, {withCredentials: true});
         const testFrontend = frontend
             .replace(/^https?:\/\/srv-git-01-hh1.alinghi.tipp24.net\//, "/github/raw/")
             .replace("/blob/", "/");
 
-        includeZigGame("#game-container", testFrontend, testConfig);
+        const messageClient = includeZigGame("#game-container", testFrontend, config);
+
+        messageClient.register("requestGameInput", ev => {
+            const input = {rows: []};
+
+            if (endpoint.indexOf("sofortlotto") !== -1) {
+                input.rows.push([1, 2, 3, 4, 5, 6], [7, 8, 9, 10, 11, 12]);
+            }
+
+            messageClient.send({command: "gameInput", input})
+        });
 
         document.querySelector("#integration").innerHTML =
             `includeZigGame("#game-container", "${frontend}", ${JSON.stringify(config, null, "  ")});`;
