@@ -3,6 +3,7 @@
  */
 import {IGameConfig, logger} from "../_common/common";
 import {injectStyle} from "../_common/dom";
+import {doOnLoad, onDOMLoaded} from "../_common/events";
 
 function replaceResponseText(xhr: XMLHttpRequest, statusCode: number, responseText: string): void {
     Object.defineProperty(xhr, "readyState", {get: () => 4});
@@ -270,7 +271,7 @@ export function patchLegacyGame(gameConfig: IGameConfig) {
     patchXMLHttpRequest(gameConfig);
 
 
-    window.addEventListener("DOMContentLoaded", () => {
+    onDOMLoaded(() => {
         let log = logger("[zig-legacy]");
 
         // check if it is an instant win gaming game
@@ -282,7 +283,7 @@ export function patchLegacyGame(gameConfig: IGameConfig) {
         // Add extra styles to fix scaling of loader screens and scroll bar.
         patchInstantWinGamingStyles();
 
-        window.addEventListener("load", () => {
+        doOnLoad(() => {
             log("Do extra monkey patching for instant win gaming games");
             try {
                 // Add extra scripts for instant win gaming to save and restore extra ticket data.

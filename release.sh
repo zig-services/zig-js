@@ -7,7 +7,7 @@ set -eu -o pipefail
 npm version ${1:-patch}
 
 # build code and upload
-VERSION=$(jq .version < package.json)
+VERSION=$(jq -r .version < package.json)
 echo "Building version ${VERSION}..."
 
 ./upload.sh "$VERSION"

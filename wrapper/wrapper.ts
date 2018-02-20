@@ -2,6 +2,8 @@ import {IError, IGameConfig, IGameSettings, logger} from "../_common/common";
 import {MessageClient} from "../_common/communication";
 import {injectStyle} from "../_common/dom";
 import {clientVersion} from "../_common/vars";
+import {delegateToVersion} from "../_common/delegate";
+import {onDOMLoaded} from "../_common/events";
 
 const log = logger("[zig-wrapper]");
 
@@ -116,7 +118,7 @@ function initializeStyle() {
  * Create and load the real game inside the iframe.
  * This method will add the iframe to the body of the page.
  */
-function initializeGame(): void {
+function initializeGame(): HTMLIFrameElement {
     const config = extractConfigParameter();
 
     const sep = GameSettings.index.indexOf("?") === -1 ? "?" : "&";
@@ -156,9 +158,16 @@ function initializeGame(): void {
 
         const innerMessageClient = new MessageClient(iframe.contentWindow);
         initializeMessageProxy(parentMessageClient, innerMessageClient);
+
+        window.onfocus = () => {
+            log("got focus, focusing iframe now.");
+            setTimeout(() => iframe.contentWindow.focus(), 100);
+        };
     }
 
     trySetupMessageClient();
+
+    return iframe;
 }
 
 /**
@@ -226,32 +235,39 @@ function showControls(messageClient: MessageClient) {
     }
 }
 
-function initialize() {
+function initializeDebugLayer(iframe: HTMLIFrameElement) {
+    iframe.contentWindow.addEventListener("keydown", (event: KeyboardEvent) => {
+        if (event.shiftKey && event.altKey && event.ctrlKey) {
+            log("Keycode is", event.keyCode);
+
+            if (event.keyCode === 76) {
+                log("Enable logging");
+                document.cookie = "zigLogging=true"
+            }
+
+            if (event.keyCode === 86) {
+                const version: string = prompt("Select zig client version", "latest") || "latest";
+                if (version === "default") {
+                    document.cookie = `zigVersion=`
+                } else {
+                    document.cookie = `zigVersion=${version}`
+                }
+            }
+        }
+    }, true);
+}
+
+onDOMLoaded(() => {
     log(`Initializing zig wrapper in ${clientVersion}`);
 
-    if (!window["__zig_delegated"]) {
-        window["__zig_delegated"] = true;
-
-        const cookie: string = document.cookie || "";
-        const match = /\bzigVersion=([0-9.]+|dev|latest)\b/.exec(cookie);
-        if (match != null && match[1]) {
-            const version: string = match[1];
-            log(`Delegate to zig wrapper in version ${version}`);
-
-            const scriptTag = document.createElement("script");
-            scriptTag.src = `https://s3.eu-west-2.amazonaws.com/zig.js/${version}/wrapper.min.js`;
-            document.body.appendChild(scriptTag);
-
-            return;
-        }
+    if (delegateToVersion("wrapper.min.js")) {
+        return;
     }
 
     initializeStyle();
-    initializeGame();
-}
 
-if (window["__zig_delegated"]) {
-    initialize();
-} else {
-    document.addEventListener("DOMContentLoaded", initialize);
-}
+    const frame = initializeGame();
+
+    // register debug shortcuts on the iframe
+    initializeDebugLayer(frame);
+});

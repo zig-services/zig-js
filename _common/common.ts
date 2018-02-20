@@ -1,15 +1,12 @@
 export type Logger = (...args: any[]) => void
 
 export function logger(prefix: string): Logger {
-    const logging: boolean = /zigLogging=true/.test(document.cookie || "");
-
-    if (logging) {
-        return (...args: any[]): void => console.log(prefix, ...args);
-    } else {
-        return (...args: any[]): void => {
-            // no logging on production
-        };
-    }
+    return (...args: any[]): void => {
+        const logging: boolean = /zigLogging=true/.test(document.cookie || "");
+        if (logging) {
+            console.log(prefix, ...args);
+        }
+    };
 }
 
 export type TicketId = string;
