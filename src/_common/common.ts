@@ -11,8 +11,13 @@ export function logger(prefix: string): Logger {
 
 export type TicketId = string;
 
+export interface IGame {
+    supportsResume: boolean;
+}
+
 export interface ITicket {
     id: TicketId;
+    game: IGame;
 }
 
 export interface IError {
@@ -31,10 +36,6 @@ export interface IGameConfig {
 
     // for testing only. Enables xhr.withCredentials if set.
     withCredentials?: boolean;
-
-    // overrides the zig client version in the game.
-    // Only useful for testing.
-    zigVersion?: string;
 }
 
 export interface IGameSettings {

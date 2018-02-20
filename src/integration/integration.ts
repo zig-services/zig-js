@@ -1,5 +1,5 @@
 import {IGameConfig, IGameSettings, logger} from "../_common/common";
-import {MessageClient} from "../_common/communication";
+import {MessageClient} from "../_common/message-client";
 
 const log = logger("[zig-int]");
 

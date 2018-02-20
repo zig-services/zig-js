@@ -1,9 +1,10 @@
 import {IError, IGameConfig, IGameSettings, logger} from "../_common/common";
-import {MessageClient} from "../_common/communication";
+import {MessageClient} from "../_common/message-client";
 import {injectStyle} from "../_common/dom";
 import {clientVersion} from "../_common/vars";
 import {delegateToVersion} from "../_common/delegate";
 import {onDOMLoaded} from "../_common/events";
+import {scriptVersionOverride} from "../_common/version";
 
 const log = logger("[zig-wrapper]");
 
@@ -32,86 +33,10 @@ function extractConfigParameter(): string {
 }
 
 // Initializes the css styles for the wrapper frame.
+declare function require(module: string): string;
+
 function initializeStyle() {
-    injectStyle(`
-        html, body, iframe {
-            width: 100vw;
-            height: 100vh;
-            
-            border: 0;
-            margin: 0;
-            padding: 0;
-          
-            font-family: sans-serif;
-        }
-        
-        .zig-overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            background: rgba(0, 0, 0, 0.2);
-        }
-        
-        .zig-alert {
-            position: absolute;
-            z-index: 1;
-            
-            margin-left: auto;
-            margin-right: auto;
-            left: 0;
-            right: 0;
-            
-            top: 3em;
-            width: 80%;
-            max-width: 20em;
-            background: white;
-            box-shadow: 0 0 0.5em rgba(0, 0, 0, 0.25);
-            padding: 1em;
-            border-radius: 0.25em;
-            
-            color: black;
-        }
-        
-        .zig-alert__title {
-            font-size: 1.33em;
-            font-weight: bold;
-            padding-bottom: 0.33em;
-        }
-        
-        .zig-alert__text {
-            padding-bottom: 0.33em;
-        }
-        
-        .zig-alert__button {
-            color: black;
-            font-weight: bold;
-            text-decoration: none;
-            
-            float: right;
-            padding: 0.25em;
-        }
-        
-        .zig-alert__button:hover {
-            color: #f08;
-            background: #eee;
-        }
-        
-        .zig-start-button {
-            position: absolute;
-            display: block;
-            right: 4em;
-            bottom: 4em;
-            padding: 1em;
-            background: white;
-            box-shadow: 0 0 0.5em rgba(0, 0, 0, 0.25);
-            
-            color: black;
-            font-weight: bold;
-            text-decoration: none;
-        }
-    `);
+    injectStyle(require("./style.css"));
 }
 
 /**
@@ -128,9 +53,8 @@ function initializeGame(): HTMLIFrameElement {
         url += "&legacyGame=true";
     }
 
-    const match = /zigVersion=([0-9.]+|dev|latest)/.exec(location.href);
-    if (match != null) {
-        const zigVersion: string = match[1];
+    const zigVersion = scriptVersionOverride();
+    if (zigVersion != null) {
         url += `&zigVersion=${zigVersion}`;
     }
 
@@ -182,13 +106,13 @@ function showErrorDialog(error: IError) {
 
     const div = document.createElement("div");
     div.innerHTML = `
-          <div class='zig-overlay'>
-            <div class='zig-alert'>
-              <div class='zig-alert__title'></div>
-              <div class='zig-alert__text'></div>
-              <a href='#' class='zig-alert__button'>Close</a>
-            </div>
-          </div>`;
+      <div class='zig-overlay'>
+        <div class='zig-alert'>
+          <div class='zig-alert__title'></div>
+          <div class='zig-alert__text'></div>
+          <a href='#' class='zig-alert__button'>Close</a>
+        </div>
+      </div>`;
 
     div.querySelector<HTMLElement>(".zig-alert__title").innerText = error.title;
     div.querySelector<HTMLElement>(".zig-alert__text").innerText = message;

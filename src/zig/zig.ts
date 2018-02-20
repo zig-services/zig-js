@@ -1,8 +1,9 @@
 import {isLegacyGame, patchLegacyGame} from "./zig-legacy";
 import {IGameConfig, ITicket, logger} from "../_common/common";
-import {MessageClient, toErrorValue} from "../_common/communication";
+import {MessageClient, toErrorValue} from "../_common/message-client";
 import {objectAssignPolyfill} from "../_common/polyfill";
 import {buildTime, clientVersion} from "../_common/vars";
+import {delegateToVersion} from "../_common/delegate";
 
 const log = logger("[zig-client]");
 
@@ -17,6 +18,14 @@ function guessQuantity(payload: any | undefined): number {
     return 1;
 }
 
+export interface BuyTicketOptions {
+    // Set to true if the ticket is seen as immediately settled.
+    alreadySettled?: boolean
+
+    // Set to a positive value if more than one ticket is requested (e.g. sofort games)
+    quantity?: number
+}
+
 class ZigClient {
     private readonly messageClient: MessageClient;
 
@@ -24,31 +33,42 @@ class ZigClient {
         this.messageClient = new MessageClient(window.parent);
     }
 
-    public async buyTicket(payload: any = {}, quantity: number | null = guessQuantity(payload)): Promise<ITicket> {
+    public async buyTicket(payload: any = {}, options: BuyTicketOptions = {}): Promise<ITicket> {
         return await this.propagateErrors(async () => {
+            const quantity: number = options.quantity || guessQuantity(payload);
+
             const url = this.gameConfig.endpoint + "/tickets?quantity=" + quantity;
             const ticket = await this.request<ITicket>("POST", url, payload);
 
-            this.messageClient.send({
-                command: "gameStarted",
-                ticket: ticket,
-            });
+            this.sendGameStartedEvent(options, ticket);
 
             return ticket
         });
     }
 
-    public async demoTicket(payload: any = {}, quantity: number | null = guessQuantity(payload)): Promise<ITicket> {
+    public async demoTicket(payload: any = {}, options: BuyTicketOptions = {}): Promise<ITicket> {
         return await this.propagateErrors(async () => {
+            const quantity: number = options.quantity || guessQuantity(payload);
+
             const url = this.gameConfig.endpoint + "/demo?quantity=" + quantity;
             let ticket = await this.request<ITicket>("POST", url, payload);
 
-            this.messageClient.send({
-                command: "gameStarted",
-                ticket: ticket,
-            });
+            this.sendGameStartedEvent(options, ticket);
 
             return ticket;
+        });
+    }
+
+    private sendGameStartedEvent(options: BuyTicketOptions, ticket: ITicket) {
+        let alreadySettled = options.alreadySettled;
+        if (alreadySettled === undefined) {
+            alreadySettled = !(ticket.game || {supportsResume: true}).supportsResume;
+        }
+
+        this.messageClient.send({
+            command: "gameStarted",
+            ticket: ticket,
+            alreadySettled: !!alreadySettled,
         });
     }
 
@@ -188,23 +208,29 @@ class UpdatingGameConfig implements IGameConfig {
     }
 }
 
-if (window.console && console.log) {
-    console.log("");
-    console.log(`[zig] Initializing zig client in version ${clientVersion}`);
-    console.log(`[zig] compiled ${(Date.now() - buildTime) / 1000.0}sec ago`);
-    console.log("");
+function main() {
+    // initialize Object.assign polyfill for ie11.
+    objectAssignPolyfill();
+
+    const gameConfig = new UpdatingGameConfig(extractGameConfig());
+
+    if (isLegacyGame()) {
+        log("Enable legacy game patches");
+        patchLegacyGame(gameConfig);
+    }
+
+    // expose types to user of this library
+    window["ZigMessageClient"] = MessageClient;
+    window["ZigClient"] = new ZigClient(gameConfig);
 }
 
-// initialize Object.assign polyfill for ie11.
-objectAssignPolyfill();
+if (!delegateToVersion("zig.min.js")) {
+    if (window.console && console.log) {
+        console.log("");
+        console.log(`[zig] Initializing zig client in version ${clientVersion}`);
+        console.log(`[zig] compiled ${(Date.now() - buildTime) / 1000.0}sec ago`);
+        console.log("");
+    }
 
-const gameConfig = new UpdatingGameConfig(extractGameConfig());
-
-if (isLegacyGame()) {
-    log("Enable legacy game patches");
-    patchLegacyGame(gameConfig);
+    main();
 }
-
-// expose types to user of this library
-window["ZigMessageClient"] = MessageClient;
-window["ZigClient"] = new ZigClient(gameConfig);

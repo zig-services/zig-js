@@ -2,9 +2,9 @@ const webpack = require("webpack");
 
 module.exports = {
     entry: {
-        integration: "./integration/integration.ts",
-        wrapper: "./wrapper/wrapper.ts",
-        zig: "./zig/zig.ts",
+        integration: "./src/integration/integration.ts",
+        wrapper: "./src/wrapper/wrapper.ts",
+        zig: "./src/zig/zig.ts",
     },
 
     output: {
@@ -27,6 +27,10 @@ module.exports = {
             {
                 test: /\.ts$/,
                 loader: "ts-loader",
+            },
+            {
+                test: /\.css$/,
+                use: ['css-loader']
             }
         ]
     }

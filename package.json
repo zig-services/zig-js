@@ -6,6 +6,7 @@
   "author": "",
   "license": "MIT",
   "devDependencies": {
+    "css-loader": "^0.28.9",
     "ts-loader": "^3.3.1",
     "typescript": "^2.7.0",
     "uglify-js": "^3.3.8",
