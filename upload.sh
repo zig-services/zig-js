@@ -4,7 +4,7 @@ set -e
 
 ./build-in-docker.sh -p
 
-if [ -n "$1" ] ; then
+if [ -n "$1" ] && [ "$1" != "dev" ] ; then
     s3cmd put -P --no-preserve \
         --mime-type="application/javascript; charset=utf8" \
         --add-header='Cache-Control: public,max-age=31536000,immutable' \

@@ -36,6 +36,12 @@ export interface IGameConfig {
 
     // for testing only. Enables xhr.withCredentials if set.
     withCredentials?: boolean;
+
+    // for development. Will be added to the url.
+    dev?: {
+        scenario: string;
+        winningClass: string;
+    }
 }
 
 export interface IGameSettings {

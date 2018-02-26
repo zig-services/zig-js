@@ -159,16 +159,40 @@ function showControls(messageClient: MessageClient) {
     }
 }
 
+function replaceGameConfig(gameConfig: IGameConfig) {
+    log("Reload with game config replaced with:", gameConfig);
+    const config = btoa(JSON.stringify(gameConfig));
+    location.href = location.href.replace(/\bconfig=[^&]+/, `config=${config}`);
+}
+
 function initializeDebugLayer(iframe: HTMLIFrameElement) {
     iframe.contentWindow.addEventListener("keydown", (event: KeyboardEvent) => {
         if (event.shiftKey && event.altKey && event.ctrlKey) {
             log("Keycode is", event.keyCode);
 
+            // key l
             if (event.keyCode === 76) {
                 log("Enable logging");
                 document.cookie = "zigLogging=true"
             }
 
+            // key s
+            if (event.keyCode === 83) {
+                const winningClass: string | null = prompt(`Winning class for demo ticket.`);
+                if (winningClass == null || winningClass === "") {
+                    return;
+                }
+
+                const scenario: string | null = prompt(`Number of scenario to show for winning class ${winningClass}.`);
+                if (scenario == null || scenario === "")
+                    return;
+
+                const url = location.href.replace(/\b(?:wc|scenario)=[^&]+/g, "") + `&wc=${winningClass}&scenario=${scenario}`;
+                log("Replace wrapper url with", url);
+                location.href = url;
+            }
+
+            // key v
             if (event.keyCode === 86) {
                 const version: string = prompt("Select zig client version", "latest") || "latest";
                 if (version === "default") {
@@ -176,6 +200,8 @@ function initializeDebugLayer(iframe: HTMLIFrameElement) {
                 } else {
                     document.cookie = `zigVersion=${version}`
                 }
+
+                location.reload();
             }
         }
     }, true);
