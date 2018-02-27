@@ -1,9 +1,10 @@
+import {Options} from "./options";
+
 export type Logger = (...args: any[]) => void
 
 export function logger(prefix: string): Logger {
     return (...args: any[]): void => {
-        const logging: boolean = /zigLogging=true/.test(document.cookie || "");
-        if (logging) {
+        if (Options.logging) {
             console.log(prefix, ...args);
         }
     };

@@ -20,3 +20,8 @@ s3cmd put -P --no-preserve \
     --mime-type="application/javascript; charset=utf8" \
     --add-header='Cache-Control: private,no-store,no-cache' \
      out/*.min.js s3://zig.js/dev/
+
+s3cmd put -P --no-preserve \
+    --mime-type="text/html; charset=utf8" \
+    --add-header='Cache-Control: private,no-store,no-cache' \
+     debug-page.html s3://zig.js/dev/

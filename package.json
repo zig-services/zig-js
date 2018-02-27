@@ -6,7 +6,12 @@
   "author": "",
   "license": "MIT",
   "devDependencies": {
+    "@types/react": "^16.0.38",
+    "@types/react-dom": "^16.0.4",
     "css-loader": "^0.28.9",
+    "prop-types": "^15.6.1",
+    "react": "^16.2.0",
+    "react-dom": "^16.2.0",
     "ts-loader": "^3.3.1",
     "typescript": "^2.7.0",
     "uglify-js": "^3.3.8",

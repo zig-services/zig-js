@@ -1,5 +1,5 @@
 import {logger} from "./common";
-import {scriptVersionOverride} from "./version";
+import {Options} from "./options";
 
 export function delegateToVersion(script: string): boolean {
     const log = logger("[delegate]");
@@ -7,11 +7,11 @@ export function delegateToVersion(script: string): boolean {
     if (!window["__zig_delegated"]) {
         window["__zig_delegated"] = true;
 
-        const version = scriptVersionOverride();
-        if (version != null) {
+        const version = Options.version;
+        if (version != null && version !== "latest") {
             const url: string = `https://s3.eu-west-2.amazonaws.com/zig.js/${version}/${script}`;
 
-            log(`Delegate script to ${url}`);
+            log(`Delegate script ${script} to ${url}`);
 
             if (document.readyState === "loading") {
                 document.write(`<script src="${url}"></script>`);

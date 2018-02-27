@@ -1,4 +1,4 @@
-export function onDOMLoaded(func: () => void) {
+export function onDOMLoad(func: () => void) {
     if (document.readyState === "interactive") {
         func();
     } else {
@@ -6,7 +6,7 @@ export function onDOMLoaded(func: () => void) {
     }
 }
 
-export function doOnLoad(func: () => void) {
+export function onLoad(func: () => void) {
     if (document.readyState === "complete") {
         func();
     } else {

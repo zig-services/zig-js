@@ -2,9 +2,10 @@ const webpack = require("webpack");
 
 module.exports = {
     entry: {
-        integration: "./src/integration/integration.ts",
-        wrapper: "./src/wrapper/wrapper.ts",
-        zig: "./src/zig/zig.ts",
+        "integration": "./src/integration/integration.ts",
+        "wrapper": "./src/wrapper/wrapper.ts",
+        "debug-page": "./src/debug-page/debug-page.tsx",
+        "zig": "./src/zig/zig.ts",
     },
 
     output: {
@@ -12,7 +13,7 @@ module.exports = {
     },
 
     resolve: {
-        extensions: [".ts"]
+        extensions: [".ts", ".tsx", ".js", ".jsx"]
     },
 
     plugins: [
@@ -25,7 +26,7 @@ module.exports = {
     module: {
         rules: [
             {
-                test: /\.ts$/,
+                test: /\.tsx?$/,
                 loader: "ts-loader",
             },
             {

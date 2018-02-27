@@ -3,8 +3,8 @@ import {MessageClient} from "../_common/message-client";
 import {injectStyle} from "../_common/dom";
 import {clientVersion} from "../_common/vars";
 import {delegateToVersion} from "../_common/delegate";
-import {onDOMLoaded} from "../_common/events";
-import {scriptVersionOverride} from "../_common/version";
+import {onDOMLoad} from "../_common/events";
+import {Options} from "../_common/options";
 
 const log = logger("[zig-wrapper]");
 
@@ -51,11 +51,6 @@ function initializeGame(): HTMLIFrameElement {
 
     if (GameSettings.legacyGame === true) {
         url += "&legacyGame=true";
-    }
-
-    const zigVersion = scriptVersionOverride();
-    if (zigVersion != null) {
-        url += `&zigVersion=${zigVersion}`;
     }
 
     log(`Creating iframe with URL ${url}`);
@@ -165,59 +160,40 @@ function replaceGameConfig(gameConfig: IGameConfig) {
     location.href = location.href.replace(/\bconfig=[^&]+/, `config=${config}`);
 }
 
-function initializeDebugLayer(iframe: HTMLIFrameElement) {
-    iframe.contentWindow.addEventListener("keydown", (event: KeyboardEvent) => {
-        if (event.shiftKey && event.altKey && event.ctrlKey) {
-            log("Keycode is", event.keyCode);
+function initializeWinningClassOverride(): boolean {
+    const override = Options.winningClassOverride;
+    if (override == null)
+        return false;
 
-            // key l
-            if (event.keyCode === 76) {
-                log("Enable logging");
-                document.cookie = "zigLogging=true"
-            }
+    const params = `&wc=${override.winningClass}&scenario=${override.scenarioId}`;
+    if (location.href.indexOf(params) === -1) {
+        const url = location.href.replace(/\b(scenario|wc)=[^&]+/g, "") + params;
 
-            // key s
-            if (event.keyCode === 83) {
-                const winningClass: string | null = prompt(`Winning class for demo ticket.`);
-                if (winningClass == null || winningClass === "") {
-                    return;
-                }
+        log("Reload outer.html with updated url:", url);
+        location.href = url;
 
-                const scenario: string | null = prompt(`Number of scenario to show for winning class ${winningClass}.`);
-                if (scenario == null || scenario === "")
-                    return;
+        return true;
+    }
 
-                const url = location.href.replace(/\b(?:wc|scenario)=[^&]+/g, "") + `&wc=${winningClass}&scenario=${scenario}`;
-                log("Replace wrapper url with", url);
-                location.href = url;
-            }
-
-            // key v
-            if (event.keyCode === 86) {
-                const version: string = prompt("Select zig client version", "latest") || "latest";
-                if (version === "default") {
-                    document.cookie = `zigVersion=`
-                } else {
-                    document.cookie = `zigVersion=${version}`
-                }
-
-                location.reload();
-            }
-        }
-    }, true);
+    return false;
 }
 
-onDOMLoaded(() => {
+onDOMLoad(() => {
     log(`Initializing zig wrapper in ${clientVersion}`);
 
     if (delegateToVersion("wrapper.min.js")) {
         return;
     }
 
+    if (initializeWinningClassOverride()) {
+        return;
+    }
+
     initializeStyle();
 
-    const frame = initializeGame();
+    initializeGame();
 
-    // register debug shortcuts on the iframe
-    initializeDebugLayer(frame);
+    if (Options.debuggingLayer) {
+        document.body.style.borderTop = "0.5em solid red";
+    }
 });
