@@ -10,9 +10,9 @@ if [ "$1" == "latest" ] ; then
 fi
 
 BUCKET=lib.zig.services
-echo "Using bucket "$BUCKET""
+echo "Using bucket $BUCKET"
 
-s3cmd mb s3://"$BUCKET"
+s3cmd mb s3://"$BUCKET" || true
 
 if [ -n "$1" ] && [ "$1" != "dev" ] ; then
     s3cmd put -P --no-preserve \
