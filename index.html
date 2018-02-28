@@ -148,7 +148,7 @@
                 return;
             }
 
-            const frontend = `http://s3.eu-west-2.amazonaws.com/zig.iwg.mylotto24/frontends/${name}/latest/tipp24_com/game/outer.html`;
+            const frontend = `http://mylotto24.frontend.zig.services/${name}/latest/tipp24_com/game/outer.html`;
             const endpoint = `http://localhost:3080/tenants/mylotto24/sites/tipp24_com/games/${name}/customers/123`;
 
             const link = document.createElement("a");
