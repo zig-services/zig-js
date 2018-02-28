@@ -1,3 +1,5 @@
+import 'promise-polyfill/src/polyfill';
+
 export function objectAssignPolyfill() {
     // taken from
     // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object/assign#Polyfill

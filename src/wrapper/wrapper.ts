@@ -1,4 +1,6 @@
-import {IError, IGameConfig, IGameSettings, logger} from "../_common/common";
+import 'promise-polyfill/src/polyfill';
+
+import {IError, IGameConfig, IGameSettings, logger, sleep} from "../_common/common";
 import {MessageClient} from "../_common/message-client";
 import {injectStyle} from "../_common/dom";
 import {clientVersion} from "../_common/vars";
@@ -32,18 +34,11 @@ function extractConfigParameter(): string {
     return match[1];
 }
 
-// Initializes the css styles for the wrapper frame.
-declare function require(module: string): string;
-
-function initializeStyle() {
-    injectStyle(require("./style.css"));
-}
-
 /**
  * Create and load the real game inside the iframe.
  * This method will add the iframe to the body of the page.
  */
-function initializeGame(): HTMLIFrameElement {
+async function initializeGame(): Promise<HTMLIFrameElement> {
     const config = extractConfigParameter();
 
     const sep = GameSettings.index.indexOf("?") === -1 ? "?" : "&";
@@ -68,15 +63,18 @@ function initializeGame(): HTMLIFrameElement {
     // add game to window
     document.body.appendChild(iframe);
 
-    function trySetupMessageClient(): void {
-        if (iframe.contentWindow == null) {
+    async function trySetupMessageClient(): Promise<void> {
+        // wait for the content window to load.
+        while (iframe.contentWindow == null) {
             log("contentWindow not yet available, waiting...");
-            setTimeout(trySetupMessageClient, 250);
-            return;
+            await sleep(250);
         }
 
+        // initialize the message client to the game window
         const innerMessageClient = new MessageClient(iframe.contentWindow);
-        initializeMessageProxy(parentMessageClient, innerMessageClient);
+
+        // and proxy all messages between the frames
+        proxyMessages(parentMessageClient, innerMessageClient);
 
         window.onfocus = () => {
             log("got focus, focusing iframe now.");
@@ -84,7 +82,7 @@ function initializeGame(): HTMLIFrameElement {
         };
     }
 
-    trySetupMessageClient();
+    await trySetupMessageClient();
 
     return iframe;
 }
@@ -120,10 +118,17 @@ function showErrorDialog(error: IError) {
  * Set up a proxy for post messages. Everything coming from the iframe will be forwarded
  * to the parent, and everything coming from the parent will be send to the iframe.
  */
-function initializeMessageProxy(parentMessageClient: MessageClient, innerMessageClient: MessageClient): void {
+function proxyMessages(parentMessageClient: MessageClient, innerMessageClient: MessageClient): void {
     // proxy between both windows
-    innerMessageClient.registerWildcard(ev => parentMessageClient.send(ev));
-    parentMessageClient.registerWildcard(ev => innerMessageClient.send(ev));
+    innerMessageClient.registerWildcard(ev => {
+        log("Proxy message parent <- game");
+        parentMessageClient.send(ev)
+    });
+
+    parentMessageClient.registerWildcard(ev => {
+        log("Proxy message parent -> game");
+        innerMessageClient.send(ev)
+    });
 
     if (!GameConfig.noOverlay) {
         log("Register messages listeners for overlay");
@@ -181,15 +186,19 @@ function initializeWinningClassOverride(): boolean {
 onDOMLoad(() => {
     log(`Initializing zig wrapper in ${clientVersion}`);
 
+    // we might want to delegate the script to another version
     if (delegateToVersion("wrapper.min.js")) {
         return;
     }
 
+    // if we have a winning class override, we'll change the url and
+    // reload the script. we wont be initializing the rest of the game here.
     if (initializeWinningClassOverride()) {
         return;
     }
 
-    initializeStyle();
+    // inject the css style for the wrapper into the document
+    injectStyle(require("./style.css"));
 
     initializeGame();
 

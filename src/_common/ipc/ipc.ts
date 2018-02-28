@@ -1,3 +1,5 @@
+import {sleep} from "../common";
+
 let nextMessagePointer = 1;
 
 export interface Message {
@@ -56,10 +58,6 @@ function poller(key: string): () => Message {
 
         return queue.shift();
     }
-}
-
-function sleep(millis: number): Promise<{}> {
-    return new Promise<{}>((resolve => window.setTimeout(resolve, millis)));
 }
 
 async function nextOf(p: () => Message): Promise<Message> {

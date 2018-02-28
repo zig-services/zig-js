@@ -4,29 +4,37 @@ import {Options} from "./options";
 export function delegateToVersion(script: string): boolean {
     const log = logger("[delegate]");
 
-    if (!window["__zig_delegated"]) {
-        window["__zig_delegated"] = true;
-
-        const version = Options.version;
-        if (version != null && version !== "latest") {
-            const url: string = `https://s3.eu-west-2.amazonaws.com/zig.js/${version}/${script}`;
-
-            log(`Delegate script ${script} to ${url}`);
-
-            if (document.readyState === "loading") {
-                document.write(`<script src="${url}"></script>`);
-
-            } else {
-                const scriptTag = document.createElement("script");
-                scriptTag.src = url;
-                scriptTag.async = false;
-                scriptTag.defer = false;
-                document.body.appendChild(scriptTag);
-            }
-
-            return true;
-        }
+    // only delegate once
+    if (window["__zig_delegated"]) {
+        return false;
     }
 
-    return false;
+    window["__zig_delegated"] = true;
+
+    // get the override version from the options
+    const version = Options.version;
+    if (version == null || version === "latest") {
+        return false;
+    }
+
+    const url: string = `https://s3.eu-west-2.amazonaws.com/zig.js/${version}/${script}`;
+
+    log(`Delegate script ${script} to ${url}`);
+
+    if (document.readyState === "loading") {
+        // if we are still loading, we can just write directly to the document.
+        // The script will then be executed blockingly
+        document.write(`<script src="${url}"></script>`);
+
+    } else {
+        // if we are not loading anymore, we'll just add the script to the header.
+        // The browser will the execute the script once it finishes loading.
+        const scriptTag = document.createElement("script");
+        scriptTag.src = url;
+        scriptTag.async = false;
+        scriptTag.defer = false;
+        document.body.appendChild(scriptTag);
+    }
+
+    return true;
 }

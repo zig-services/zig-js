@@ -10,6 +10,10 @@ export function logger(prefix: string): Logger {
     };
 }
 
+export function sleep(millis: number): Promise<{}> {
+    return new Promise<{}>((resolve => window.setTimeout(resolve, millis)));
+}
+
 export type TicketId = string;
 
 export interface IGame {
