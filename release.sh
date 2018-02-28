@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 set -eu -o pipefail
 
+# validate that everything builds
 ./build-in-docker.sh -p
 
 # update version and push to git - patch by default
