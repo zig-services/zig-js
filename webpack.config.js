@@ -9,7 +9,7 @@ module.exports = {
     },
 
     output: {
-        filename: './out/[name].min.js',
+        filename: './[name].min.js',
     },
 
     resolve: {

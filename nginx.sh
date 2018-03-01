@@ -23,7 +23,7 @@ server {
     }
 
     location ~ ^/([a-z]+)(.min)?.js\$ {
-        try_files /\$1/\$1.js /out/\$1.min.js =404;
+        try_files /\$1/\$1.js /dist/\$1.min.js =404;
     }
 }
 

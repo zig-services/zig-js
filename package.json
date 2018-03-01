@@ -8,18 +8,19 @@
   "devDependencies": {
     "@types/react": "^16.0.38",
     "@types/react-dom": "^16.0.4",
-    "css-loader": "^0.28.9",
+    "css-loader": "^0.28.10",
     "promise-polyfill": "^7.1.0",
     "prop-types": "^15.6.1",
     "react": "^16.2.0",
     "react-dom": "^16.2.0",
-    "ts-loader": "^3.3.1",
-    "typescript": "^2.7.0",
-    "uglify-js": "^3.3.8",
-    "uglifyjs-webpack-plugin": "^1.1.6",
-    "webpack": "^3.10.0"
+    "ts-loader": "^4.0.0",
+    "typescript": "^2.7.2",
+    "webpack": "^4.0.1",
+    "webpack-cli": "^2.0.9"
   },
   "scripts": {
+    "dev": "webpack --mode=development",
+    "build": "webpack --mode=production",
     "postversion": "git push && git push --tags"
   }
 }
