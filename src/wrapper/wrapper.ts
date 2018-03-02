@@ -41,8 +41,7 @@ function extractConfigParameter(): string {
 async function initializeGame(): Promise<HTMLIFrameElement> {
     const config = extractConfigParameter();
 
-    const sep = GameSettings.index.indexOf("?") === -1 ? "?" : "&";
-    let url = GameSettings.index + sep + "config=" + config;
+    let url = GameSettings.index + "?config=" + config;
 
     if (GameSettings.legacyGame === true) {
         url += "&legacyGame=true";
