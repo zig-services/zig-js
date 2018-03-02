@@ -174,7 +174,7 @@ class ZigClient {
  * Throws an error if extraction is not possible.
  */
 function extractGameConfig(): IGameConfig {
-    const match = /\?.*\bconfig=([a-zA-Z0-9+-]+=*)/.exec(location.href);
+    const match = /[?#].*\bconfig=([a-zA-Z0-9+-]+=*)/.exec(location.href);
     if (match == null) {
         throw new Error("no config parameter found")
     }
