@@ -31,7 +31,10 @@ module.exports = {
             },
             {
                 test: /\.css$/,
-                use: ['css-loader']
+                loader: 'css-loader',
+                options: {
+                    minimize: true,
+                }
             }
         ]
     }
