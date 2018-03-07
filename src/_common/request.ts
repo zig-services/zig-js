@@ -76,10 +76,10 @@ async function _executeRequestLocally(req: Request): Promise<Result> {
     });
 }
 
-export function registerRequestListener(mc: MessageClient) {
+export function registerRequestListener(mc: MessageClient, handler: (req: Request) => Promise<Result> = _executeRequestLocally) {
     mc.register("zig.XMLHttpRequest.request", async (message) => {
         const req: WithCID<Request> = message.request;
-        const result = await _executeRequestLocally(req.data);
+        const result = await handler(req.data);
         mc.send({
             command: "zig.XMLHttpRequest.result",
             result: <WithCID<Response>>{cid: req.cid, data: result},

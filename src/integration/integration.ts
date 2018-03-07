@@ -1,6 +1,6 @@
 import {IGameConfig, IGameSettings, logger} from "../_common/common";
 import {MessageClient} from "../_common/message-client";
-import {registerRequestListener} from "../_common/request";
+import {registerRequestListener, Request, Result} from "../_common/request";
 
 const log = logger("[zig-int]");
 
@@ -90,8 +90,14 @@ export function includeZigGame(targetSelector: string, url: string, config: IGam
     return zigObserveGame(wrapper, frame);
 }
 
+function registerHTTPHandlerOnly(frame: HTMLIFrameElement, handler: (r: Request) => Promise<Result> = undefined) {
+    const messageClient = new MessageClient(frame.contentWindow);
+    registerRequestListener(messageClient, handler);
+}
+
 // expose to the client.
 window["Zig"] = {
     include: includeZigGame,
     observe: zigObserveGame,
+    registerHTTPHandlerOnly: registerHTTPHandlerOnly,
 };
