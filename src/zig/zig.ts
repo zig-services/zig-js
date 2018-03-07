@@ -24,9 +24,6 @@ export interface BuyTicketOptions {
 
     // Set to a positive value if more than one ticket is requested (e.g. sofort games)
     quantity?: number
-
-    // Used for testing only to test specific winning class.
-    wc?: number
 }
 
 class ZigClient {
@@ -52,9 +49,8 @@ class ZigClient {
     public async demoTicket(payload: any = {}, options: BuyTicketOptions = {}): Promise<ITicket> {
         return await this.propagateErrors(async () => {
             const quantity: number = options.quantity || guessQuantity(payload);
-            const wcParam: string = options.wc && `&wc=${options.wc}` || "";
 
-            const url = `${this.gameConfig.endpoint}/demo?quantity=${quantity}${wcParam}`;
+            const url = this.gameConfig.endpoint + "/demo?quantity=" + quantity;
             let ticket = await this.request<ITicket>("POST", url, payload);
 
             this.sendGameStartedEvent(options, ticket);
