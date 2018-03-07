@@ -4,6 +4,7 @@ import {MessageClient, toErrorValue} from "../_common/message-client";
 import {objectAssignPolyfill} from "../_common/polyfill";
 import {buildTime, clientVersion} from "../_common/vars";
 import {delegateToVersion} from "../_common/delegate";
+import {Options} from "../_common/options";
 
 const log = logger("[zig-client]");
 
@@ -36,8 +37,9 @@ class ZigClient {
     public async buyTicket(payload: any = {}, options: BuyTicketOptions = {}): Promise<ITicket> {
         return await this.propagateErrors(async () => {
             const quantity: number = options.quantity || guessQuantity(payload);
+            const wcParam = Options.winningClassOverride && `&wc=${Options.winningClassOverride.winningClass}` || "";
 
-            const url = this.gameConfig.endpoint + "/tickets?quantity=" + quantity;
+            const url = `${this.gameConfig.endpoint}/tickets?quantity=${quantity}${wcParam}`;
             const ticket = await this.request<ITicket>("POST", url, payload);
 
             this.sendGameStartedEvent(options, ticket);
