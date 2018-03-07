@@ -173,6 +173,10 @@ function main() {
 
     window["Zig"].MessageClient = new MessageClient(window.parent);
     window["Zig"].Client = new ZigClient();
+
+    // Some games are currently using this.
+    window["ZigClient"] = window["Zig"].Client;
+    window["ZigMessageClient"] = MessageClient;
 }
 
 if (!delegateToVersion("zig.min.js")) {
