@@ -45,6 +45,10 @@ export class MessageClient {
         this.handlers[commandType] = (this.handlers[commandType] || []).concat(handler);
     }
 
+    public unregister<T extends IMessage>(commandType: CommandType, handler: (message: T) => void) {
+        this.handlers[commandType] = (this.handlers[commandType] || []).filter(h => h !== handler);
+    }
+
     public registerWildcard(handler: (message: IMessage) => void): void {
         this.register("*" as CommandType, handler);
     }
@@ -106,9 +110,11 @@ export function toErrorValue(err: any): IError | null {
         }
     }
 
-    if (typeof err.responseText === "string") {
+    const responseText = err.responseText || err.body;
+
+    if (typeof responseText === "string") {
         try {
-            const parsed = JSON.parse(err.responseText);
+            const parsed = JSON.parse(responseText);
             if (parsed.error && parsed.status) {
                 return {
                     type: "urn:x-tipp24:remote-client-error",

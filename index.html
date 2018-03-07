@@ -79,7 +79,7 @@
 
 <div id="game-container"></div>
 
-<script src="integration.js"></script>
+<script src="./dist/integration.min.js"></script>
 
 <script>
     document.querySelector("#config").addEventListener("submit", event => {
@@ -98,10 +98,7 @@
         }
 
         const config = {
-            endpoint,
-            noOverlay: document.querySelector("#noOverlay").checked,
-            clientVersion: "dev",
-            withCredentials: true,
+            overlay: !document.querySelector("#noOverlay").checked,
         };
 
         // modify the config for testing.
@@ -110,7 +107,7 @@
             .replace(/^https?:\/\/srv-git-01-hh1.alinghi.tipp24.net\//, "/github/raw/")
             .replace("/blob/", "/");
 
-        const messageClient = includeZigGame("#game-container", testFrontend, config);
+        const messageClient = Zig.include("#game-container", testFrontend, config);
 
         messageClient.register("requestGameInput", ev => {
             const input = {rows: []};
@@ -123,7 +120,7 @@
         });
 
         document.querySelector("#integration").innerHTML =
-            `includeZigGame("#game-container", "${frontend}", ${JSON.stringify(config, null, "  ")});`;
+            `Zig.include("#game-container", "${frontend}", ${JSON.stringify(config, null, "  ")});`;
     });
 
     try {

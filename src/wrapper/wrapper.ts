@@ -18,9 +18,6 @@ if (GameSettings == null) {
     throw new Error("window.GameConfig must be initialized.");
 }
 
-const GameConfig: IGameConfig = JSON.parse(atob(extractConfigParameter()));
-
-
 /**
  * Get the config parameter from the current location. This parameter will be
  * forwarded to the inner iframe.
@@ -129,7 +126,8 @@ function proxyMessages(parentMessageClient: MessageClient, innerMessageClient: M
         innerMessageClient.send(ev)
     });
 
-    if (!GameConfig.noOverlay) {
+    const gameConfig: IGameConfig = JSON.parse(atob(extractConfigParameter()));
+    if (gameConfig.overlay) {
         log("Register messages listeners for overlay");
 
         // handle some messages in the integration

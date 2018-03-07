@@ -1,161 +1,254 @@
 /**
  * Test if we want do enable legacy game patching.
  */
-import {IGameConfig, logger} from "../_common/common";
+import {logger} from "../_common/common";
 import {injectStyle} from "../_common/dom";
-import {onLoad, onDOMLoad} from "../_common/events";
+import {onDOMLoad, onLoad} from "../_common/events";
+import {executeRequestInParent, executeRequestLocally, Request, Response} from "../_common/request";
+import {MessageClient} from "../_common/message-client";
 
-function replaceResponseText(xhr: XMLHttpRequest, statusCode: number, responseText: string): void {
-    Object.defineProperty(xhr, "readyState", {get: () => 4});
-    Object.defineProperty(xhr, "status", {get: () => statusCode});
-    Object.defineProperty(xhr, "responseText", {get: () => responseText});
-}
+type XHRHandler = (xhr: _XMLHttpRequest, ...args: any[]) => void;
 
-function patchXMLHttpRequest(gameConfig: IGameConfig) {
-    const log = logger("[zig-xhr]");
-    const XMLHttpRequest = window["XMLHttpRequest"];
+const mc = new MessageClient(window.parent);
 
-    function ZigXMLHttpRequest() {
-        const xhr: XMLHttpRequest = new XMLHttpRequest();
+const RealXMLHttpRequest: XMLHttpRequest = window["XMLHttpRequest"];
 
-        // Do not let the script set its own headers.
-        //
-        const xhrSetRequestHeader = xhr.setRequestHeader;
-        xhr.setRequestHeader = (key: string, value: string) => {
-            if (xhr.readyState == XMLHttpRequest.OPENED) {
-                if (key.toLowerCase() === "content-type") {
-                    log(`Set Content-Type header with value ${value}`);
-                    xhrSetRequestHeader.call(xhr, key, value);
-                    return;
-                }
-            }
+class _XMLHttpRequest {
+    private readonly request: Request = {
+        method: "GET",
+        path: "/",
+        body: "",
+        headers: {},
+    };
 
-            log(`Ignoring '${key}: ${value}' header set by script.`)
-        };
+    private readonly loadHandlers: XHRHandler[] = [];
+    private readonly errorHandlers: XHRHandler[] = [];
+    private readonly readyStateChangeHandlers: XHRHandler[] = [];
 
-        // Override the open function to intercept all requests by the client.
-        //
-        const xhrOpen = xhr.open;
-        xhr.open = function (method: string, url: string, ...args: any[]): void {
-            log(`Script wants to do ${method} request with url ${url}`);
+    public readyState: number = XMLHttpRequest.UNSENT;
 
-            // mojimoney is wrongly requesting "../resource", so we change it to "./resource".
-            url = url.replace(/^\.\.\//, "./");
+    public status: number = 0;
+    public responseText: string = null;
 
-            if (url.match("/product/iwg/[^/]+/tickets(\\?|$)")) {
-                log(`Rewrite buy ticket url using game config endpoint ${gameConfig.endpoint}`);
-                url = gameConfig.endpoint + "/tickets";
-            }
+    public onreadystatechange: XHRHandler = null;
+    public onerror: XHRHandler = null;
+    public onload: XHRHandler = null;
 
-            if (url.match("/product/iwg/[^/]+/demoticket(\\?|$)")) {
-                log(`Rewrite demo ticket url using game config endpoint ${gameConfig.endpoint}`);
-                url = gameConfig.endpoint + "/demo";
-            }
-
-            const matchSettle = url.match("/product/iwg/[^/]+/tickets/([^/]+)/settle");
-            if (matchSettle !== null) {
-                log(`Rewrite settle url using game config endpoint ${gameConfig.endpoint}`);
-
-                const id = matchSettle[1];
-                url = gameConfig.endpoint + "/tickets/" + encodeURIComponent(id) + "/settle";
-            }
-
-            const matchBundle = url.match("/iwg/bundles/([0-9]+)(?:\\?|$)");
-            if (matchBundle !== null) {
-                log(`Rewrite bundle ticket url using game config endpoint ${gameConfig.endpoint}`);
-
-                const id = matchBundle[1];
-                url = gameConfig.endpoint + "/bundles/" + id;
-            }
-
-            const matchActivate = url.match("/product/iwg/[^/]+/tickets/([0-9]+)/activate");
-            if (matchActivate !== null) {
-                log(`Rewrite bundle ticket activate url using game config endpoint ${gameConfig.endpoint}`);
-
-                const id = matchActivate[1];
-                url = gameConfig.endpoint + "/tickets/" + encodeURIComponent(id) + "/activate"
-            }
-
-            // Handle the key/value endpoint by delegating it to localStorage.
-            const matchState = url.match("/product/iwg/[^/]+/tickets/([^/]+)/state$");
-            if (matchState !== null) {
-                log(`Simulate game-state kv endpoint using localStorage`);
-
-                const [, ticketId] = matchState;
-
-                xhr.send = function (body: any) {
-                    const key = "zig-state." + ticketId;
-
-                    if (method === "POST") {
-                        localStorage.setItem(key, body);
-                        replaceResponseText(xhr, 200, "");
-                        return;
-                    }
-
-                    if (method === "GET") {
-                        const value = localStorage.getItem(key);
-                        if (value == null) {
-                            replaceResponseText(xhr, 404, "{}");
-                        } else {
-                            replaceResponseText(xhr, 200, value);
-                        }
-                    }
-
-                    if (xhr.onreadystatechange) {
-                        (xhr as any).onreadystatechange(xhr, null);
-                    }
-                };
-
-                return;
-            }
-
-            // for testing we might need to send credentials
-            xhr.withCredentials = (gameConfig.withCredentials === true);
-
-            // do the real open call with the rewritten parameters.
-            xhrOpen.call(xhr, method, url, ...args);
-
-            // also forward the "normal" requested headers
-            for (const headerName of Object.keys(gameConfig.headers)) {
-                const headerValue = gameConfig.headers[headerName];
-                xhrSetRequestHeader.call(xhr, headerName, headerValue);
-            }
-        };
-
-        // elferliga is using addEventListener("load")
-        const xhrAddEventListener = xhr.addEventListener;
-        xhr.addEventListener = (eventType: string, handler: (this: XMLHttpRequest, ev: Event) => void) => {
-            if (eventType === "load") {
-                log(`Fake 'load' event handler using onreadystatechange.`);
-
-                xhr.onreadystatechange = ev => {
-                    if (xhr.readyState === XMLHttpRequest.DONE) {
-                        handler.call(xhr, ev);
-                    }
-                };
-
-                return;
-            }
-
-            if (eventType === "readystatechange") {
-                xhr.onreadystatechange = handler;
-                return;
-            }
-
-            xhrAddEventListener.call(xhr, eventType, handler);
-        };
-
-        return xhr;
+    public setRequestHeader(key: string, value: string): void {
+        this.request.headers[key] = value;
     }
 
-    // Copy static fields from the original XMLHttpRequest
-    Object.keys(XMLHttpRequest).forEach(key => {
-        log(`Copy static field ${key} to fake XHR object.`);
-        ZigXMLHttpRequest[key] = XMLHttpRequest[key];
-    });
+    public open(method: string, url: string): void {
+        this.request.method = method.toUpperCase();
+        this.request.path = url;
+        this.readyState = XMLHttpRequest.OPENED;
+    }
 
-    window["XMLHttpRequest"] = ZigXMLHttpRequest;
+    public send(body: string | null = null): void {
+        this.request.body = body;
+        void this._execute();
+    }
+
+    private async _execute(): Promise<void> {
+        const isApiRequest = new RegExp("^(/product/iwg|/iwg)").test(this.request.path);
+
+        this.readyState = XMLHttpRequest.LOADING;
+
+        try {
+            let response: Response;
+            if (isApiRequest) {
+                response = await executeRequestInParent(mc, this.request);
+            } else {
+                response = await executeRequestLocally(this.request);
+            }
+
+            this.responseText = response.body;
+            this.status = response.statusCode;
+
+            this.readyState = XMLHttpRequest.DONE;
+            this._handlers(this.onload, this.loadHandlers);
+            this._handlers(this.onreadystatechange, this.readyStateChangeHandlers);
+
+        } catch (err) {
+            this.readyState = XMLHttpRequest.DONE;
+            this._handlers(this.onerror, this.errorHandlers, err);
+        }
+    }
+
+    private _handlers(handler: XHRHandler, handlers: XHRHandler[], ...args: any[]) {
+        if (handler) {
+            handler(this, ...args);
+        }
+
+        handlers.forEach(handler => handler(this, ...args));
+    }
+
+    public addEventListener(eventType: string, handler: XHRHandler): void {
+        switch (eventType) {
+            case "load":
+                this.loadHandlers.push(handler);
+                break;
+
+            case "error":
+                this.errorHandlers.push(handler);
+                break;
+
+            case "readystatechange":
+                this.readyStateChangeHandlers.push(handler);
+                break;
+
+            default:
+                throw new Error(`Unknown event type: ${eventType}`);
+        }
+    }
 }
+
+//
+// function patchXMLHttpRequest(gameConfig: IGameConfig) {
+//     const log = logger("[zig-xhr]");
+//     const XMLHttpRequest = window["XMLHttpRequest"];
+//
+//     function ZigXMLHttpRequest() {
+//         const xhr: XMLHttpRequest = new XMLHttpRequest();
+//
+//         // Do not let the script set its own headers.
+//         //
+//         const xhrSetRequestHeader = xhr.setRequestHeader;
+//         xhr.setRequestHeader = (key: string, value: string) => {
+//             if (xhr.readyState == XMLHttpRequest.OPENED) {
+//                 if (key.toLowerCase() === "content-type") {
+//                     log(`Set Content-Type header with value ${value}`);
+//                     xhrSetRequestHeader.call(xhr, key, value);
+//                     return;
+//                 }
+//             }
+//
+//             log(`Ignoring '${key}: ${value}' header set by script.`)
+//         };
+//
+//         // Override the open function to intercept all requests by the client.
+//         //
+//         const xhrOpen = xhr.open;
+//         xhr.open = function (method: string, url: string, ...args: any[]): void {
+//             log(`Script wants to do ${method} request with url ${url}`);
+//
+//             // mojimoney is wrongly requesting "../resource", so we change it to "./resource".
+//             url = url.replace(/^\.\.\//, "./");
+//
+//             if (url.match("/product/iwg/[^/]+/tickets(\\?|$)")) {
+//                 log(`Rewrite buy ticket url using game config endpoint ${gameConfig.endpoint}`);
+//                 url = gameConfig.endpoint + "/tickets";
+//             }
+//
+//             if (url.match("/product/iwg/[^/]+/demoticket(\\?|$)")) {
+//                 log(`Rewrite demo ticket url using game config endpoint ${gameConfig.endpoint}`);
+//                 url = gameConfig.endpoint + "/demo";
+//             }
+//
+//             const matchSettle = url.match("/product/iwg/[^/]+/tickets/([^/]+)/settle");
+//             if (matchSettle !== null) {
+//                 log(`Rewrite settle url using game config endpoint ${gameConfig.endpoint}`);
+//
+//                 const id = matchSettle[1];
+//                 url = gameConfig.endpoint + "/tickets/" + encodeURIComponent(id) + "/settle";
+//             }
+//
+//             const matchBundle = url.match("/iwg/bundles/([0-9]+)(?:\\?|$)");
+//             if (matchBundle !== null) {
+//                 log(`Rewrite bundle ticket url using game config endpoint ${gameConfig.endpoint}`);
+//
+//                 const id = matchBundle[1];
+//                 url = gameConfig.endpoint + "/bundles/" + id;
+//             }
+//
+//             const matchActivate = url.match("/product/iwg/[^/]+/tickets/([0-9]+)/activate");
+//             if (matchActivate !== null) {
+//                 log(`Rewrite bundle ticket activate url using game config endpoint ${gameConfig.endpoint}`);
+//
+//                 const id = matchActivate[1];
+//                 url = gameConfig.endpoint + "/tickets/" + encodeURIComponent(id) + "/activate"
+//             }
+//
+//             // Handle the key/value endpoint by delegating it to localStorage.
+//             const matchState = url.match("/product/iwg/[^/]+/tickets/([^/]+)/state$");
+//             if (matchState !== null) {
+//                 log(`Simulate game-state kv endpoint using localStorage`);
+//
+//                 const [, ticketId] = matchState;
+//
+//                 xhr.send = function (body: any) {
+//                     const key = "zig-state." + ticketId;
+//
+//                     if (method === "POST") {
+//                         localStorage.setItem(key, body);
+//                         replaceResponseText(xhr, 200, "");
+//                         return;
+//                     }
+//
+//                     if (method === "GET") {
+//                         const value = localStorage.getItem(key);
+//                         if (value == null) {
+//                             replaceResponseText(xhr, 404, "{}");
+//                         } else {
+//                             replaceResponseText(xhr, 200, value);
+//                         }
+//                     }
+//
+//                     if (xhr.onreadystatechange) {
+//                         (xhr as any).onreadystatechange(xhr, null);
+//                     }
+//                 };
+//
+//                 return;
+//             }
+//
+//             // for testing we might need to send credentials
+//             xhr.withCredentials = (gameConfig.withCredentials === true);
+//
+//             // do the real open call with the rewritten parameters.
+//             xhrOpen.call(xhr, method, url, ...args);
+//
+//             // also forward the "normal" requested headers
+//             for (const headerName of Object.keys(gameConfig.headers)) {
+//                 const headerValue = gameConfig.headers[headerName];
+//                 xhrSetRequestHeader.call(xhr, headerName, headerValue);
+//             }
+//         };
+//
+//         // elferliga is using addEventListener("load")
+//         const xhrAddEventListener = xhr.addEventListener;
+//         xhr.addEventListener = (eventType: string, handler: (this: XMLHttpRequest, ev: Event) => void) => {
+//             if (eventType === "load") {
+//                 log(`Fake 'load' event handler using onreadystatechange.`);
+//
+//                 xhr.onreadystatechange = ev => {
+//                     if (xhr.readyState === XMLHttpRequest.DONE) {
+//                         handler.call(xhr, ev);
+//                     }
+//                 };
+//
+//                 return;
+//             }
+//
+//             if (eventType === "readystatechange") {
+//                 xhr.onreadystatechange = handler;
+//                 return;
+//             }
+//
+//             xhrAddEventListener.call(xhr, eventType, handler);
+//         };
+//
+//         return xhr;
+//     }
+//
+//     // Copy static fields from the original XMLHttpRequest
+//     Object.keys(XMLHttpRequest).forEach(key => {
+//         log(`Copy static field ${key} to fake XHR object.`);
+//         ZigXMLHttpRequest[key] = XMLHttpRequest[key];
+//     });
+//
+//     window["XMLHttpRequest"] = ZigXMLHttpRequest;
+// }
 
 function patchInstantWinGamingStyles() {
     // add script for old instant win gaming games to improve scaling
@@ -241,10 +334,9 @@ export function isLegacyGame(): boolean {
 }
 
 
-export function patchLegacyGame(gameConfig: IGameConfig) {
+export function patchLegacyGame() {
     // Inject code to rewrite request rules and everything.
-    patchXMLHttpRequest(gameConfig);
-
+    window["XMLHttpRequest"] = _XMLHttpRequest;
 
     onDOMLoad(() => {
         let log = logger("[zig-legacy]");

@@ -1,10 +1,11 @@
 import {isLegacyGame, patchLegacyGame} from "./zig-legacy";
-import {IGameConfig, ITicket, logger} from "../_common/common";
+import {ITicket, logger} from "../_common/common";
 import {MessageClient, toErrorValue} from "../_common/message-client";
 import {objectAssignPolyfill} from "../_common/polyfill";
 import {buildTime, clientVersion} from "../_common/vars";
 import {delegateToVersion} from "../_common/delegate";
 import {Options} from "../_common/options";
+import {executeRequestInParent} from "../_common/request";
 
 const log = logger("[zig-client]");
 
@@ -30,7 +31,7 @@ export interface BuyTicketOptions {
 class ZigClient {
     private readonly messageClient: MessageClient;
 
-    constructor(private gameConfig: IGameConfig) {
+    constructor() {
         this.messageClient = new MessageClient(window.parent);
     }
 
@@ -38,7 +39,7 @@ class ZigClient {
         return await this.propagateErrors(async () => {
             const quantity: number = options.quantity || guessQuantity(payload);
 
-            const url = this.gameConfig.endpoint + "/tickets?quantity=" + quantity;
+            const url = "/product/iwg/tickets?quantity=" + quantity;
             const ticket = await this.request<ITicket>("POST", url, payload);
 
             this.sendGameStartedEvent(options, ticket);
@@ -52,7 +53,7 @@ class ZigClient {
             const quantity: number = options.quantity || guessQuantity(payload);
             const wcParam = Options.winningClassOverride && `&wc=${Options.winningClassOverride.winningClass}` || "";
 
-            const url = `${this.gameConfig.endpoint}/demo?quantity=${quantity}${wcParam}`;
+            const url = `/product/iwg/demo?quantity=${quantity}${wcParam}`;
             let ticket = await this.request<ITicket>("POST", url, payload);
 
             this.sendGameStartedEvent(options, ticket);
@@ -76,7 +77,7 @@ class ZigClient {
 
     public async settleTicket(id: string): Promise<void> {
         return await this.propagateErrors(async () => {
-            const url = this.gameConfig.endpoint + "/tickets/" + encodeURIComponent(id) + "/settle";
+            const url = "/product/iwg/tickets/" + encodeURIComponent(id) + "/settle";
             const response = await this.request<any>("POST", url);
 
             this.messageClient.send({
@@ -98,32 +99,18 @@ class ZigClient {
     }
 
     private async request<T>(method: string, url: string, body: any = null): Promise<T> {
-        return new Promise<T>((resolve, reject) => {
-            const req = new XMLHttpRequest();
-
-            req.onreadystatechange = () => {
-                if (req.readyState === XMLHttpRequest.DONE) {
-                    if (Math.floor(req.status / 100) === 2) {
-                        resolve(JSON.parse(req.responseText || "null"));
-                    } else {
-                        reject(toErrorValue(req));
-                    }
-                }
-            };
-
-            req.withCredentials = (this.gameConfig.withCredentials === true);
-
-            req.open(method, url, true);
-
-            // forward the requested headers
-            for (const headerName of Object.keys(this.gameConfig.headers)) {
-                const headerValue = this.gameConfig.headers[headerName];
-                log(headerName, headerValue);
-                req.setRequestHeader(headerName, headerValue);
-            }
-
-            req.send(body !== null ? JSON.stringify(body) : null);
+        const result = await executeRequestInParent(this.messageClient, {
+            method,
+            path: url,
+            body: body === null ? null : JSON.stringify(body),
+            headers: {},
         });
+
+        if (Math.floor(result.statusCode / 100) === 2) {
+            return JSON.parse(result.body || "null");
+        } else {
+            throw toErrorValue(result);
+        }
     }
 
     public trackGameHeight(markerOrSelector: HTMLElement | string): void {
@@ -146,7 +133,7 @@ class ZigClient {
         window.setInterval(() => {
             // if we don't have a marker yet, we'll look for it
             if (marker == null && typeof markerOrSelector === "string") {
-                marker = document.querySelector(markerOrSelector);
+                marker = <HTMLElement>document.querySelector(markerOrSelector);
             }
 
             // if we still don't have a marker, we'll fail.
@@ -166,47 +153,9 @@ class ZigClient {
 
     private publishMessage(command: string, extras: object): void {
         const message = Object.assign({command}, extras);
+
         log("Publishing message ", message);
         window.parent.postMessage(message, "*");
-    }
-}
-
-/**
- * Extracts the game config from the pages url.
- * Throws an error if extraction is not possible.
- */
-function extractGameConfig(): IGameConfig {
-    const match = /[?#].*\bconfig=([a-zA-Z0-9+-]+=*)/.exec(location.href);
-    if (match == null) {
-        throw new Error("no config parameter found")
-    }
-
-    const config: IGameConfig = JSON.parse(atob(match[1]));
-    if (!config) {
-        throw new Error("config is empty");
-    }
-
-    if (config.endpoint == null) {
-        throw new Error("endpoint not set in config")
-    }
-
-    config.headers = config.headers || {};
-    return config;
-}
-
-class UpdatingGameConfig implements IGameConfig {
-    endpoint: string;
-    headers: { [p: string]: string };
-
-    constructor(config: IGameConfig) {
-        Object.assign(this, config);
-
-        const messageClient = new MessageClient(window.parent);
-        messageClient.register("updateRequestHeaders", message => {
-            if (typeof message.headers === "object") {
-                this.headers = message.headers;
-            }
-        });
     }
 }
 
@@ -214,16 +163,16 @@ function main() {
     // initialize Object.assign polyfill for ie11.
     objectAssignPolyfill();
 
-    const gameConfig = new UpdatingGameConfig(extractGameConfig());
-
     if (isLegacyGame()) {
         log("Enable legacy game patches");
-        patchLegacyGame(gameConfig);
+        patchLegacyGame();
     }
 
     // expose types to user of this library
-    window["ZigMessageClient"] = MessageClient;
-    window["ZigClient"] = new ZigClient(gameConfig);
+    window["Zig"] = window["Zig"] || {};
+
+    window["Zig"].MessageClient = new MessageClient(window.parent);
+    window["Zig"].Client = new ZigClient();
 }
 
 if (!delegateToVersion("zig.min.js")) {

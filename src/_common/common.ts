@@ -33,20 +33,8 @@ export interface IError {
 }
 
 export interface IGameConfig {
-    endpoint: string;
-    headers: { [key: string]: string; };
-
-    // disable overlay in the outer.html
-    noOverlay?: boolean;
-
-    // for testing only. Enables xhr.withCredentials if set.
-    withCredentials?: boolean;
-
-    // for development. Will be added to the url.
-    dev?: {
-        scenario: string;
-        winningClass: string;
-    }
+    // set to true to enable overlay in the outer.html
+    overlay?: boolean;
 }
 
 export interface IGameSettings {

@@ -4,8 +4,8 @@ module.exports = {
     entry: {
         "integration": "./src/integration/integration.ts",
         "wrapper": "./src/wrapper/wrapper.ts",
-        "debug-page": "./src/debug-page/debug-page.tsx",
         "zig": "./src/zig/zig.ts",
+        // "debug-page": "./src/debug-page/debug-page.tsx",
     },
 
     output: {

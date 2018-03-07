@@ -1,5 +1,6 @@
 import {IGameConfig, IGameSettings, logger} from "../_common/common";
 import {MessageClient} from "../_common/message-client";
+import {registerRequestListener} from "../_common/request";
 
 const log = logger("[zig-int]");
 
@@ -8,8 +9,15 @@ class Integration {
 
     constructor(private wrapper: HTMLDivElement, private frame: HTMLIFrameElement) {
         this.messageClient = new MessageClient(frame.contentWindow);
-        this.messageClient.register("updateGameHeight", ev => this.updateGameHeight(ev.height));
-        this.messageClient.register("updateGameSettings", ev => this.updateGameSettings(ev.gameSettings));
+        this.messageClient.register(
+            "updateGameHeight", ev => this.updateGameHeight(ev.height));
+
+        this.messageClient.register(
+            "updateGameSettings", ev => this.updateGameSettings(ev.gameSettings));
+
+        // register handler for http requests.
+        registerRequestListener(this.messageClient);
+
         this.messageClient.registerWildcard(ev => log(`Got message of type ${ev.command}`))
     }
 
@@ -61,6 +69,7 @@ export function includeZigGame(targetSelector: string, url: string, config: IGam
     const encodedConfig = btoa(JSON.stringify(config));
     const frameSource = url = url + "?config=" + encodedConfig;
 
+    // The iframe containing the game.
     const frame = document.createElement("iframe");
     frame.src = frameSource;
     frame.allowFullscreen = true;
@@ -68,10 +77,13 @@ export function includeZigGame(targetSelector: string, url: string, config: IGam
     frame.style.border = "0";
     frame.style.width = "100%";
 
+    // a div wrapping the iframe.
+    // This one is used for aspect ratio based scaling of the iframe.
     const wrapper = document.createElement("div");
     wrapper.style.width = "100%";
     wrapper.appendChild(frame);
 
+    // put the wrapper into the target element.
     const target = document.querySelector(targetSelector);
     target.appendChild(wrapper);
 
@@ -79,4 +91,7 @@ export function includeZigGame(targetSelector: string, url: string, config: IGam
 }
 
 // expose to the client.
-window["includeZigGame"] = includeZigGame;
+window["Zig"] = {
+    include: includeZigGame,
+    observe: zigObserveGame,
+};
