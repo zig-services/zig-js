@@ -5,7 +5,7 @@ module.exports = {
         "integration": "./src/integration/integration.ts",
         "wrapper": "./src/wrapper/wrapper.ts",
         "zig": "./src/zig/zig.ts",
-        // "debug-page": "./src/debug-page/debug-page.tsx",
+        "debug-page": "./src/debug-page/debug-page.tsx",
     },
 
     output: {
