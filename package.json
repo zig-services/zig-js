@@ -2,7 +2,6 @@
   "name": "zig-client-js",
   "version": "0.2.13",
   "description": "",
-  "main": "zig.js",
   "author": "",
   "license": "MIT",
   "devDependencies": {
