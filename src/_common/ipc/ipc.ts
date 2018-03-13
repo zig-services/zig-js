@@ -8,7 +8,7 @@ export interface Message {
     content: any;
 }
 
-class QueueInfo {
+export class QueueInfo {
     public readonly key: string;
 
     constructor(public readonly game: string,

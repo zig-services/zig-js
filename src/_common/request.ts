@@ -6,11 +6,16 @@ export interface Request {
     path: string;
     headers: { [key: string]: string };
     body: string;
+
+    extraSettings?: any;
 }
 
 export interface Response {
     statusCode: number;
     body: string;
+
+    // the raw response
+    xhr?: XMLHttpRequest;
 }
 
 export interface Result {
@@ -24,7 +29,7 @@ interface WithCID<T> {
 }
 
 export async function executeRequestLocally(req: Request): Promise<Response> {
-    const result = await _executeRequestLocally(this.request);
+    const result = await _executeRequestLocally(req);
     if (result.error) {
         throw result.error;
     }
@@ -34,16 +39,23 @@ export async function executeRequestLocally(req: Request): Promise<Response> {
 
 const log = logger("[zig-xhr]");
 
+const RealXMLHttpRequest = XMLHttpRequest;
+
 async function _executeRequestLocally(req: Request): Promise<Result> {
     log("Execute http request", req);
 
-    const xhr = new XMLHttpRequest();
+    const xhr = new RealXMLHttpRequest();
 
     xhr.open(req.method, req.path);
 
     // copy request headers to request
     Object.keys(req.headers || {}).forEach(key => {
         xhr.setRequestHeader(key, req.headers[key]);
+    });
+
+    // copy extra properties.
+    Object.keys(req.extraSettings || {}).forEach(key => {
+        xhr[key] = req.extraSettings[key];
     });
 
     // set the x-csrf header based on the cookie value.
@@ -58,10 +70,17 @@ async function _executeRequestLocally(req: Request): Promise<Result> {
         // forward request results
         xhr.onreadystatechange = () => {
             if (xhr.readyState === XMLHttpRequest.DONE) {
+                let body: string | null = null;
+
+                if (xhr.responseType === "" || xhr.responseType === "text") {
+                    body = xhr.responseText;
+                }
+
                 const result: Result = {
                     response: {
                         statusCode: xhr.status,
-                        body: xhr.responseText,
+                        body: body,
+                        xhr: xhr,
                     }
                 };
 
@@ -80,6 +99,12 @@ export function registerRequestListener(mc: MessageClient, handler: (req: Reques
     mc.register("zig.XMLHttpRequest.request", async (message) => {
         const req: WithCID<Request> = message.request;
         const result = await handler(req.data);
+
+        if (result.response) {
+            // remove xhr before sending it via post message.
+            delete result.response["xhr"];
+        }
+
         mc.send({
             command: "zig.XMLHttpRequest.result",
             result: <WithCID<Response>>{cid: req.cid, data: result},

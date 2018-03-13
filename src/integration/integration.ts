@@ -1,6 +1,7 @@
-import {IGameConfig, IGameSettings, logger} from "../_common/common";
+import {IGameSettings, logger} from "../_common/common";
 import {MessageClient} from "../_common/message-client";
 import {registerRequestListener, Request, Result} from "../_common/request";
+import {appendGameConfigToURL, IGameConfig} from "../_common/config";
 
 const log = logger("[zig-int]");
 
@@ -41,7 +42,7 @@ class Integration {
     }
 }
 
-function zigObserveGame(wrapper: HTMLDivElement, frame: HTMLIFrameElement): MessageClient {
+export function zigObserveGame(wrapper: HTMLDivElement, frame: HTMLIFrameElement): MessageClient {
     const game = new Integration(wrapper, frame);
 
     const mutationObserver = new MutationObserver(mu => {
@@ -66,8 +67,7 @@ function zigObserveGame(wrapper: HTMLDivElement, frame: HTMLIFrameElement): Mess
 }
 
 export function includeZigGame(targetSelector: string, url: string, config: IGameConfig): MessageClient {
-    const encodedConfig = btoa(JSON.stringify(config));
-    const frameSource = url = url + "?config=" + encodedConfig;
+    const frameSource = appendGameConfigToURL(url, config);
 
     // The iframe containing the game.
     const frame = document.createElement("iframe");
@@ -90,14 +90,16 @@ export function includeZigGame(targetSelector: string, url: string, config: IGam
     return zigObserveGame(wrapper, frame);
 }
 
-function registerHTTPHandlerOnly(frame: HTMLIFrameElement, handler: (r: Request) => Promise<Result> = undefined) {
+export function registerHTTPHandlerOnly(frame: HTMLIFrameElement, handler: (r: Request) => Promise<Result> = undefined) {
     const messageClient = new MessageClient(frame.contentWindow);
     registerRequestListener(messageClient, handler);
 }
 
-// expose to the client.
-window["Zig"] = {
+export const Zig = {
     include: includeZigGame,
     observe: zigObserveGame,
     registerHTTPHandlerOnly: registerHTTPHandlerOnly,
 };
+
+// expose to the client also.
+window["Zig"] = Zig;

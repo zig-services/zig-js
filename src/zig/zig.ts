@@ -6,19 +6,9 @@ import {buildTime, clientVersion} from "../_common/vars";
 import {delegateToVersion} from "../_common/delegate";
 import {Options} from "../_common/options";
 import {executeRequestInParent} from "../_common/request";
+import {IGameConfig, parseGameConfigFromURL} from "../_common/config";
 
 const log = logger("[zig-client]");
-
-function guessQuantity(payload: any | undefined): number {
-    if (payload != null && typeof payload === "object") {
-        if (payload.rows && payload.rows.length) {
-            // sofortlotto like payload
-            return payload.rows.length;
-        }
-    }
-
-    return 1;
-}
 
 export interface BuyTicketOptions {
     // Set to true if the ticket is seen as immediately settled.
@@ -31,7 +21,7 @@ export interface BuyTicketOptions {
 class ZigClient {
     private readonly messageClient: MessageClient;
 
-    constructor() {
+    constructor(private readonly gameConfig: IGameConfig = parseGameConfigFromURL()) {
         this.messageClient = new MessageClient(window.parent);
     }
 
@@ -39,7 +29,7 @@ class ZigClient {
         return await this.propagateErrors(async () => {
             const quantity: number = options.quantity || guessQuantity(payload);
 
-            const url = "/product/iwg/tickets?quantity=" + quantity;
+            const url = `/product/iwg/${this.gameConfig.canonicalGameName}/tickets?quantity=${quantity}`;
             const ticket = await this.request<ITicket>("POST", url, payload);
 
             this.sendGameStartedEvent(options, ticket);
@@ -51,9 +41,15 @@ class ZigClient {
     public async demoTicket(payload: any = {}, options: BuyTicketOptions = {}): Promise<ITicket> {
         return await this.propagateErrors(async () => {
             const quantity: number = options.quantity || guessQuantity(payload);
-            const wcParam = Options.winningClassOverride && `&wc=${Options.winningClassOverride.winningClass}` || "";
 
-            const url = `/product/iwg/demo?quantity=${quantity}${wcParam}`;
+            let url = `/product/iwg/${this.gameConfig.canonicalGameName}/demo?quantity=${quantity}`;
+
+            if (Options.winningClassOverride) {
+                // append extra config parameters if the winning class
+                url += `&wc=${Options.winningClassOverride.winningClass}`;
+                url += `&scenarioId=${Options.winningClassOverride.scenarioId}`;
+            }
+
             let ticket = await this.request<ITicket>("POST", url, payload);
 
             this.sendGameStartedEvent(options, ticket);
@@ -77,7 +73,7 @@ class ZigClient {
 
     public async settleTicket(id: string): Promise<void> {
         return await this.propagateErrors(async () => {
-            const url = "/product/iwg/tickets/" + encodeURIComponent(id) + "/settle";
+            const url = `/product/iwg/${this.gameConfig.canonicalGameName}/tickets/${encodeURIComponent(id)}/settle`;
             const response = await this.request<any>("POST", url);
 
             this.messageClient.send({
@@ -133,7 +129,7 @@ class ZigClient {
         window.setInterval(() => {
             // if we don't have a marker yet, we'll look for it
             if (marker == null && typeof markerOrSelector === "string") {
-                marker = <HTMLElement>document.querySelector(markerOrSelector);
+                marker = document.querySelector(markerOrSelector) as HTMLElement;
             }
 
             // if we still don't have a marker, we'll fail.
@@ -146,17 +142,21 @@ class ZigClient {
 
             if (difference > 1) {
                 previousMarkerTop = markerTop;
-                this.publishMessage("updateGameHeight", {height: markerTop});
+                this.messageClient.send({command: "updateGameHeight", height: markerTop});
             }
         }, 100);
     }
+}
 
-    private publishMessage(command: string, extras: object): void {
-        const message = Object.assign({command}, extras);
-
-        log("Publishing message ", message);
-        window.parent.postMessage(message, "*");
+function guessQuantity(payload: any | undefined): number {
+    if (payload != null && typeof payload === "object") {
+        if (payload.rows && payload.rows.length) {
+            // sofortlotto like payload
+            return payload.rows.length;
+        }
     }
+
+    return 1;
 }
 
 function main() {

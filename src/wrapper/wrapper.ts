@@ -1,34 +1,22 @@
 import 'promise-polyfill/src/polyfill';
 
-import {IError, IGameConfig, IGameSettings, logger, sleep} from "../_common/common";
+import {IError, IGameSettings, logger, sleep} from "../_common/common";
 import {MessageClient} from "../_common/message-client";
 import {injectStyle} from "../_common/dom";
 import {clientVersion} from "../_common/vars";
 import {delegateToVersion} from "../_common/delegate";
 import {onDOMLoad} from "../_common/events";
 import {Options} from "../_common/options";
+import {appendGameConfigToURL, parseGameConfigFromURL} from "../_common/config";
 
 const log = logger("[zig-wrapper]");
 
 /**
  * Get game config from window
  */
-const GameSettings = <IGameSettings>window["GameSettings"];
+const GameSettings = window["GameSettings"] as IGameSettings;
 if (GameSettings == null) {
     throw new Error("window.GameConfig must be initialized.");
-}
-
-/**
- * Get the config parameter from the current location. This parameter will be
- * forwarded to the inner iframe.
- */
-function extractConfigParameter(): string {
-    const match = /\?.*\bconfig=([a-zA-Z0-9+-]+=*)/.exec(location.href);
-    if (match == null) {
-        throw new Error("no config parameter found.")
-    }
-
-    return match[1];
 }
 
 /**
@@ -36,10 +24,10 @@ function extractConfigParameter(): string {
  * This method will add the iframe to the body of the page.
  */
 async function initializeGame(): Promise<HTMLIFrameElement> {
-    const config = extractConfigParameter();
+    const config = parseGameConfigFromURL();
+    let url = appendGameConfigToURL("inner.html", config);
 
-    let url = GameSettings.index + "#config=" + config;
-
+    // legacy games need extra patching. We'll need to inform the inner.html about that.
     if (GameSettings.legacyGame === true) {
         url += "&legacyGame=true";
     }
@@ -126,8 +114,7 @@ function proxyMessages(parentMessageClient: MessageClient, innerMessageClient: M
         innerMessageClient.send(ev)
     });
 
-    const gameConfig: IGameConfig = JSON.parse(atob(extractConfigParameter()));
-    if (gameConfig.overlay) {
+    if (parseGameConfigFromURL().overlay) {
         log("Register messages listeners for overlay");
 
         // handle some messages in the integration
@@ -154,12 +141,6 @@ function showControls(messageClient: MessageClient) {
         messageClient.send("playGame");
         div.parentNode.removeChild(div);
     }
-}
-
-function replaceGameConfig(gameConfig: IGameConfig) {
-    log("Reload with game config replaced with:", gameConfig);
-    const config = btoa(JSON.stringify(gameConfig));
-    location.href = location.href.replace(/\bconfig=[^&]+/, `config=${config}`);
 }
 
 function initializeWinningClassOverride(): boolean {
@@ -197,9 +178,10 @@ onDOMLoad(() => {
     // inject the css style for the wrapper into the document
     injectStyle(require("./style.css"));
 
-    initializeGame();
+    void initializeGame();
 
     if (Options.debuggingLayer) {
+        log("Debugging options are set, showing debugging layer now.");
         document.body.style.borderTop = "0.5em solid red";
     }
 });

@@ -32,11 +32,6 @@ export interface IError {
     details?: string;
 }
 
-export interface IGameConfig {
-    // set to true to enable overlay in the outer.html
-    overlay?: boolean;
-}
-
 export interface IGameSettings {
     index: string;
     aspect: number;
