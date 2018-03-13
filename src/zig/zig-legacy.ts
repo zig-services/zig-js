@@ -59,7 +59,7 @@ function _XMLHttpRequest() {
     }
 
     replace("open", open => {
-        return (method, url) => {
+        return (method, url, async) => {
             const needsIntercept = new RegExp("^(?:https?://[^/]+)?(/product/iwg|/iwg)").test(url);
             if (needsIntercept) {
                 log(`Intercepting xhr request: ${method} ${url}`);
@@ -72,6 +72,11 @@ function _XMLHttpRequest() {
 
                 replace("setRequestHeader", () => {
                     return (header, value) => {
+                        // let the parent fill this one in.
+                        if(header.toUpperCase() === "X-CSRF-TOKEN") {
+                            return;
+                        }
+
                         req.headers[header] = value;
                     };
                 });
@@ -84,7 +89,7 @@ function _XMLHttpRequest() {
 
 
             } else {
-                open(method, url);
+                open(method, url, async);
             }
         };
     });
