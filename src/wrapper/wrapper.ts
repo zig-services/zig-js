@@ -26,7 +26,7 @@ const GameConfig: IGameConfig = JSON.parse(atob(extractConfigParameter()));
  * forwarded to the inner iframe.
  */
 function extractConfigParameter(): string {
-    const match = /\?.*\bconfig=([a-zA-Z0-9+-]+=*)/.exec(location.href);
+    const match = /[?#].*\bconfig=([a-zA-Z0-9/_]+=*)/.exec(location.href);
     if (match == null) {
         throw new Error("no config parameter found.")
     }
