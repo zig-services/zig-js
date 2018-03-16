@@ -6,6 +6,7 @@ import {injectStyle} from "../_common/dom";
 import {onDOMLoad, onLoad} from "../_common/events";
 import {MessageClient} from "../_common/message-client";
 import {executeRequestInParent, Request, Response} from "../_common/request";
+import {parseGameConfigFromURL} from "../_common/config";
 
 const mc = new MessageClient(window.parent);
 
@@ -13,12 +14,18 @@ const log = logger("[zig-xhr]");
 
 const RealXMLHttpRequest: typeof XMLHttpRequest = window["XMLHttpRequest"];
 
+const gameConfig = parseGameConfigFromURL();
+
 function _XMLHttpRequest() {
     const xhr = new RealXMLHttpRequest();
 
     function replace<K extends keyof XMLHttpRequest>(name: K, fn: (original: XMLHttpRequest[K]) => XMLHttpRequest[K]): void {
         const original = xhr[name];
         Object.defineProperty(xhr, name, {value: fn(original.bind(xhr))});
+    }
+
+    function replaceSimple<K extends keyof XMLHttpRequest>(name: K, fn: XMLHttpRequest[K]): void {
+        replace(name, () => fn);
     }
 
     function replaceWithResponse(resp: Response): void {
@@ -59,10 +66,23 @@ function _XMLHttpRequest() {
     }
 
     replace("open", open => {
-        return (method, url, async) => {
-            const needsIntercept = new RegExp("^(?:https?://[^/]+)?(/product/iwg|/iwg)").test(url);
+        return (method, url, async=true) => {
+
+            // mojimoney is wrongly requesting "../resource", so we change it to "./resource".
+            if(location.href.indexOf("mojimoney") !== -1) {
+                url = url.replace(/^\.\.\//, "./");
+            }
+
+            const needsIntercept = new RegExp("^(?:https?://[^/]+)?(/product/iwg/|/iwg/)").test(url);
             if (needsIntercept) {
                 log(`Intercepting xhr request: ${method} ${url}`);
+
+                const ukGameUrl = `/iwg/${gameConfig.canonicalGameName}uk/`;
+                if (url.indexOf(ukGameUrl) !== -1) {
+                    log(`Detected a legacy uk game, rewriting to ${gameConfig.canonicalGameName}`);
+                    url = url.replace(ukGameUrl, `/iwg/${gameConfig.canonicalGameName}/`);
+                }
+
                 req = {
                     method: method,
                     path: url.replace('https://mylotto24.frontend.zig.services', ''),
@@ -70,40 +90,37 @@ function _XMLHttpRequest() {
                     headers: {},
                 };
 
-                replace("setRequestHeader", () => {
-                    return (header, value) => {
-                        // let the parent fill this one in.
-                        if(header.toUpperCase() === "X-CSRF-TOKEN") {
-                            return;
-                        }
+                replaceSimple("setRequestHeader", (header, value) => {
+                    // let the parent fill this one in.
+                    if (header.toUpperCase() === "X-CSRF-TOKEN") {
+                        return;
+                    }
 
-                        req.headers[header] = value;
-                    };
+                    req.headers[header] = value;
                 });
 
-                replace("addEventListener", () => {
-                    return (type, listener) => {
-                        listeners[type] = (listeners[type] || []).concat(listener);
-                    }
-                })
+                replaceSimple("addEventListener", (type, listener) => {
+                    listeners[type] = (listeners[type] || []).concat(listener);
+                });
 
+                replaceSimple("send", (arg?: any): void => {
+                    // noinspection SuspiciousTypeOfGuard
+                    if (typeof arg === "string") {
+                        const match = arg.match(/betFactor=[0-9]+/);
+                        if (match) {
+                            req.path += "?" + match[0];
+                            req.body = null;
+                        }
+                    }
+
+                    log("Executing intercepted xhr request: ", req);
+                    void executeInParent();
+                });
 
             } else {
                 open(method, url, async);
             }
         };
-    });
-
-    replace("send", send => {
-        return (arg?: any): void => {
-            if (req != null) {
-                log("Executing intercepted xhr request: ", req);
-                void executeInParent();
-
-            } else {
-                send(arg);
-            }
-        }
     });
 
     return xhr;

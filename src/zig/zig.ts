@@ -1,7 +1,7 @@
 import {isLegacyGame, patchLegacyGame} from "./zig-legacy";
 import {ITicket, logger} from "../_common/common";
 import {MessageClient, toErrorValue} from "../_common/message-client";
-import {objectAssignPolyfill} from "../_common/polyfill";
+import {localStoragePolyfill, objectAssignPolyfill} from "../_common/polyfill";
 import {buildTime, clientVersion} from "../_common/vars";
 import {delegateToVersion} from "../_common/delegate";
 import {Options} from "../_common/options";
@@ -162,6 +162,9 @@ function guessQuantity(payload: any | undefined): number {
 function main() {
     // initialize Object.assign polyfill for ie11.
     objectAssignPolyfill();
+
+    // polyfill for browsers without localStorage (eg private mode safari)
+    localStoragePolyfill();
 
     if (isLegacyGame()) {
         log("Enable legacy game patches");
