@@ -54,7 +54,15 @@ export class MessageClient {
     }
 
     private handleEvent(ev: MessageEvent): void {
-        if (ev.source !== this.partnerWindow) {
+        try {
+            if (ev.source !== this.partnerWindow) {
+                return;
+            }
+        } catch (err) {
+            // probably internet explorer 11. This browser can not compare window objects
+            // of different or old iframes. Instead of just comparing the object id/memory address
+            // of the objects (as it is the case with all the other js objects), the internet
+            // explorer prefers to throw an exception.
             return;
         }
 
