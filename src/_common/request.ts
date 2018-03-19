@@ -142,6 +142,10 @@ export async function executeRequestInParent(mc: MessageClient, req: Request): P
         // we are interested in results from our partner
         mc.register("zig.XMLHttpRequest.result", handler);
 
+        if (req.body === null) {
+            req.body = '{}';
+        }
+
         // send the request to the partner.
         mc.send({
             command: "zig.XMLHttpRequest.request",
