@@ -90,9 +90,12 @@ export function includeZigGame(targetSelector: string, url: string, config: IGam
     return zigObserveGame(wrapper, frame);
 }
 
-export function registerHTTPHandlerOnly(frame: HTMLIFrameElement, handler: (r: Request) => Promise<Result> = undefined) {
+export function registerHTTPHandlerOnly(frame: HTMLIFrameElement, handler: (r: Request) => Promise<Result> = undefined): VoidFunction {
     const messageClient = new MessageClient(frame.contentWindow);
     registerRequestListener(messageClient, handler);
+
+    // return unregister function
+    return () => messageClient.close();
 }
 
 export const Zig = {
