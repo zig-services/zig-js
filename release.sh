@@ -3,7 +3,8 @@ set -eu -o pipefail
 
 # validate that everything builds
 ./build-in-docker.sh -p
-git checkout dist/
+git add dist/
+git commit -m "Rebuild the libraries."
 
 # update version and push to git - patch by default
 npm version ${1:-patch}
