@@ -21,7 +21,8 @@ function _XMLHttpRequest() {
 
     function replace<K extends keyof XMLHttpRequest>(name: K, fn: (original: XMLHttpRequest[K]) => XMLHttpRequest[K]): void {
         const original = xhr[name];
-        Object.defineProperty(xhr, name, {value: fn(original.bind(xhr))});
+        let replacement = fn(original.bind(xhr));
+        Object.defineProperty(xhr, name, {get: () => replacement});
     }
 
     function replaceSimple<K extends keyof XMLHttpRequest>(name: K, fn: XMLHttpRequest[K]): void {
@@ -29,9 +30,9 @@ function _XMLHttpRequest() {
     }
 
     function replaceWithResponse(resp: Response): void {
-        Object.defineProperty(xhr, "responseText", {value: resp.body});
-        Object.defineProperty(xhr, "status", {value: resp.statusCode});
-        Object.defineProperty(xhr, "readyState", {value: XMLHttpRequest.DONE});
+        Object.defineProperty(xhr, "responseText", {get: () => resp.body});
+        Object.defineProperty(xhr, "status", {get: () => resp.statusCode});
+        Object.defineProperty(xhr, "readyState", {get: () => XMLHttpRequest.DONE});
     }
 
     let req: Request = null;
