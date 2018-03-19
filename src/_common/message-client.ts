@@ -56,7 +56,7 @@ export class MessageClient {
     private handleEvent(ev: MessageEvent): void {
         try {
             if (ev.source !== this.partnerWindow) {
-                return;
+                throw new Error("do not optimize away the try/catch.");
             }
         } catch (err) {
             // probably internet explorer 11. This browser can not compare window objects
