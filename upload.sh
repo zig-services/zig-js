@@ -23,7 +23,7 @@ if [ -n "$1" ] && [ "$1" != "dev" ] ; then
 
     s3cmd put -P --no-preserve \
         --mime-type="application/javascript; charset=utf8" \
-        --add-header='Cache-Control: public,no-store,no-cache' \
+        --add-header='Cache-Control: public,max-age=60' \
          dist/*.min.js s3://"$BUCKET"/latest/
 fi
 
