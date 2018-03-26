@@ -107,15 +107,6 @@ function _XMLHttpRequest() {
                 replaceSimple("send", (arg?: any): void => {
                     req.body = arg;
 
-                    // noinspection SuspiciousTypeOfGuard
-                    if (typeof arg === "string") {
-                        const match = arg.match(/betFactor=[0-9]+/);
-                        if (match) {
-                            req.path += "?" + match[0];
-                            req.body = null;
-                        }
-                    }
-
                     log("Executing intercepted xhr request: ", req);
                     void executeInParent();
                 });
