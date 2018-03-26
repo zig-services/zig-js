@@ -150,10 +150,11 @@ function initializeWinningClassOverride(): boolean {
 
     const params = `&wc=${override.winningClass}&scenario=${override.scenarioId}`;
     if (location.href.indexOf(params) === -1) {
-        const url = location.href.replace(/\b(scenario|wc)=[^&]+/g, "") + params;
+        const search = location.search.replace(/\b(scenario|wc)=[^&]+/g, "");
+        const sep = location.search || "&";
 
-        log("Reload outer.html with updated url:", url);
-        location.href = url;
+        log("Replace outer.html with updated url:", search + sep + params);
+        location.search = search + sep + params;
 
         return true;
     }

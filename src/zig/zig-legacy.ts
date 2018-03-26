@@ -67,10 +67,10 @@ function _XMLHttpRequest() {
     }
 
     replace("open", open => {
-        return (method, url, async=true) => {
+        return (method, url, async = true) => {
 
             // mojimoney is wrongly requesting "../resource", so we change it to "./resource".
-            if(location.href.indexOf("mojimoney") !== -1) {
+            if (location.href.indexOf("mojimoney") !== -1) {
                 url = url.replace(/^\.\.\//, "./");
             }
 
@@ -105,6 +105,8 @@ function _XMLHttpRequest() {
                 });
 
                 replaceSimple("send", (arg?: any): void => {
+                    req.body = arg;
+
                     // noinspection SuspiciousTypeOfGuard
                     if (typeof arg === "string") {
                         const match = arg.match(/betFactor=[0-9]+/);
