@@ -94,12 +94,12 @@ class ZigClient {
         }
     }
 
-    private async request<T>(method: string, url: string, body: any = null): Promise<T> {
+    private async request<T>(method: string, url: string, body: any = null, headers: { [key: string]: string } = {}): Promise<T> {
         const result = await executeRequestInParent(this.messageClient, {
             method,
             path: url,
             body: body === null ? null : JSON.stringify(body),
-            headers: {},
+            headers: headers,
         });
 
         if (Math.floor(result.statusCode / 100) === 2) {
