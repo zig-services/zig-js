@@ -1,6 +1,6 @@
 import {isLegacyGame, patchLegacyGame} from "./zig-legacy";
 import {ITicket, logger} from "../_common/common";
-import {MessageClient, toErrorValue} from "../_common/message-client";
+import {GameMessageInterface, MessageClient} from "../_common/message-client";
 import {localStoragePolyfill, objectAssignPolyfill} from "../_common/polyfill";
 import {buildTime, clientVersion} from "../_common/vars";
 import {delegateToVersion} from "../_common/delegate";
@@ -20,9 +20,11 @@ export interface BuyTicketOptions {
 
 class ZigClient {
     private readonly messageClient: MessageClient;
+    private readonly interface: GameMessageInterface;
 
     constructor(private readonly gameConfig: IGameConfig = parseGameConfigFromURL()) {
         this.messageClient = new MessageClient(window.parent);
+        this.interface = new GameMessageInterface(this.messageClient, gameConfig.canonicalGameName);
     }
 
     public async buyTicket(payload: any = {}, options: BuyTicketOptions = {}): Promise<ITicket> {
@@ -59,27 +61,20 @@ class ZigClient {
     }
 
     private sendGameStartedEvent(options: BuyTicketOptions, ticket: ITicket) {
-        let alreadySettled = options.alreadySettled;
+        let alreadySettled = !!options.alreadySettled;
         if (alreadySettled === undefined) {
             alreadySettled = !(ticket.game || {supportsResume: true}).supportsResume;
         }
 
-        this.messageClient.send({
-            command: "gameStarted",
-            ticket: ticket,
-            alreadySettled: !!alreadySettled,
-        });
+        this.interface.gameStarted(ticket.id, ticket.id, alreadySettled);
     }
 
     public async settleTicket(id: string): Promise<void> {
         return await this.propagateErrors(async () => {
             const url = `/product/iwg/${this.gameConfig.canonicalGameName}/tickets/${encodeURIComponent(id)}/settle`;
-            const response = await this.request<any>("POST", url);
+            await this.request<any>("POST", url);
 
-            this.messageClient.send({
-                command: "gameSettled",
-                response: response,
-            });
+            this.interface.ticketSettled();
 
             return
         });
@@ -95,7 +90,7 @@ class ZigClient {
     }
 
     private async request<T>(method: string, url: string, body: any = null, headers: { [key: string]: string } = {}): Promise<T> {
-        const result = await executeRequestInParent(this.messageClient, {
+        const result = await executeRequestInParent(this.interface, {
             method,
             path: url,
             body: body === null ? null : JSON.stringify(body),
@@ -105,7 +100,7 @@ class ZigClient {
         if (Math.floor(result.statusCode / 100) === 2) {
             return JSON.parse(result.body || "null");
         } else {
-            throw toErrorValue(result);
+            throw result;
         }
     }
 
@@ -142,7 +137,7 @@ class ZigClient {
 
             if (difference > 1) {
                 previousMarkerTop = markerTop;
-                this.messageClient.send({command: "updateGameHeight", height: markerTop});
+                this.interface.updateGameHeight(markerTop);
             }
         }, 100);
     }

@@ -16,6 +16,8 @@ export function sleep(millis: number): Promise<{}> {
 
 export type TicketId = string;
 
+export type TicketNumber = string;
+
 export interface IGame {
     supportsResume: boolean;
 }
@@ -23,13 +25,6 @@ export interface IGame {
 export interface ITicket {
     id: TicketId;
     game: IGame;
-}
-
-export interface IError {
-    type: string;
-    title: string;
-    status?: number;
-    details?: string;
 }
 
 export interface IGameSettings {

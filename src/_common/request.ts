@@ -1,4 +1,4 @@
-import {MessageClient} from "./message-client";
+import {GameMessageInterface, ParentMessageInterface} from "./message-client";
 import {logger} from "./common";
 
 export interface Request {
@@ -23,7 +23,7 @@ export interface Result {
     error?: string;
 }
 
-interface WithCID<T> {
+export interface WithCID<T> {
     data: T;
     cid: string;
 }
@@ -95,20 +95,17 @@ async function _executeRequestLocally(req: Request): Promise<Result> {
     });
 }
 
-export function registerRequestListener(mc: MessageClient, handler: (req: Request) => Promise<Result> = _executeRequestLocally) {
-    mc.register("zig.XMLHttpRequest.request", async (message) => {
+export function registerRequestListener(iface: ParentMessageInterface, handler: (req: Request) => Promise<Result> = _executeRequestLocally) {
+    iface.dispatcher.register("zig.XMLHttpRequest.request", async (message) => {
         const req: WithCID<Request> = message.request;
         const result = await handler(req.data);
 
         if (result.response) {
-            // remove xhr before sending it via post message.
+            // remove xhr instance before sending it via post message.
             delete result.response["xhr"];
         }
 
-        mc.send({
-            command: "zig.XMLHttpRequest.result",
-            result: <WithCID<Response>>{cid: req.cid, data: result},
-        });
+        iface.xhrResult({cid: req.cid, data: result});
     });
 }
 
@@ -117,18 +114,19 @@ let cidUniqueNumber = 1;
 /**
  * Executes the givne request in the parent frame
  */
-export async function executeRequestInParent(mc: MessageClient, req: Request): Promise<Response> {
+export async function executeRequestInParent(iface: GameMessageInterface, req: Request): Promise<Response> {
     const cid = req.path + ":" + Date.now() + ":" + cidUniqueNumber++;
 
-    return new Promise<Response>(((resolve, reject) => {
-        const handler = message => {
+    return new Promise<Response>((resolve, reject) => {
+        // we are interested in results from our partner
+        const unregister = iface.dispatcher.register("zig.XMLHttpRequest.result", message => {
             const result: WithCID<Result> = message.result;
             if (result.cid !== cid) {
                 return;
             }
 
             // cleanup
-            mc.unregister("zig.XMLHttpRequest.result", handler);
+            unregister();
 
             // handle rejection on connection errors or similar
             if (result.data.error != null) {
@@ -137,19 +135,13 @@ export async function executeRequestInParent(mc: MessageClient, req: Request): P
 
             // we got a good result.
             resolve(result.data.response);
-        };
-
-        // we are interested in results from our partner
-        mc.register("zig.XMLHttpRequest.result", handler);
+        });
 
         if (req.body === null) {
             req.body = '{}';
         }
 
         // send the request to the partner.
-        mc.send({
-            command: "zig.XMLHttpRequest.request",
-            request: <WithCID<Request>>{cid, data: req},
-        })
-    }));
+        iface.xhrRequest({cid, data: req});
+    });
 }

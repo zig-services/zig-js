@@ -1,5 +1,5 @@
 import {IGameSettings, logger} from "../_common/common";
-import {MessageClient} from "../_common/message-client";
+import {MessageClient, ParentMessageInterface} from "../_common/message-client";
 import {registerRequestListener, Request, Result} from "../_common/request";
 import {appendGameConfigToURL, IGameConfig} from "../_common/config";
 
@@ -7,23 +7,24 @@ const log = logger("[zig-int]");
 
 class Integration {
     readonly messageClient: MessageClient;
+    readonly interface: ParentMessageInterface;
 
-    constructor(private wrapper: HTMLDivElement, private frame: HTMLIFrameElement) {
+    constructor(private game: string, private wrapper: HTMLDivElement, private frame: HTMLIFrameElement) {
         this.messageClient = new MessageClient(frame.contentWindow);
-        this.messageClient.register(
-            "updateGameHeight", ev => this.updateGameHeight(ev.height));
+        this.interface = new ParentMessageInterface(this.messageClient, game);
 
-        this.messageClient.register(
-            "updateGameSettings", ev => this.updateGameSettings(ev.gameSettings));
+        this.interface.dispatcher.registerGeneric({
+            updateGameHeight: ev => this.updateGameHeight(ev.height),
+            updateGameSettings: ev => this.updateGameSettings(ev.gameSettings),
+        });
 
         // register handler for http requests.
-        registerRequestListener(this.messageClient);
-
-        this.messageClient.registerWildcard(ev => log(`Got message of type ${ev.command}`))
+        registerRequestListener(this.interface);
     }
 
     public destroy(): void {
         log("Destroy event listeners from frame");
+        this.interface.close();
         this.messageClient.close();
     }
 
@@ -42,8 +43,8 @@ class Integration {
     }
 }
 
-export function zigObserveGame(wrapper: HTMLDivElement, frame: HTMLIFrameElement): MessageClient {
-    const game = new Integration(wrapper, frame);
+export function zigObserveGame(game: string, wrapper: HTMLDivElement, frame: HTMLIFrameElement): ParentMessageInterface {
+    const integration = new Integration(game, wrapper, frame);
 
     const mutationObserver = new MutationObserver(mu => {
         for (const record of mu) {
@@ -54,7 +55,7 @@ export function zigObserveGame(wrapper: HTMLDivElement, frame: HTMLIFrameElement
             for (let idx = 0; idx < record.removedNodes.length; idx++) {
                 if (record.removedNodes.item(idx) === frame) {
                     mutationObserver.disconnect();
-                    game.destroy();
+                    integration.destroy();
                     return;
                 }
             }
@@ -63,10 +64,10 @@ export function zigObserveGame(wrapper: HTMLDivElement, frame: HTMLIFrameElement
 
     mutationObserver.observe(wrapper, {childList: true});
 
-    return game.messageClient;
+    return integration.interface;
 }
 
-export function includeZigGame(targetSelector: string, url: string, config: IGameConfig): MessageClient {
+export function includeZigGame(targetSelector: string, url: string, config: IGameConfig): ParentMessageInterface {
     const frameSource = appendGameConfigToURL(url, config);
 
     // The iframe containing the game.
@@ -87,12 +88,14 @@ export function includeZigGame(targetSelector: string, url: string, config: IGam
     const target = document.querySelector(targetSelector);
     target.appendChild(wrapper);
 
-    return zigObserveGame(wrapper, frame);
+    return zigObserveGame(config.canonicalGameName, wrapper, frame);
 }
 
-export function registerHTTPHandlerOnly(frame: HTMLIFrameElement, handler: (r: Request) => Promise<Result> = undefined): VoidFunction {
+export function registerHTTPHandlerOnly(game: string, frame: HTMLIFrameElement, handler: (r: Request) => Promise<Result> = undefined): VoidFunction {
     const messageClient = new MessageClient(frame.contentWindow);
-    registerRequestListener(messageClient, handler);
+    const iface = new ParentMessageInterface(messageClient, game);
+
+    registerRequestListener(iface, handler);
 
     // return unregister function
     return () => messageClient.close();

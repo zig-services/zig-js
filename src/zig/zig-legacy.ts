@@ -4,17 +4,19 @@
 import {logger} from "../_common/common";
 import {injectStyle} from "../_common/dom";
 import {onDOMLoad, onLoad} from "../_common/events";
-import {MessageClient} from "../_common/message-client";
+import {GameMessageInterface, MessageClient} from "../_common/message-client";
 import {executeRequestInParent, Request, Response} from "../_common/request";
 import {parseGameConfigFromURL} from "../_common/config";
 
+const gameConfig = parseGameConfigFromURL();
+
 const mc = new MessageClient(window.parent);
+const iface = new GameMessageInterface(mc, gameConfig.canonicalGameName);
 
 const log = logger("[zig-xhr]");
 
 const RealXMLHttpRequest: typeof XMLHttpRequest = window["XMLHttpRequest"];
 
-const gameConfig = parseGameConfigFromURL();
 
 function _XMLHttpRequest() {
     const xhr = new RealXMLHttpRequest();
@@ -40,7 +42,7 @@ function _XMLHttpRequest() {
 
     async function executeInParent() {
         try {
-            const response = await executeRequestInParent(mc, req);
+            const response = await executeRequestInParent(iface, req);
             log("Got response from parent: ", response);
 
             replaceWithResponse(response);

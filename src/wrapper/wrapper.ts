@@ -1,7 +1,7 @@
 import 'promise-polyfill/src/polyfill';
 
-import {IError, IGameSettings, logger, sleep} from "../_common/common";
-import {MessageClient} from "../_common/message-client";
+import {IGameSettings, logger, sleep} from "../_common/common";
+import {GameMessageInterface, IError, MessageClient, ParentMessageInterface} from "../_common/message-client";
 import {injectStyle} from "../_common/dom";
 import {clientVersion} from "../_common/vars";
 import {delegateToVersion} from "../_common/delegate";
@@ -40,9 +40,11 @@ async function initializeGame(): Promise<HTMLIFrameElement> {
     iframe.allowFullscreen = true;
     iframe.scrolling = "no";
 
-    // send the new config to the parent so it can update the frame size
     const parentMessageClient = new MessageClient(window.parent);
-    parentMessageClient.send({command: "updateGameSettings", gameSettings: GameSettings});
+
+    // send the new config to the parent so it can update the frame size
+    new GameMessageInterface(parentMessageClient, config.canonicalGameName)
+        .updateGameSettings(GameSettings);
 
     // add game to window
     document.body.appendChild(iframe);
@@ -64,6 +66,18 @@ async function initializeGame(): Promise<HTMLIFrameElement> {
             log("got focus, focusing iframe now.");
             setTimeout(() => iframe.contentWindow.focus(), 100);
         };
+
+        if (parseGameConfigFromURL().overlay) {
+            const iface = new ParentMessageInterface(innerMessageClient, parseGameConfigFromURL().canonicalGameName);
+
+            log("Register messages listeners for overlay");
+
+            iface.dispatcher.registerGeneric({
+                gameLoaded: () => showControls(iface),
+                gameFinished: () => showControls(iface),
+                error: ev => showErrorDialog(ev),
+            });
+        }
     }
 
     await trySetupMessageClient();
@@ -103,28 +117,18 @@ function showErrorDialog(error: IError) {
  * to the parent, and everything coming from the parent will be send to the iframe.
  */
 function proxyMessages(parentMessageClient: MessageClient, innerMessageClient: MessageClient): void {
-    // proxy between both windows
-    innerMessageClient.registerWildcard(ev => {
+    innerMessageClient.register(ev => {
         log("Proxy message parent <- game");
-        parentMessageClient.send(ev)
+        parentMessageClient.send(ev);
     });
 
-    parentMessageClient.registerWildcard(ev => {
+    parentMessageClient.register(ev => {
         log("Proxy message parent -> game");
         innerMessageClient.send(ev)
     });
-
-    if (parseGameConfigFromURL().overlay) {
-        log("Register messages listeners for overlay");
-
-        // handle some messages in the integration
-        innerMessageClient.register("gameLoaded", () => showControls(innerMessageClient));
-        innerMessageClient.register("gameFinished", () => showControls(innerMessageClient));
-        innerMessageClient.register("error", ev => showErrorDialog(ev as any));
-    }
 }
 
-function showControls(messageClient: MessageClient) {
+function showControls(iface: ParentMessageInterface) {
     if (document.querySelector(".zig-start-button") != null) {
         return
     }
@@ -138,7 +142,7 @@ function showControls(messageClient: MessageClient) {
     div.onclick = ev => {
         ev.preventDefault();
 
-        messageClient.send("playGame");
+        iface.playGame();
         div.parentNode.removeChild(div);
     }
 }
