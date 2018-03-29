@@ -21,6 +21,8 @@ echo "Building release version ${VERSION}..."
 # update version to next snapshot
 VERSION_NEXT=$(node_modules/.bin/semver -i ${VERSION})-SNAPSHOT
 npm --no-git-tag-version version ${VERSION_NEXT}
+git add package.json
+git commit -m "Move to next snapshot version $VERSION_NEXT"
 
 ./build-in-docker.sh
 ./upload.sh "$VERSION_NEXT"
