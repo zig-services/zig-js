@@ -5,9 +5,6 @@ set -e
 # read version from package.json file
 VERSION=$(node -p 'require("./package.json").version')
 
-# build package in that version
-./build-in-docker.sh
-
 if ! [ -f dist/zig-${VERSION}.tar.gz ] ; then
     echo "Did not find compiled files for $VERSION"
     exit 1
