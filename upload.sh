@@ -3,7 +3,7 @@
 set -e
 
 # read version from package.json file
-VERSION=$(node -p 'require("./package.json").version')
+VERSION=${1:-$(node -p 'require("./package.json").version')}
 
 if ! [ -f dist/zig-${VERSION}.tar.gz ] ; then
     echo "Did not find compiled files for $VERSION"

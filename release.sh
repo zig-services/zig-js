@@ -29,3 +29,5 @@ git commit -m "Move to next snapshot version $VERSION_NEXT"
 # build the new snapshot version
 ./build-in-docker.sh
 ./upload.sh "$VERSION_NEXT"
+
+git push --tags
