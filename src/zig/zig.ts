@@ -19,7 +19,7 @@ export interface BuyTicketOptions {
 }
 
 export class ZigClient {
-    private readonly interface: GameMessageInterface;
+    readonly interface: GameMessageInterface;
 
     constructor(private readonly gameConfig: IGameConfig = parseGameConfigFromURL()) {
         const messageClient = new MessageClient(window.parent);
@@ -165,14 +165,9 @@ function main() {
     }
 
     // expose types to user of this library
-    window["Zig"] = window["Zig"] || {};
-
-    window["Zig"].MessageClient = new MessageClient(window.parent);
-    window["Zig"].Client = new ZigClient();
-
-    // Some games are currently using this.
-    window["ZigClient"] = window["Zig"].Client;
-    window["ZigMessageClient"] = MessageClient;
+    window["Zig"] = Object.assign(window["Zig"] || {}, {
+        Client: new ZigClient(),
+    });
 }
 
 if (!delegateToVersion("zig.min.js")) {
