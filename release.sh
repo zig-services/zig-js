@@ -26,6 +26,10 @@ git commit -m "Move to next snapshot version $VERSION_NEXT"
 # upload the release
 ./upload.sh "$VERSION"
 
+# also upload as "major" version.
+VERSION_MAJOR=$(node -p 'require("semver").major(require("./package.json").version)')
+./upload.sh "$VERSION_MAJOR" "$VERSION"
+
 # build the new snapshot version
 ./build-in-docker.sh
 ./upload.sh "$VERSION_NEXT"
