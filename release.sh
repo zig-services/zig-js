@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -eu -o pipefail
 
-if [ $(node -p 'require("./package.json").version') != *-SNAPSHOT ] ; then
+if [[ $(node -p 'require("./package.json").version') != *-SNAPSHOT ]] ; then
     echo "Expected SNAPSHOT version in package.json"
     exit 1
 fi
