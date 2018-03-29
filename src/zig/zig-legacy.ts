@@ -10,8 +10,8 @@ import {parseGameConfigFromURL} from "../_common/config";
 
 const gameConfig = parseGameConfigFromURL();
 
-const mc = new MessageClient(window.parent);
-const iface = new GameMessageInterface(mc, gameConfig.canonicalGameName);
+const iface = new GameMessageInterface(new MessageClient(window.parent),
+    gameConfig.canonicalGameName);
 
 const log = logger("[zig-xhr]");
 

@@ -17,7 +17,7 @@ export function delegateToVersion(script: string): boolean {
         return false;
     }
 
-    const url: string = `https://lib.zig.services/${version}/${script}`;
+    const url: string = `https://lib.zig.services/zig/${version}/${script}`;
 
     log(`Delegate script ${script} to ${url}`);
 
