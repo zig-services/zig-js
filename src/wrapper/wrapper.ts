@@ -72,7 +72,7 @@ async function initializeGame(): Promise<HTMLIFrameElement> {
 
             log("Register messages listeners for overlay");
 
-            iface.dispatcher.registerGeneric({
+            iface.registerGeneric({
                 gameLoaded: () => showControls(iface),
                 gameFinished: () => showControls(iface),
                 error: ev => showErrorDialog(ev),

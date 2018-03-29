@@ -58,12 +58,12 @@ function _XMLHttpRequest() {
     function dispatchEvent(type: string, ...args: any[]) {
         const handler = xhr["on" + type];
         if (handler) {
-            log(`Dispatching to event handler: `, handler);
+            log.debug(`Dispatching to event handler: `, handler);
             handler.call(xhr, xhr, ...args);
         }
 
         (listeners[type] || []).forEach(handler => {
-            log(`Dispatching to event handler: `, handler);
+            log.debug(`Dispatching to event handler: `, handler);
             handler(xhr, xhr, ...args)
         });
     }
@@ -153,7 +153,7 @@ function patchInstantWinGamingScripts() {
                     try {
                         // extract data only if response looks good
                         if (data && data.id && data.externalId) {
-                            log("Remember ticket info for later");
+                            log.debug("Remember ticket info for later");
 
                             ticketInfo = {
                                 ticketId: data.id,
@@ -162,7 +162,7 @@ function patchInstantWinGamingScripts() {
                             };
                         }
                     } catch (err) {
-                        log("Could not get ticketInfo from response", err);
+                        log.warn("Could not get ticketInfo from response", err);
                     }
 
                     // call original function
@@ -196,7 +196,7 @@ function patchInstantWinGamingScripts() {
                     ticketInfo = null;
                 }
             } catch (err) {
-                log("Could not add ticketInfo to message", err);
+                log.warn("Could not add ticketInfo to message", err);
             }
 
             // call original function and forward parameters
@@ -234,7 +234,7 @@ export function patchLegacyGame() {
                 // Add extra scripts for instant win gaming to save and restore extra ticket data.
                 patchInstantWinGamingScripts();
             } catch (err) {
-                log("Could not patch legacy game:", err)
+                log.warn("Could not patch legacy game:", err)
             }
         });
     });

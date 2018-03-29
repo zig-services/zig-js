@@ -36,14 +36,14 @@ export class MessageClient {
             return;
         }
 
-        log(`Send message of type ${typeof message === 'string' ? message : message.command}:`, message);
+        log.info(`Send message of type ${typeof message === 'string' ? message : message.command}:`, message);
         this.partnerWindow.postMessage(message, "*");
     }
 
     public sendError(err: IError | Error | any): void {
         const errorValue = toErrorValue(err);
         if (errorValue != null) {
-            log("Sending error value:", errorValue);
+            log.info("Sending error value:", errorValue);
             this.partnerWindow.postMessage(errorValue, "*");
         }
     }
@@ -87,7 +87,7 @@ export class MessageClient {
             try {
                 handler(message);
             } catch (err) {
-                log(`Error in handling message ${message}:`, err);
+                log.warn(`Error in handling message ${message}:`, err);
             }
         });
     }
@@ -316,22 +316,23 @@ export type Unregister = () => void;
 export type GenericHandler = (msg: any) => void;
 
 export class MessageDispatcher {
-    private readonly rawHandler: (msg: IMessage) => void;
     private readonly handlers: { [command: string]: GenericHandler[] } = {};
 
-    constructor(private readonly messageClient: MessageClient,
-                private readonly game: string) {
-
-        this.rawHandler = message => this.dispatch(message);
-        messageClient.register(this.rawHandler);
+    constructor(public readonly game: string) {
     }
 
-    public close(): void {
-        this.messageClient.unregister(this.rawHandler);
+    /**
+     * Observes the given message client. You need to call the returned
+     * unregister function to disconnect the MessageDispatcher from the MessageClient
+     */
+    public observe(messageClient: MessageClient): Unregister {
+        const handler = (message: IMessage) => this.dispatch(message);
+        messageClient.register(handler);
+        return () => messageClient.unregister(handler);
     }
 
     public register<K extends Command>(type: K, handler: (msg: CommandMessageTypes[K]) => void): Unregister {
-        log(`Register handler for messages of type ${type}`);
+        log.debug(`Register handler for messages of type ${type}`);
 
         this.handlers[type] = (this.handlers[type] || []).concat(handler);
         return () => this.unregister(type, handler);
@@ -346,18 +347,18 @@ export class MessageDispatcher {
     }
 
     private unregister<K extends Command>(type: K, handler: (msg: CommandMessageTypes[K]) => void): void {
-        log(`Unregister handler for messages of type ${type}`);
+        log.debug(`Unregister handler for messages of type ${type}`);
         this.handlers[type] = (this.handlers[type] || []).filter(it => it !== handler);
     }
 
-    private dispatch(msg: IMessage): void {
+    public dispatch(msg: IMessage): void {
         const message: BaseMessage = this.convertToMessage(msg);
 
         // get the handlers for this message type.
         const handlers = this.handlers[message.command] || [];
 
         if (handlers.length === 0) {
-            log(`No handler for command ${message.command} registered.`);
+            log.warn(`No handler for command ${message.command} registered.`);
             return;
         }
 
@@ -366,7 +367,7 @@ export class MessageDispatcher {
             try {
                 handler(message);
             } catch (err) {
-                log("Error calling handler: ", err);
+                log.warn("Error calling handler: ", err);
             }
         })
     }
@@ -404,14 +405,12 @@ export class MessageDispatcher {
     }
 }
 
-export class MessageFactory {
-    public readonly dispatcher: MessageDispatcher;
+export class MessageFactory extends MessageDispatcher {
+    private readonly stopObserver: Unregister;
 
-    constructor(protected readonly messageClient: MessageClient,
-                protected readonly game: string) {
-
-        // create a dispatcher we can use with this factory.
-        this.dispatcher = new MessageDispatcher(messageClient, game);
+    constructor(protected readonly messageClient: MessageClient, game: string) {
+        super(game);
+        this.stopObserver = this.observe(messageClient);
     }
 
     protected send<T extends BaseMessage>(msg: T): void {
@@ -427,7 +426,7 @@ export class MessageFactory {
     }
 
     public close(): void {
-        this.dispatcher.close();
+        this.stopObserver();
     }
 }
 

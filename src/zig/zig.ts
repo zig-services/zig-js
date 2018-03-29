@@ -18,13 +18,13 @@ export interface BuyTicketOptions {
     quantity?: number
 }
 
-class ZigClient {
-    private readonly messageClient: MessageClient;
+export class ZigClient {
     private readonly interface: GameMessageInterface;
 
     constructor(private readonly gameConfig: IGameConfig = parseGameConfigFromURL()) {
-        this.messageClient = new MessageClient(window.parent);
-        this.interface = new GameMessageInterface(this.messageClient, gameConfig.canonicalGameName);
+        const messageClient = new MessageClient(window.parent);
+        this.interface = new GameMessageInterface(messageClient,
+            gameConfig.canonicalGameName);
     }
 
     public async buyTicket(payload: any = {}, options: BuyTicketOptions = {}): Promise<ITicket> {
@@ -35,7 +35,6 @@ class ZigClient {
             const ticket = await this.request<ITicket>("POST", url, payload);
 
             this.sendGameStartedEvent(options, ticket);
-
             return ticket
         });
     }
@@ -52,10 +51,9 @@ class ZigClient {
                 url += `&scenarioId=${Options.winningClassOverride.scenarioId}`;
             }
 
-            let ticket = await this.request<ITicket>("POST", url, payload);
+            const ticket = await this.request<ITicket>("POST", url, payload);
 
             this.sendGameStartedEvent(options, ticket);
-
             return ticket;
         });
     }
@@ -84,7 +82,7 @@ class ZigClient {
         try {
             return await fn()
         } catch (err) {
-            this.messageClient.sendError(err);
+            this.interface.error(err);
             throw err;
         }
     }
@@ -162,7 +160,7 @@ function main() {
     localStoragePolyfill();
 
     if (isLegacyGame()) {
-        log("Enable legacy game patches");
+        log.info("Enable legacy game patches");
         patchLegacyGame();
     }
 

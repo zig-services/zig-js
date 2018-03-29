@@ -1,11 +1,15 @@
 import 'promise-polyfill/src/polyfill';
 import {logger} from "./common";
 
+const log = logger("[zig-polyfil]");
+
 export function objectAssignPolyfill() {
     // taken from
     // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object/assign#Polyfill
 
     if (typeof Object.assign !== 'function') {
+        log.debug("Using Object.assign polyfill");
+
         // Must be writable: true, enumerable: false, configurable: true
         Object.defineProperty(Object, "assign", {
             writable: true,
@@ -40,7 +44,6 @@ export function objectAssignPolyfill() {
 
 
 export function localStoragePolyfill() {
-    const log = logger("[zig-poly]");
     if (!available("localStorage")) {
         defineStorage("localStorage");
     }
@@ -61,7 +64,8 @@ export function localStoragePolyfill() {
     }
 
     function defineStorage(type: string) {
-        log(`Polyfill for ${type}`);
+        log.debug(`Using polyfill for ${type}`);
+
         Object.defineProperty(window, type, new (function () {
             const aKeys = [], oStorage: any = {};
             Object.defineProperty(oStorage, "getItem", {

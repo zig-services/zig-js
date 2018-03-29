@@ -95,8 +95,10 @@ async function _executeRequestLocally(req: Request): Promise<Result> {
     });
 }
 
-export function registerRequestListener(iface: ParentMessageInterface, handler: (req: Request) => Promise<Result> = _executeRequestLocally) {
-    iface.dispatcher.register("zig.XMLHttpRequest.request", async (message) => {
+export function registerRequestListener(iface: ParentMessageInterface,
+                                        handler: (req: Request) => Promise<Result> = _executeRequestLocally) {
+
+    iface.register("zig.XMLHttpRequest.request", async (message) => {
         const req: WithCID<Request> = message.request;
         const result = await handler(req.data);
 
@@ -119,7 +121,7 @@ export async function executeRequestInParent(iface: GameMessageInterface, req: R
 
     return new Promise<Response>((resolve, reject) => {
         // we are interested in results from our partner
-        const unregister = iface.dispatcher.register("zig.XMLHttpRequest.result", message => {
+        const unregister = iface.register("zig.XMLHttpRequest.result", message => {
             const result: WithCID<Result> = message.result;
             if (result.cid !== cid) {
                 return;

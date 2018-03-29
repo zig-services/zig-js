@@ -1,3 +1,4 @@
+const path = require("path");
 const webpack = require("webpack");
 
 module.exports = {
@@ -10,6 +11,7 @@ module.exports = {
 
     output: {
         filename: './[name].min.js',
+        path: path.resolve(__dirname, "dist/js"),
     },
 
     resolve: {

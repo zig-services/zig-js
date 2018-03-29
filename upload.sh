@@ -2,35 +2,46 @@
 
 set -e
 
+# read version from package.json file
+VERSION=$(node -p 'require("./package.json").version')
+
+# build package in that version
 ./build-in-docker.sh
 
-if [ "$1" == "latest" ] ; then
-    echo "Can not be latest."
+if ! [ -f dist/zig-${VERSION}.tar.gz ] ; then
+    echo "Did not find compiled files for $VERSION"
     exit 1
 fi
 
 BUCKET=lib.zig.services
 echo "Using bucket $BUCKET"
 
+echo "Create bucket if not exists needed"
 s3cmd mb s3://"$BUCKET" || true
 
-if [ -n "$1" ] && [ "$1" != "dev" ] ; then
-    s3cmd put -P --no-preserve \
-        --mime-type="application/javascript; charset=utf8" \
-        --add-header='Cache-Control: public,max-age=31536000,immutable' \
-         dist/*.min.js s3://"$BUCKET"/$1/
-
-
-    s3cmd put -P --no-preserve \
-        --mime-type="application/javascript; charset=utf8" \
-        --add-header='Cache-Control: public,max-age=60' \
-         dist/*.min.js s3://"$BUCKET"/latest/
-fi
+#
+#if [ -n "$1" ] && [ "$1" != "dev" ] ; then
+#    s3cmd put -P --no-preserve \
+#        --mime-type="application/javascript; charset=utf8" \
+#        --add-header='Cache-Control: public,max-age=31536000,immutable' \
+#         dist/*.min.js s3://"$BUCKET"/$1/
+#
+#
+#    s3cmd put -P --no-preserve \
+#        --mime-type="application/javascript; charset=utf8" \
+#        --add-header='Cache-Control: public,max-age=60' \
+#         dist/*.min.js s3://"$BUCKET"/latest/
+#fi
 
 s3cmd put -P --no-preserve \
     --mime-type="application/javascript; charset=utf8" \
-    --add-header='Cache-Control: private,no-store,no-cache' \
-     dist/*.min.js s3://"$BUCKET"/dev/
+    --add-header='Cache-Control: public, max-age=60' \
+     dist/zig-${VERSION}.tar.gz s3://"$BUCKET"/zig/${VERSION}/
+
+s3cmd put -P --no-preserve \
+    --mime-type="application/javascript; charset=utf8" \
+    --add-header='Cache-Control: public, max-age=60' \
+     dist/js/*.min.js s3://"$BUCKET"/zig/${VERSION}/
 
 s3cmd put -P --no-preserve \
     --mime-type="text/html; charset=utf8" \

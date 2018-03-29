@@ -1,26 +1,27 @@
 {
   "name": "zig-client-js",
-  "version": "0.3.6",
+  "version": "0.3.6-SNAPSHOT",
   "description": "",
   "author": "",
   "license": "MIT",
   "devDependencies": {
+    "@types/chai": "^4.1.2",
+    "@types/mocha": "^5.0.0",
     "@types/react": "^16.0.38",
     "@types/react-dom": "^16.0.4",
+    "chai": "^4.1.2",
     "css-loader": "^0.28.10",
-    "declaration-bundler-webpack-plugin": "^1.0.3",
+    "jsdom": "^11.6.2",
+    "jsdom-global": "^3.0.2",
+    "mocha": "^5.0.5",
     "promise-polyfill": "^7.1.0",
     "prop-types": "^15.6.1",
     "react": "^16.2.0",
     "react-dom": "^16.2.0",
     "ts-loader": "^4.0.0",
+    "ts-node": "^5.0.1",
     "typescript": "^2.7.2",
     "webpack": "^4.0.1",
     "webpack-cli": "^2.0.9"
-  },
-  "scripts": {
-    "dev": "webpack --mode=development",
-    "build": "webpack --mode=production",
-    "postversion": "git push && git push --tags"
   }
 }

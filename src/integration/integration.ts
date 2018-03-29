@@ -13,7 +13,7 @@ class Integration {
         this.messageClient = new MessageClient(frame.contentWindow);
         this.interface = new ParentMessageInterface(this.messageClient, game);
 
-        this.interface.dispatcher.registerGeneric({
+        this.interface.registerGeneric({
             updateGameHeight: ev => this.updateGameHeight(ev.height),
             updateGameSettings: ev => this.updateGameSettings(ev.gameSettings),
         });
@@ -23,7 +23,7 @@ class Integration {
     }
 
     public destroy(): void {
-        log("Destroy event listeners from frame");
+        log.info("Destroy event listeners from frame");
         this.interface.close();
         this.messageClient.close();
     }
