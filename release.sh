@@ -12,10 +12,9 @@ fi
 # update version and push to git - patch by default
 npm version ${1:-patch}
 
-# build code and upload
 VERSION=$(node -p 'require("./package.json").version')
-echo "Building release version ${VERSION}..."
 
+echo "Building release version ${VERSION}..."
 ./build-in-docker.sh
 
 # update version to next snapshot
@@ -24,5 +23,9 @@ npm --no-git-tag-version version ${VERSION_NEXT}
 git add package.json
 git commit -m "Move to next snapshot version $VERSION_NEXT"
 
+# upload the release
+./upload.sh "$VERSION"
+
+# build the new snapshot version
 ./build-in-docker.sh
 ./upload.sh "$VERSION_NEXT"
