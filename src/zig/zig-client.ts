@@ -17,7 +17,7 @@ export interface BuyTicketOptions {
 export class ZigClient {
     readonly interface: GameMessageInterface;
 
-    constructor(private readonly gameConfig: IGameConfig = parseGameConfigFromURL()) {
+    constructor(readonly gameConfig: Readonly<IGameConfig> = parseGameConfigFromURL()) {
         const messageClient = new MessageClient(window.parent);
         this.interface = new GameMessageInterface(messageClient,
             gameConfig.canonicalGameName);

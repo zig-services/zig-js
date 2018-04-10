@@ -67,7 +67,7 @@ export function zigObserveGame(game: string, wrapper: HTMLDivElement, frame: HTM
     return integration.interface;
 }
 
-export function includeZigGame(targetSelector: string, url: string, config: IGameConfig): ParentMessageInterface {
+export function includeZigGame(targetSelector: string | HTMLElement, url: string, config: IGameConfig): ParentMessageInterface {
     const frameSource = appendGameConfigToURL(url, config);
 
     // The iframe containing the game.
@@ -85,7 +85,10 @@ export function includeZigGame(targetSelector: string, url: string, config: IGam
     wrapper.appendChild(frame);
 
     // put the wrapper into the target element.
-    const target = document.querySelector(targetSelector);
+    const target = typeof targetSelector === "string"
+        ? document.querySelector(targetSelector)
+        : targetSelector;
+
     target.appendChild(wrapper);
 
     return zigObserveGame(config.canonicalGameName, wrapper, frame);

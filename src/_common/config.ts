@@ -4,6 +4,9 @@ export interface IGameConfig {
 
     // set to true to enable overlay in the outer.html
     overlay?: boolean;
+
+    // access token for remote game services.
+    remoteAccessToken?: string;
 }
 
 /**
@@ -24,7 +27,7 @@ export function parseGameConfigFromURL(url: string = location.href): IGameConfig
         throw new Error("canonicalGameName not set in config.");
     }
 
-    return config;
+    return Object.freeze(config);
 }
 
 /**
