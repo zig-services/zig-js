@@ -4,7 +4,7 @@ const DtsBundlePlugin = require('webpack-dts-bundle').default;
 
 module.exports = {
     entry: {
-        "integration": "./src/integration/integration.ts",
+        "integration": "./src/int.ts",
         "wrapper": "./src/wrapper/wrapper.ts",
         "zig": "./src/zig/zig.ts",
         "debug-page": "./src/debug-page/debug-page.tsx",
@@ -25,9 +25,9 @@ module.exports = {
             BUILDTIME: JSON.stringify(Date.now()),
         }),
         new DtsBundlePlugin({
-            name: 'zig',
-            main: path.resolve(__dirname, './dist/js/src/integration/integration.d.ts'),
-            out: path.resolve(__dirname, './dist/index.d.ts'),
+            name: 'integration',
+            main: path.resolve(__dirname, './dist/js/src/int.d.ts'),
+            out: path.resolve(__dirname, './dist/js/integration.d.ts'),
             verbose: true,
         }),
     ],
