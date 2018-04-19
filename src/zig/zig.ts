@@ -9,7 +9,7 @@ export interface ZigGlobal {
     Client: ZigClient
 }
 
-declare let Zig: ZigGlobal;
+export let Zig: ZigGlobal;
 
 export function main() {
     const log = logger("[zig]");
@@ -32,7 +32,7 @@ export function main() {
 }
 
 
-if (!delegateToVersion(`zig.min.js`)) {
+if (!delegateToVersion(`libzig.js`)) {
     if (window.console && console.log) {
         console.log("");
         console.log(`[zig] Initializing zig client in version ${clientVersion}`);
