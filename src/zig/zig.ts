@@ -1,11 +1,17 @@
 import {isLegacyGame, patchLegacyGame} from "./zig-legacy";
 import {logger} from "../_common/common";
 import {localStoragePolyfill, objectAssignPolyfill} from "../_common/polyfill";
-import {buildTime, clientVersion} from "../_common/vars";
-import {delegateToVersion} from "../_common/delegate";
 import {ZigClient} from "./zig-client";
+import {delegateToVersion} from "../_common/delegate";
+import {buildTime, clientVersion} from "../_common/vars";
 
-function main() {
+export interface ZigGlobal {
+    Client: ZigClient
+}
+
+declare let Zig: ZigGlobal;
+
+export function main() {
     const log = logger("[zig]");
 
     // initialize Object.assign polyfill for ie11.
@@ -20,10 +26,11 @@ function main() {
     }
 
     // expose types to user of this library
-    window["Zig"] = Object.assign(window["Zig"] || {}, {
+    Zig = {
         Client: new ZigClient(),
-    });
+    };
 }
+
 
 if (!delegateToVersion(`zig.min.js`)) {
     if (window.console && console.log) {

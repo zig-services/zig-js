@@ -4,19 +4,23 @@ const DtsBundlePlugin = require('webpack-dts-bundle').default;
 
 module.exports = {
     entry: {
-        "integration": "./src/int.ts",
+        "libint": "./src/libint.ts",
+        "libzig": "./src/libzig.ts",
         "wrapper": "./src/wrapper/wrapper.ts",
-        "zig": "./src/zig/zig.ts",
         "debug-page": "./src/debug-page/debug-page.tsx",
     },
 
     output: {
-        filename: './[name].min.js',
-        path: path.resolve(__dirname, "dist/js"),
+        filename: './[name].js',
+        path: path.resolve(__dirname, "dist"),
     },
 
     resolve: {
         extensions: [".ts", ".tsx", ".js", ".jsx"]
+    },
+
+    watchOptions: {
+        ignored: /node_modules|dist/,
     },
 
     plugins: [
@@ -24,11 +28,12 @@ module.exports = {
             VERSION: JSON.stringify(require("./package.json").version),
             BUILDTIME: JSON.stringify(Date.now()),
         }),
-        new DtsBundlePlugin({
-            name: 'integration',
-            main: path.resolve(__dirname, './dist/js/src/int.d.ts'),
-            out: path.resolve(__dirname, './dist/js/integration.d.ts'),
-        }),
+
+        ...["libint", "libzig"].map(name => new DtsBundlePlugin({
+            name: name,
+            main: path.resolve(__dirname, `./dist/typings/${name}.d.ts`),
+            out: path.resolve(__dirname, `./dist/${name}.d.ts`),
+        }))
     ],
 
     module: {

@@ -8,6 +8,7 @@
       "dom"
     ],
     "declaration": true,
+    "declarationDir": "typings",
     "jsx": "react"
   },
   "exclude": [

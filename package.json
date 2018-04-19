@@ -1,6 +1,6 @@
 {
-  "name": "zig-client-js",
-  "version": "1.0.2-SNAPSHOT",
+  "name": "zig",
+  "version": "1.0.1",
   "description": "",
   "author": "",
   "license": "MIT",
@@ -18,6 +18,7 @@
     "prop-types": "^15.6.1",
     "react": "^16.2.0",
     "react-dom": "^16.2.0",
+    "release-it": "^7.4.1",
     "ts-loader": "^4.1.0",
     "ts-node": "^5.0.1",
     "typescript": "^2.8.1",

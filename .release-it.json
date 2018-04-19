@@ -1,0 +1,16 @@
+{
+  "non-interactive": true,
+  "requireCleanWorkingDir": false,
+  "increment": "patch",
+  "src": {
+    "tagName": "v%s"
+  },
+  "buildCommand": "./build.sh",
+  "github": {
+    "release": false
+  },
+  "npm": {
+    "publish": true,
+    "publishPath": "dist"
+  }
+}
