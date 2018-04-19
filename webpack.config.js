@@ -28,7 +28,6 @@ module.exports = {
             name: 'integration',
             main: path.resolve(__dirname, './dist/js/src/int.d.ts'),
             out: path.resolve(__dirname, './dist/js/integration.d.ts'),
-            verbose: true,
         }),
     ],
 
