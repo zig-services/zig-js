@@ -4,7 +4,7 @@
   "increment": "patch",
   "src": {
     "tagName": "v%s",
-    "afterReleaseCommand": "bash -c 'if [[ ${version} != *beta* ]] ; then ./publish-s3.sh ; fi'"
+    "afterReleaseCommand": "./upload.sh"
   },
   "buildCommand": "./build.sh",
   "github": {

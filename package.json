@@ -25,5 +25,12 @@
     "webpack": "^4.3.0",
     "webpack-cli": "^2.0.13",
     "webpack-dts-bundle": "0.0.2"
+  },
+  "scripts": {
+    "watch": "webpack --mode=development --watch",
+    "upload": "./upload.sh",
+    "build-upload": "./build.sh && ./upload.sh",
+    "release": "node_modules/.bin/release-it",
+    "beta": "node_modules/.bin/release-it --preRelease=beta"
   }
 }
