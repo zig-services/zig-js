@@ -3,7 +3,8 @@
   "requireCleanWorkingDir": false,
   "increment": "patch",
   "src": {
-    "tagName": "v%s"
+    "tagName": "v%s",
+    "afterReleaseCommand": "bash -c 'if [[ ${version} != *beta* ]] ; then ./publish-s3.sh ; fi'"
   },
   "buildCommand": "./build.sh",
   "github": {
