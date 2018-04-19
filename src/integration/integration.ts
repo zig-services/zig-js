@@ -43,7 +43,7 @@ class Integration {
     }
 }
 
-export function zigObserveGame(game: string, wrapper: HTMLDivElement, frame: HTMLIFrameElement): ParentMessageInterface {
+function zigObserveGame(game: string, wrapper: HTMLDivElement, frame: HTMLIFrameElement): ParentMessageInterface {
     const integration = new Integration(game, wrapper, frame);
 
     const mutationObserver = new MutationObserver(mu => {
@@ -67,7 +67,7 @@ export function zigObserveGame(game: string, wrapper: HTMLDivElement, frame: HTM
     return integration.interface;
 }
 
-export function includeZigGame(targetSelector: string | HTMLElement, url: string, config: IGameConfig): ParentMessageInterface {
+function includeZigGame(targetSelector: string | HTMLElement, url: string, config: IGameConfig): ParentMessageInterface {
     const frameSource = appendGameConfigToURL(url, config);
 
     // The iframe containing the game.
@@ -94,7 +94,7 @@ export function includeZigGame(targetSelector: string | HTMLElement, url: string
     return zigObserveGame(config.canonicalGameName, wrapper, frame);
 }
 
-export function registerHTTPHandlerOnly(game: string, frame: HTMLIFrameElement, handler: (r: Request) => Promise<Result> = undefined): VoidFunction {
+function registerHTTPHandlerOnly(game: string, frame: HTMLIFrameElement, handler: (r: Request) => Promise<Result> = undefined): VoidFunction {
     const messageClient = new MessageClient(frame.contentWindow);
     const iface = new ParentMessageInterface(messageClient, game);
 
