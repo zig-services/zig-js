@@ -30,7 +30,7 @@ module.exports = {
         }),
 
         ...["libint", "libzig"].map(name => new DtsBundlePlugin({
-            name: name,
+            name: `zig-js/${name}`,
             main: path.resolve(__dirname, `./dist/typings/${name}.d.ts`),
             out: path.resolve(__dirname, `./dist/${name}.d.ts`),
         }))
