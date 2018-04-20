@@ -13,7 +13,7 @@ export function delegateToVersion(script: string): boolean {
 
     // get the override version from the options
     const version = Options.version;
-    if (version == null || version === "latest") {
+    if (version == null) {
         return false;
     }
 

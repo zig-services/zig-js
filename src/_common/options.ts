@@ -16,7 +16,7 @@ export const Options = {
 
 
     get version(): string {
-        return KV.get("version") || "latest";
+        return KV.get("version");
     },
 
     set version(value: string) {

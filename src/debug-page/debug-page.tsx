@@ -61,7 +61,7 @@ class WinningClassOverride extends React.Component<{}, WinningClassOverrideState
 
 
 interface VersionCheckboxState {
-    devVersion: boolean;
+    version: string | null;
     logging: boolean;
     wcOverride: boolean;
 }
@@ -71,15 +71,15 @@ class OptionsForm extends React.Component<{}, VersionCheckboxState> {
         super(props);
 
         this.state = {
-            devVersion: Options.version === "dev",
+            version: Options.version,
             logging: Options.logging,
             wcOverride: Options.winningClassOverride != null,
         };
     }
 
-    handleVersionChange(devVersion: boolean): void {
-        Options.version = devVersion ? "dev" : "latest";
-        this.setState({devVersion});
+    handleVersionChange(version: string): void {
+        Options.version = version;
+        this.setState({version});
     }
 
     handleLoggingChange(logging: boolean): void {
@@ -96,23 +96,25 @@ class OptionsForm extends React.Component<{}, VersionCheckboxState> {
     }
 
     render(): ReactNode {
+        const versionControls: ReactNode[] = ["1-stable", "1-dev"].map(version => <label>
+            <input type="checkbox" defaultChecked={this.state.version == version}
+                   onChange={() => this.handleVersionChange(version)}/>{version}</label>);
+
         return (
             <form>
-                <label>
-                    <input type="checkbox" defaultChecked={this.state.devVersion}
-                           onChange={() => this.handleVersionChange(!this.state.devVersion)}/>
-                    Override script version with 'dev'
-                </label>
+                {versionControls}
 
                 <label>
-                    <input type="checkbox" defaultChecked={this.state.logging}
+                    <input type="checkbox"
+                           defaultChecked={this.state.logging}
                            onChange={() => this.handleLoggingChange(!this.state.logging)}/>
                     Enable logging to console
                 </label>
 
 
                 <label>
-                    <input type="checkbox" defaultChecked={this.state.wcOverride}
+                    <input type="checkbox"
+                           defaultChecked={this.state.wcOverride}
                            onChange={e => this.handleOverrideWinningClassChange(e.target.checked)}/>
                     Enable winning class/scenario override
                 </label>

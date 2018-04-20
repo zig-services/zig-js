@@ -11,5 +11,6 @@ rm -rf dist
 node_modules/.bin/webpack --mode production --progress
 rm -rf dist/typings
 
-# copy package.json for npm to output directory
+# copy files for npm to output directory
 cp package.json dist/
+cp README.md dist/
