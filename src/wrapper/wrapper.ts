@@ -170,7 +170,7 @@ onDOMLoad(() => {
     log(`Initializing zig wrapper in ${clientVersion}`);
 
     // we might want to delegate the script to another version
-    if (delegateToVersion("wrapper.min.js")) {
+    if (delegateToVersion("wrapper.js")) {
         return;
     }
 
