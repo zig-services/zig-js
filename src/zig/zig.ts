@@ -29,6 +29,11 @@ export function main() {
     Zig = {
         Client: new ZigClient(),
     };
+
+    window["Zig"] = Zig;
+
+    // track height of the iframe if the marker exists.
+    Zig.Client.trackGameHeight("#iframe-height-marker");
 }
 
 
@@ -41,4 +46,8 @@ if (!delegateToVersion(`libzig.js`)) {
     }
 
     main();
+} else {
+    // use the Zig instance from the window object that was created by delegating to the
+    // other script instance.
+    Zig = window["Zig"] as ZigGlobal
 }
