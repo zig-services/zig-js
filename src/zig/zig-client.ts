@@ -55,12 +55,12 @@ export class ZigClient {
     }
 
     private sendGameStartedEvent(options: BuyTicketOptions, ticket: ITicket) {
-        let alreadySettled = !!options.alreadySettled;
+        let alreadySettled = options.alreadySettled;
         if (alreadySettled === undefined) {
             alreadySettled = !(ticket.game || {supportsResume: true}).supportsResume;
         }
 
-        this.interface.gameStarted(ticket.id, ticket.id, alreadySettled);
+        this.interface.gameStarted(ticket.id, ticket.id, alreadySettled === true);
     }
 
     public async settleTicket(id: string): Promise<void> {
