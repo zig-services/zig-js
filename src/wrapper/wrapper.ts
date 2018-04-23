@@ -187,6 +187,18 @@ onDOMLoad(() => {
 
     if (Options.debuggingLayer) {
         log("Debugging options are set, showing debugging layer now.");
-        document.body.style.borderTop = "0.5em solid blue";
+
+        const el = document.createElement("div");
+        el.innerHTML = `
+            <div style='position: absolute; top: 0; left: 0; font-size: 0.6em; padding: 0.25em; background: rgba(0, 0, 0, 128); color: white; z-index: 100;'>
+                <strong>ZIG</strong>
+                &nbsp;&nbsp;
+                
+                version: ${Options.version} (=${clientVersion}),
+                logging: ${Options.logging},
+                winning class override: ${Options.winningClassOverride} 
+            </div>`;
+
+        document.body.appendChild(el.firstElementChild);
     }
 });
