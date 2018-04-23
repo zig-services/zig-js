@@ -187,6 +187,6 @@ onDOMLoad(() => {
 
     if (Options.debuggingLayer) {
         log("Debugging options are set, showing debugging layer now.");
-        document.body.style.borderTop = "0.5em solid red";
+        document.body.style.borderTop = "0.5em solid blue";
     }
 });

@@ -34,6 +34,6 @@ export const Options = {
 
 
     get debuggingLayer(): boolean {
-        return this.logging || this.version !== "latest" || this.winningClassOverride != null;
+        return this.logging || this.version || this.winningClassOverride != null;
     }
 };
