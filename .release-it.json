@@ -1,6 +1,6 @@
 {
   "non-interactive": true,
-  "requireCleanWorkingDir": false,
+  "requireCleanWorkingDir": true,
   "increment": "patch",
   "src": {
     "tagName": "v%s",
