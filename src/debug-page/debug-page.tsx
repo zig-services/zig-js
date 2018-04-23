@@ -97,7 +97,7 @@ class OptionsForm extends React.Component<{}, VersionCheckboxState> {
 
     render(): ReactNode {
         const versionControls: ReactNode[] = ["1-stable", "1-dev"].map(version => <label>
-            <input type="checkbox" defaultChecked={this.state.version == version}
+            <input type="radio" name="version" defaultChecked={this.state.version == version}
                    onChange={() => this.handleVersionChange(version)}/>{version}</label>);
 
         return (
