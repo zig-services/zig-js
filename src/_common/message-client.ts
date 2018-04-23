@@ -36,7 +36,14 @@ export class MessageClient {
             return;
         }
 
-        log.info(`Send message of type ${typeof message === 'string' ? message : message.command}:`, message);
+        const messageType = typeof message === 'string' ? message : message.command;
+
+        // remove "command" field if it is an error message.
+        if (typeof message === "object" && message.command === "error") {
+            delete message["command"];
+        }
+
+        log.info(`Send message of type ${messageType}:`, message);
         this.partnerWindow.postMessage(message, "*");
     }
 
