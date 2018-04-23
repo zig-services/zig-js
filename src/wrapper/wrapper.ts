@@ -3,7 +3,7 @@ import 'promise-polyfill/src/polyfill';
 import {IGameSettings, logger, sleep} from "../_common/common";
 import {GameMessageInterface, IError, MessageClient, ParentMessageInterface} from "../_common/message-client";
 import {injectStyle} from "../_common/dom";
-import {clientVersion} from "../_common/vars";
+import {buildTime, clientVersion} from "../_common/vars";
 import {delegateToVersion} from "../_common/delegate";
 import {onDOMLoad} from "../_common/events";
 import {Options} from "../_common/options";
@@ -196,7 +196,8 @@ onDOMLoad(() => {
                 
                 version: ${Options.version} (=${clientVersion}),
                 logging: ${Options.logging},
-                winning class override: ${Options.winningClassOverride} 
+                wc override: ${JSON.stringify(Options.winningClassOverride)},
+                build ${(Date.now() - buildTime) / 1000.0}s ago
             </div>`;
 
         document.body.appendChild(el.firstElementChild);
