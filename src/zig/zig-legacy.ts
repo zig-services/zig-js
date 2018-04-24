@@ -80,10 +80,27 @@ function _XMLHttpRequest() {
             if (needsIntercept) {
                 log(`Intercepting xhr request: ${method} ${url}`);
 
-                const ukGameUrl = `/iwg/${gameConfig.canonicalGameName}uk/`;
-                if (url.indexOf(ukGameUrl) !== -1) {
+                const ukGameURL = `/iwg/${gameConfig.canonicalGameName}uk/`;
+                if (url.indexOf(ukGameURL) !== -1) {
                     log(`Detected a legacy uk game, rewriting to ${gameConfig.canonicalGameName}`);
-                    url = url.replace(ukGameUrl, `/iwg/${gameConfig.canonicalGameName}/`);
+                    url = url.replace(ukGameURL, `/iwg/${gameConfig.canonicalGameName}/`);
+                }
+
+                // .ie games shared a pool with the .com games and are using the old canonical name
+                // in requests without /ie$/ ending. This is no longer the case.
+                // Therefore we need to rewrite the url to use the real canonicalGameName if it is
+                // one of the ie games.
+                const ieGames = [
+                    "cashbusterie", "brilliantie", "bingoie", "crosswordie", "bonusbingoie",
+                    "instantcashie", "instantcashplatinumie", "latwayie", "nesteggie", "cashcowie",
+                ];
+
+                if (ieGames.indexOf(gameConfig.canonicalGameName) !== -1) {
+                    const ieGameURL = `/iwg/${gameConfig.canonicalGameName.replace(/ie$/, "")}`;
+                    if (url.indexOf(ieGameURL) !== -1) {
+                        log(`Detected a legacy ie game, rewriting to ${gameConfig.canonicalGameName}`);
+                        url = url.replace(ieGameURL, `/iwg/${gameConfig.canonicalGameName}/`);
+                    }
                 }
 
                 req = {
