@@ -80,11 +80,19 @@ function _XMLHttpRequest() {
             if (needsIntercept) {
                 log(`Intercepting xhr request: ${method} ${url}`);
 
-                const ukGameUrl = `/iwg/${gameConfig.canonicalGameName}uk/`;
-                if (url.indexOf(ukGameUrl) !== -1) {
-                    log(`Detected a legacy uk game, rewriting to ${gameConfig.canonicalGameName}`);
-                    url = url.replace(ukGameUrl, `/iwg/${gameConfig.canonicalGameName}/`);
-                }
+                const legacyGames = [
+                    "cashbusterie", "brilliantie", "bingoie", "crosswordie", "bonusbingoie",
+                    "instantcashie", "instantcashplatinumie", "latwayie", "nesteggie", "cashcowie",
+                    `${gameConfig.canonicalGameName}uk`
+                ];
+
+                legacyGames.forEach(legacyGame => {
+                    const legacyGameURL = `/iwg/${legacyGame}/`;
+                    if (url.indexOf(legacyGameURL) !== -1) {
+                        log(`Detected legacy uk/ie game ${legacyGame}, rewriting to ${gameConfig.canonicalGameName}`);
+                        url = url.replace(legacyGameURL, `/iwg/${gameConfig.canonicalGameName}/`);
+                    }
+                });
 
                 req = {
                     method: method,
