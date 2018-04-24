@@ -96,7 +96,7 @@ function _XMLHttpRequest() {
                 ];
 
                 if (ieGames.indexOf(gameConfig.canonicalGameName) !== -1) {
-                    const ieGameURL = `/iwg/${gameConfig.canonicalGameName.replace(/ie$/, "")}`;
+                    const ieGameURL = `/iwg/${gameConfig.canonicalGameName.replace(/ie$/, "")}/`;
                     if (url.indexOf(ieGameURL) !== -1) {
                         log(`Detected a legacy ie game, rewriting to ${gameConfig.canonicalGameName}`);
                         url = url.replace(ieGameURL, `/iwg/${gameConfig.canonicalGameName}/`);
