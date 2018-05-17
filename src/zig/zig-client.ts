@@ -12,6 +12,9 @@ export interface BuyTicketOptions {
 
     // Set to a positive value if more than one ticket is requested (e.g. sofort games)
     quantity?: number
+
+    // Set to a positive value if bet factor is required by a game.
+    betFactor?: number
 }
 
 export class ZigClient {
@@ -27,7 +30,10 @@ export class ZigClient {
         return await this.propagateErrors(async () => {
             const quantity: number = options.quantity || guessQuantity(payload);
 
-            const url = `/product/iwg/${this.gameConfig.canonicalGameName}/tickets?quantity=${quantity}`;
+            let url = `/product/iwg/${this.gameConfig.canonicalGameName}/tickets?quantity=${quantity}`;
+            if (options.betFactor) {
+                url += `&betFactor=${options.betFactor}`
+            }
             const ticket = await this.request<ITicket>("POST", url, payload);
 
             this.sendGameStartedEvent(options, ticket);
@@ -45,6 +51,9 @@ export class ZigClient {
                 // append extra config parameters if the winning class
                 url += `&wc=${Options.winningClassOverride.winningClass}`;
                 url += `&scenarioId=${Options.winningClassOverride.scenarioId}`;
+            }
+            if (options.betFactor) {
+                url += `&betFactor=${options.betFactor}`
             }
 
             const ticket = await this.request<ITicket>("POST", url, payload);
