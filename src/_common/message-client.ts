@@ -163,6 +163,7 @@ export interface ErrorMessage extends BaseMessage, IError {
 
 export interface GameLoadedMessage extends BaseMessage {
     command: "gameLoaded";
+    inGamePurchase?: boolean;
 }
 
 export interface PlayGameMessage extends BaseMessage {
@@ -484,8 +485,8 @@ export class ParentMessageInterface extends MessageFactory {
 }
 
 export class GameMessageInterface extends MessageFactory {
-    public gameLoaded() {
-        this.send<GameLoadedMessage>({command: "gameLoaded", game: this.game});
+    public gameLoaded(inGamePurchase?: boolean) {
+        this.send<GameLoadedMessage>({command: "gameLoaded", game: this.game, inGamePurchase: inGamePurchase});
     }
 
     public gameStarted(ticketId: TicketId, ticketNumber: TicketNumber, alreadySettled: boolean = false) {
