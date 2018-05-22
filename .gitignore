@@ -7,3 +7,4 @@
 /dist
 
 zig-*.tar.gz
+/package-lock.json
