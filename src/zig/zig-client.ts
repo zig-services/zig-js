@@ -42,7 +42,6 @@ export class ZigClient {
     }
 
     public async demoTicket(payload: any = {}, options: BuyTicketOptions = {}): Promise<ITicket> {
-        log("test");
         return await this.propagateErrors(async () => {
             const quantity: number = options.quantity || guessQuantity(payload);
 
