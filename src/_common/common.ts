@@ -34,15 +34,21 @@ export type TicketNumber = string;
 
 export interface IGame {
     supportsResume: boolean;
+    canonicalName: string;
 }
 
 export interface ITicket {
     id: TicketId;
     game: IGame;
+    played: boolean;
 }
 
 export interface IGameSettings {
     index: string;
     aspect: number;
     legacyGame: boolean;
+}
+
+export interface IBundle {
+    tickets: ITicket[];
 }

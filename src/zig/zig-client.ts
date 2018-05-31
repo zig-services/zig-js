@@ -1,4 +1,4 @@
-import {ITicket, logger} from "../_common/common";
+import {IBundle, ITicket, logger} from "../_common/common";
 import {IGameConfig, parseGameConfigFromURL} from "../_common/config";
 import {Options} from "../_common/options";
 import {GameMessageInterface, MessageClient} from "../_common/message-client";
@@ -60,6 +60,12 @@ export class ZigClient {
 
             this.sendGameStartedEvent(options, ticket);
             return ticket;
+        });
+    }
+
+    public async bundle(bundleKey: number): Promise<IBundle> {
+        return await this.propagateErrors(async () => {
+            return await this.request<IBundle>("GET", `/iwg/bundles/${bundleKey}`);
         });
     }
 
