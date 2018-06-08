@@ -32,8 +32,6 @@ export type TicketId = string;
 
 export type TicketNumber = string;
 
-export type BundleKey = string;
-
 export interface IGame {
     supportsResume: boolean;
     canonicalName: string;
@@ -42,7 +40,7 @@ export interface IGame {
 export interface ITicket {
     id: TicketId;
     ticketNumber: TicketNumber;
-    bundleKey: BundleKey;
+    bundleKey: number;
     game: IGame;
     played: boolean;
 }
