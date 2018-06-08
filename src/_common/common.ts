@@ -41,7 +41,7 @@ export interface IGame {
 
 export interface ITicket {
     id: TicketId;
-    ticetNumber: TicketNumber;
+    ticketNumber: TicketNumber;
     bundleKey: BundleKey;
     game: IGame;
     played: boolean;
