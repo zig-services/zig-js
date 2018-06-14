@@ -27,6 +27,11 @@ export class ZigClient {
     }
 
     public async buyTicket(payload: any = {}, options: BuyTicketOptions = {}): Promise<ITicket> {
+        if (Options.winningClassOverride) {
+            log("WinningClassOverride set, get a demo ticket instead of a real one.");
+            return this.demoTicket(payload, options);
+        }
+
         return await this.propagateErrors(async () => {
             const quantity: number = options.quantity || guessQuantity(payload);
 
