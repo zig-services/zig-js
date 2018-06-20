@@ -75,6 +75,21 @@ const Game = {
 };
 ```
 
+In case of errors, you can use the `error` method on the `Messages` instance, to forward any
+value as an error object to the parent frame. You might want to wrap your `runGame` method in a try/catch
+block like this:
+```js
+const Game = {
+  runGame() {
+    try {
+      // [...]
+    } catch(err) {
+      Zig.Client.Messages.error(err);
+    }
+  }
+};
+```
+
 For more information, check the source or the latest [typescript d.ts file](https://unpkg.com/zig-js/libzig.d.ts).
 
 
