@@ -1,22 +1,16 @@
-import {IGameSettings, logger, TicketId, TicketNumber} from "./common";
+import {GameSettings, logger} from "./common";
 import {Request, Result, WithCID} from "./request";
+import {IError, TicketId, TicketNumber} from "./domain";
 
 export type CommandType = string
 
-export type IMessage = string | { command: string }
+export type Message = string | { command: string }
 
-export interface IError {
-    type: string;
-    title: string;
-    status?: number;
-    details?: string;
-}
-
-const log = logger("[zig-msg]");
+const log = logger("zig.message");
 
 export class MessageClient {
     private readonly eventHandler: (ev: MessageEvent) => void;
-    private handlers: ((msg: IMessage) => void)[] = [];
+    private handlers: ((msg: Message) => void)[] = [];
 
     constructor(private readonly partnerWindow: Window) {
         // register event handler for receiving messages
@@ -31,7 +25,13 @@ export class MessageClient {
         window.removeEventListener("message", this.eventHandler);
     }
 
-    public send(message: IMessage): void {
+    /**
+     * Sends a message. A message can be either a string or an object containing
+     * a `command` field. Normally you don't need to use this method directly. Use the
+     * specialized methods on `ParentMessageInterface` or `GameMessageInterface`
+     * to send game messages.
+     */
+    public send(message: Message): void {
         if (message == null) {
             return;
         }
@@ -47,6 +47,11 @@ export class MessageClient {
         this.partnerWindow.postMessage(message, "*");
     }
 
+    /**
+     * Sends an error using this MessageClient. The error value can be any value and
+     * will be converted into an error message automatically. E.g. you can pass a
+     * failed XMLHttpRequest, its body, or any caught exception to this method.
+     */
     public sendError(err: IError | Error | any): void {
         const errorValue = toErrorValue(err);
         if (errorValue != null) {
@@ -55,11 +60,17 @@ export class MessageClient {
         }
     }
 
-    public register(handler: (message: IMessage) => void) {
+    /**
+     * Registers an event handler.
+     */
+    public register(handler: (message: Message) => void) {
         this.handlers.push(handler);
     }
 
-    public unregister(handler: (message: IMessage) => void) {
+    /**
+     * Removes an event handler from this message client instance.
+     */
+    public unregister(handler: (message: Message) => void) {
         this.handlers = this.handlers.filter(it => handler !== it);
     }
 
@@ -83,13 +94,13 @@ export class MessageClient {
             return;
         }
 
-        // maybe an error?
+        // maybe an error? Need to patch legacy messages here.
         if (typeof data.type === "string" && typeof data.title === "string" && typeof data.command === "undefined") {
             data.command = "error";
         }
 
         // call handlers with message
-        const message = data as IMessage;
+        const message = data as Message;
         this.handlers.forEach(handler => {
             try {
                 handler(message);
@@ -101,7 +112,7 @@ export class MessageClient {
 }
 
 /**
- * Tries to make sense of the response of a request.
+ * Converts any non null object into an error.
  */
 function toErrorValue(err: any): IError | null {
     if (err == null) {
@@ -121,8 +132,7 @@ function toErrorValue(err: any): IError | null {
         }
     }
 
-    const responseText = err.responseText || err.body;
-
+    const responseText = err.responseText || err.body || err;
     if (typeof responseText === "string") {
         try {
             const parsed = JSON.parse(responseText);
@@ -177,7 +187,7 @@ export interface PlayDemoGameMessage extends BaseMessage {
 export interface GameStartedMessage extends BaseMessage {
     command: "gameStarted";
     ticketId: TicketId;
-    ticketNumber: TicketId;
+    ticketNumber: TicketNumber;
     alreadySettled: boolean;
 }
 
@@ -209,7 +219,7 @@ export interface UpdateNicknameMessage extends BaseMessage {
 
 export interface UpdateGameSettingsMessage extends BaseMessage {
     command: "updateGameSettings";
-    gameSettings: IGameSettings;
+    gameSettings: GameSettings;
 }
 
 export interface NewVoucherMessage extends BaseMessage {
@@ -334,7 +344,7 @@ export class MessageDispatcher {
      * unregister function to disconnect the MessageDispatcher from the MessageClient
      */
     public observe(messageClient: MessageClient): Unregister {
-        const handler = (message: IMessage) => this.dispatch(message);
+        const handler = (message: Message) => this.dispatch(message);
         messageClient.register(handler);
         return () => messageClient.unregister(handler);
     }
@@ -346,12 +356,15 @@ export class MessageDispatcher {
         return () => this.unregister(type, handler);
     }
 
+    /**
+     * Registers an object containing multiple handler methods.
+     */
     public registerGeneric(handler: Partial<CommandMessageHandlers>): Unregister {
         const unregister: Unregister[] = Object
             .keys(handler)
             .map(key => this.register(key as Command, handler[key]));
 
-        return () => unregister.forEach(Function.call);
+        return () => unregister.forEach(m => m());
     }
 
     private unregister<K extends Command>(type: K, handler: (msg: CommandMessageTypes[K]) => void): void {
@@ -359,14 +372,14 @@ export class MessageDispatcher {
         this.handlers[type] = (this.handlers[type] || []).filter(it => it !== handler);
     }
 
-    public dispatch(msg: IMessage): void {
+    public dispatch(msg: Message): void {
         const message: BaseMessage = this.convertToMessage(msg);
 
         // get the handlers for this message type.
         const handlers = this.handlers[message.command] || [];
 
         if (handlers.length === 0) {
-            log.warn(`No handler for command ${message.command} registered.`);
+            log.debug(`No handler for command ${message.command} registered.`);
             return;
         }
 
@@ -375,7 +388,7 @@ export class MessageDispatcher {
             try {
                 handler(message);
             } catch (err) {
-                log.warn("Error calling handler: ", err);
+                log.warn(`Error calling handler for ${message.command}:`, err);
             }
         })
     }
@@ -385,7 +398,7 @@ export class MessageDispatcher {
      * into the a BaseMessage representation.
      * This also patches renamed/missing fields.
      */
-    private convertToMessage(message: IMessage): BaseMessage {
+    private convertToMessage(message: Message): BaseMessage {
         const converted = typeof message === "string"
             ? {command: message as string, game: this.game}
             : Object.assign({}, {game: this.game}, message);
@@ -554,7 +567,7 @@ export class GameMessageInterface extends MessageFactory {
         this.send<FetchRequestMessage>({command: "zig.XMLHttpRequest.request", game: this.game, request})
     }
 
-    public updateGameSettings(gameSettings: IGameSettings) {
+    public updateGameSettings(gameSettings: GameSettings) {
         this.send<UpdateGameSettingsMessage>({command: "updateGameSettings", game: this.game, gameSettings})
     }
 }

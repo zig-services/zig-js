@@ -1,8 +1,13 @@
 import {logger} from "./common";
 import {Options} from "./options";
 
+/**
+ * Delegates to another version of the script by injecting a reference to
+ * the other script into the document, but only if the Options.version
+ * property is set.
+ */
 export function delegateToVersion(script: string): boolean {
-    const log = logger("[delegate]");
+    const log = logger("zig.main.delegate");
 
     // only delegate once
     if (window["__zig_delegated"]) {
@@ -19,7 +24,7 @@ export function delegateToVersion(script: string): boolean {
 
     const url: string = `https://lib.zig.services/zig/${version}/${script}`;
 
-    log(`Delegate script ${script} to ${url}`);
+    log.info(`Delegate script ${script} to ${url}`);
 
     if (document.readyState === "loading") {
         // if we are still loading, we can just write directly to the document.

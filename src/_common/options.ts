@@ -5,6 +5,10 @@ export interface WinningClassOverride {
     scenarioId: number;
 }
 
+/**
+ * Options accessors that store their state in local storage. They allow for easy access
+ * and parsing of the configurable options.
+ */
 export const Options = {
     get logging(): boolean {
         return KV.get("logging") === true;

@@ -1,9 +1,9 @@
-import {IGameSettings, logger} from "../_common/common";
+import {GameSettings, logger} from "../_common/common";
 import {MessageClient, ParentMessageInterface} from "../_common/message-client";
 import {registerRequestListener, Request, Result} from "../_common/request";
-import {appendGameConfigToURL, IGameConfig} from "../_common/config";
+import {appendGameConfigToURL, GameConfig} from "../_common/config";
 
-const log = logger("[zig-int]");
+const log = logger("zig.integration");
 
 class Integration {
     readonly messageClient: MessageClient;
@@ -32,7 +32,7 @@ class Integration {
         this.frame.style.height = height + "px";
     }
 
-    private updateGameSettings(gameSettings: IGameSettings): void {
+    private updateGameSettings(gameSettings: GameSettings): void {
         if (gameSettings.aspect > 0) {
             this.wrapper.style.position = "relative";
             this.wrapper.style.paddingBottom = (100 / gameSettings.aspect) + "%";
@@ -67,7 +67,7 @@ function zigObserveGame(game: string, wrapper: HTMLDivElement, frame: HTMLIFrame
     return integration.interface;
 }
 
-function includeZigGame(targetSelector: string | HTMLElement, url: string, config: IGameConfig): ParentMessageInterface {
+function includeZigGame(targetSelector: string | HTMLElement, url: string, config: GameConfig): ParentMessageInterface {
     const frameSource = appendGameConfigToURL(url, config);
 
     // The iframe containing the game.

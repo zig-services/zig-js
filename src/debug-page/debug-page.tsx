@@ -2,7 +2,7 @@ import * as React from "react";
 import {ReactNode} from "react";
 import * as ReactDOM from "react-dom";
 import {Options} from "../_common/options";
-import {onDOMLoad} from "../_common/events";
+import {onDOMLoad} from "../_common/dom";
 
 interface WinningClassOverrideState {
     scenario: number;

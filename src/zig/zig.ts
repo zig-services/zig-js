@@ -9,11 +9,26 @@ export interface ZigGlobal {
     Client: ZigClient
 }
 
-export let Zig: ZigGlobal;
+const log = logger("zig.main");
+
+export const Zig: ZigGlobal = {
+    get Client(): ZigClient {
+        const zigGlobal = window["Zig"] as ZigGlobal;
+        if (zigGlobal == null) {
+            log.warn("global Zig variable is currently null.");
+            throw new Error("ZigClient not available.");
+        }
+
+        if (zigGlobal.Client == null) {
+            log.warn("global Zig variable is currently null.");
+            throw new Error("ZigClient not available.");
+        }
+
+        return zigGlobal.Client;
+    }
+};
 
 export function main() {
-    const log = logger("[zig]");
-
     // initialize Object.assign polyfill for ie11.
     objectAssignPolyfill();
 
@@ -25,17 +40,14 @@ export function main() {
         patchLegacyGame();
     }
 
-    // expose types to user of this library
-    Zig = {
+    // expose this library globally.
+    window["Zig"] = {
         Client: new ZigClient(),
     };
-
-    window["Zig"] = Zig;
 
     // track height of the iframe if the marker exists.
     Zig.Client.trackGameHeight("#iframe-height-marker");
 }
-
 
 if (!delegateToVersion(`libzig.js`)) {
     if (window.console && console.log) {
@@ -46,8 +58,4 @@ if (!delegateToVersion(`libzig.js`)) {
     }
 
     main();
-} else {
-    // use the Zig instance from the window object that was created by delegating to the
-    // other script instance.
-    Zig = window["Zig"] as ZigGlobal
 }

@@ -1,20 +1,20 @@
 import 'promise-polyfill/src/polyfill';
 
-import {IGameSettings, logger, sleep} from "../_common/common";
-import {GameMessageInterface, IError, MessageClient, ParentMessageInterface} from "../_common/message-client";
-import {injectStyle} from "../_common/dom";
+import {GameSettings, logger, sleep} from "../_common/common";
+import {GameMessageInterface, MessageClient, ParentMessageInterface} from "../_common/message-client";
+import {injectStyle, onDOMLoad} from "../_common/dom";
 import {buildTime, clientVersion} from "../_common/vars";
 import {delegateToVersion} from "../_common/delegate";
-import {onDOMLoad} from "../_common/events";
 import {Options} from "../_common/options";
 import {appendGameConfigToURL, parseGameConfigFromURL} from "../_common/config";
+import {IError} from "../_common/domain";
 
-const log = logger("[zig-wrapper]");
+const log = logger("zig.wrapper");
 
 /**
  * Get game config from window
  */
-const GameSettings = window["GameSettings"] as IGameSettings;
+const GameSettings = window["GameSettings"] as GameSettings;
 if (GameSettings == null) {
     throw new Error("window.GameConfig must be initialized.");
 }
@@ -32,7 +32,7 @@ async function initializeGame(): Promise<HTMLIFrameElement> {
         url += "&legacyGame=true";
     }
 
-    log(`Creating iframe with URL ${url}`);
+    log.info(`Creating iframe with URL ${url}`);
 
     // create iframe and insert into document.
     const iframe = document.createElement("iframe");
@@ -52,7 +52,7 @@ async function initializeGame(): Promise<HTMLIFrameElement> {
     async function trySetupMessageClient(): Promise<void> {
         // wait for the content window to load.
         while (iframe.contentWindow == null) {
-            log("contentWindow not yet available, waiting...");
+            log.info("contentWindow not yet available, waiting...");
             await sleep(250);
         }
 
@@ -63,14 +63,14 @@ async function initializeGame(): Promise<HTMLIFrameElement> {
         proxyMessages(parentMessageClient, innerMessageClient);
 
         window.onfocus = () => {
-            log("got focus, focusing iframe now.");
+            log.debug("Got focus, focusing iframe now.");
             setTimeout(() => iframe.contentWindow.focus(), 100);
         };
 
         if (parseGameConfigFromURL().overlay) {
             const iface = new ParentMessageInterface(innerMessageClient, parseGameConfigFromURL().canonicalGameName);
 
-            log("Register messages listeners for overlay");
+            log.info("Register messages listeners for overlay");
 
             iface.registerGeneric({
                 gameLoaded: () => showControls(iface),
@@ -118,12 +118,12 @@ function showErrorDialog(error: IError) {
  */
 function proxyMessages(parentMessageClient: MessageClient, innerMessageClient: MessageClient): void {
     innerMessageClient.register(ev => {
-        log("Proxy message parent <- game");
+        log.debug("Proxy message parent <- game");
         parentMessageClient.send(ev);
     });
 
     parentMessageClient.register(ev => {
-        log("Proxy message parent -> game");
+        log.debug("Proxy message parent -> game");
         innerMessageClient.send(ev)
     });
 }
@@ -157,7 +157,7 @@ function initializeWinningClassOverride(): boolean {
         const search = location.search.replace(/\b(scenario|wc)=[^&]+/g, "");
         const sep = location.search || "&";
 
-        log("Replace outer.html with updated url:", search + sep + params);
+        log.info("Replace outer.html with updated url:", search + sep + params);
         location.search = search + sep + params;
 
         return true;
@@ -167,7 +167,7 @@ function initializeWinningClassOverride(): boolean {
 }
 
 onDOMLoad(() => {
-    log(`Initializing zig wrapper in ${clientVersion}`);
+    log.info(`Initializing zig wrapper in ${clientVersion}`);
 
     // we might want to delegate the script to another version
     if (delegateToVersion("wrapper.js")) {
@@ -186,7 +186,7 @@ onDOMLoad(() => {
     void initializeGame();
 
     if (Options.debuggingLayer) {
-        log("Debugging options are set, showing debugging layer now.");
+        log.debug("Debugging options are set, showing debugging layer now.");
 
         const el = document.createElement("div");
         el.innerHTML = `

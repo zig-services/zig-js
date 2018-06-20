@@ -1,3 +1,6 @@
+/**
+ * Simple interface for a json key/value store using localStorage as backend.
+ */
 export const KV = {
     set(key: string, value: any): void {
         try {

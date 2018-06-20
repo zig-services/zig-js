@@ -1,56 +1,52 @@
 import {Options} from "./options";
 
-export interface Logger {
-    (...args: any[]): void;
+export class Logger {
+    private readonly prefix: string;
 
-    debug(...args: any[]): void;
+    constructor(prefix: string) {
+        for (let i = prefix.length; i < 16; i++) {
+            prefix += " ";
+        }
 
-    info(...args: any[]): void;
+        this.prefix = prefix;
+    }
 
-    warn(...args: any[]): void;
+    public debug(...args: any[]): void {
+        Options.logging && this._log(`[DEBUG]`, "color: teal;", args);
+    }
+
+    public info(...args: any[]): void {
+        Options.logging && this._log(" [INFO]", "color: green;", args);
+    }
+
+    public warn(...args: any[]): void {
+        Options.logging && this._log(" [WARN]", "color: orange; font-weight: bold;", args);
+    }
+
+    public error(...args: any[]): void {
+        Options.logging && this._log("[ERROR]", "color: red; font-weight: bold;", args);
+    }
+
+    private _log(level: string, css: string, args: any[]): void {
+        console.log(`%c${level} %c${this.prefix}`, css, "color:darkgrey;", ...args);
+    }
 }
 
+
 export function logger(prefix: string): Logger {
-    const l: any = (...args: any[]): void => {
-        if (Options.logging) {
-            console.log(prefix, ...args);
-        }
-    };
-
-    l.info = (...args: any[]): void => l("INFO", ...args);
-    l.warn = (...args: any[]): void => l("WARN", ...args);
-    l.debug = (...args: any[]): void => l("DEBUG", ...args);
-
-    return l as Logger;
+    return new Logger(prefix);
 }
 
 export function sleep(millis: number): Promise<{}> {
     return new Promise<{}>((resolve => window.setTimeout(resolve, millis)));
 }
 
-export type TicketId = string;
-
-export type TicketNumber = string;
-
-export interface IGame {
-    supportsResume: boolean;
-    canonicalName: string;
-}
-
-export interface ITicket {
-    id: TicketId;
-    ticketNumber: TicketNumber;
-    bundleKey: number;
-    game: IGame;
-    played: boolean;
-}
-
-export interface IGameSettings {
+/**
+ * Game settings as sent to the zig client by the
+ * integration wrapper frame (outer.html).
+ */
+export interface GameSettings {
     index: string;
     aspect: number;
     legacyGame: boolean;
-}
-
-export interface IBundle {
-    tickets: ITicket[];
 }
