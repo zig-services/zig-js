@@ -41,26 +41,40 @@ pass an object containing event handlers with the messagetypes as keys.
 ```js
 // wait for the player to start the game
 Zig.Client.Messages.registerGeneric({
-    playGame() {
-        Game.runGame();
-    },
-    
-    playDemoGame() {
-        // the player requested a demo ticket.
-        // Game.runDemoGame()
-    },
+  playGame() {
+    Game.runGame();
+  },
+  
+  playDemoGame() {
+    // the player requested a demo ticket.
+    // Game.runDemoGame()
+  },
 });
 ```
 
 To buy a ticket, use the `Zig.Client.buyTicket` method. The method returns a
 javascript `Promise` instance. You can use `.then(...)` or the modern `async`/`await`
-syntax with that method.
+syntax with that method. Be aware that `async`/`await` is not yet available on all browsers
+and might need transpiling.
 
 ```js
 const Game = {
-    runGame() {
-        const ticket = await Zig.Client.buyTicket();
-    }
+  runGame() {
+    // get the ticket
+    const ticket = await Zig.Client.buyTicket();
+    
+    // let the customer play the ticket
+    await play(ticket);
+    
+    // settle the ticket.
+    await Zig.Client.settleTicket(ticket.id);
+    
+    // tell the parent that the game has finish
+    Zig.Client.Messages.gameFinished();
+  }
 };
 ```
+
+For more information, check the source or the latest [typescript d.ts file](https://unpkg.com/zig-js/libzig.d.ts).
+
 
