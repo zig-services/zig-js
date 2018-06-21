@@ -7,6 +7,8 @@ export type Timestamp = number;
 
 export type Currency = string;
 
+export type CustomerNumber = string;
+
 /**
  * An error that can be send to the backend. Use the provided function to turn
  * any error value (failed http response, exception, ...) into a compatible error value.
@@ -26,7 +28,7 @@ export interface IError {
 }
 
 export interface GameInfo {
-    name: string;
+    displayName: string;
     canonicalName: string;
 
     // True if the game supports resume.
@@ -42,8 +44,13 @@ export interface MoneyAmount {
 export interface Ticket {
     // id of the ticket. This id needs to be send back with a `settle` call.
     id: TicketId;
+    externalId: ExternalTicketId;
     ticketNumber: TicketNumber;
-    externalTicketId: ExternalTicketId;
+
+    customerNumber: CustomerNumber;
+
+    price: MoneyAmount;
+    winningClass: WinningClass;
 
     // A bundle key. If this ticket is part of a bundle, the bundleKey will be
     // the id of the parent ticket, otherwise the bundleKey has the same value
@@ -52,6 +59,13 @@ export interface Ticket {
 
     // information about the game
     game: GameInfo;
+
+    // the tickets scenario coded as base64.
+    scenario: string;
+}
+
+export interface WinningClass {
+    winnings: MoneyAmount;
 }
 
 export interface Bundle {
