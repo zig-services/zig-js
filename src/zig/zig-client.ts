@@ -72,7 +72,7 @@ export class ZigClient {
             if (Options.winningClassOverride) {
                 // append extra config parameters if the winning class
                 url += `&wc=${Options.winningClassOverride.winningClass}`;
-                url += `&scenarioId=${Options.winningClassOverride.scenarioId}`;
+                url += `&scenario=${Options.winningClassOverride.scenarioId}`;
             }
 
             if (options.betFactor) {
