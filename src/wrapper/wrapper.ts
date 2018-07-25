@@ -39,6 +39,9 @@ async function initializeGame(): Promise<HTMLIFrameElement> {
     iframe.src = url;
     iframe.allowFullscreen = true;
     iframe.scrolling = "no";
+    iframe.onerror = function() {
+        console.log("error");
+    }
 
     const parentMessageClient = new MessageClient(window.parent);
 
@@ -124,7 +127,7 @@ function proxyMessages(parentMessageClient: MessageClient, innerMessageClient: M
 
     parentMessageClient.register(ev => {
         log.debug("Proxy message parent -> game");
-        innerMessageClient.send(ev)
+        innerMessageClient.send(ev);
     });
 }
 
