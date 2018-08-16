@@ -61,6 +61,27 @@ export class ZigClient {
     }
 
     /**
+     * Request a ticket from the platform.
+     *
+     * @param payloads Game input for the requested tickets. In case of sofortlotto, this is the rows
+     * the player selected. You can omit this parameter if your game does not require a game input.
+     *
+     * @param options Additional options to buy the ticket, such as bet factor or quantity.
+     */
+    public async buyBasketTickets(payloads: Array<any> = [{}], options: BuyTicketOptions = {}) {
+
+        return this.propagateErrors(async () => {
+            let url = `/basket/tickets`;
+            if (options.betFactor) {
+                url += `&betFactor=${options.betFactor}`
+            }
+            await this.request<any>("POST", url, payloads);
+
+            this.Messages.gotoUrl("/basket");
+        });
+    }
+
+    /**
      * Request a demo ticket. See buyTicket for more information about the parameters.
      */
     public async demoTicket(payload: any = {}, options: BuyTicketOptions = {}): Promise<Ticket> {
