@@ -7,6 +7,9 @@ export interface GameConfig {
 
     // access token for remote game services.
     remoteAccessToken?: string;
+
+    // can be used as a redirect after purchasing a game via basket
+    basketUrl?: string;
 }
 
 /**
@@ -25,6 +28,10 @@ export function parseGameConfigFromURL(url: string = location.href): GameConfig 
     // noinspection SuspiciousTypeOfGuard
     if (typeof config.canonicalGameName !== "string") {
         throw new Error("canonicalGameName not set in config.");
+    }
+
+    if (!config.basketUrl) {
+      config.basketUrl = `/basket/tickets`;
     }
 
     return Object.freeze(config);

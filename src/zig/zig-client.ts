@@ -16,8 +16,12 @@ export interface BasketItem {
     // game name, e.g. bingo
     canonicalGameName: string
 
+    // must be >= 1
+    betFactor: Number
+
     // additional game input for sofortlotto or kenow encoded as bas64
     gameInput?: string
+
 }
 
 export interface BuyTicketOptions {
@@ -81,12 +85,10 @@ export class ZigClient {
      *
      * @param options Additional options to buy the ticket, such as bet factor or quantity.
      */
-    public async buyBasketTickets(payloads: BasketItem[] = [], betFactor: Number = 1) {
+    public async buyBasketTickets(payloads: BasketItem[] = []) {
 
         return this.propagateErrors(async () => {
-            const url = `/basket/tickets?betFactor=${betFactor}&quantity=1`
-
-            await this.request<any>("POST", url, payloads);
+            await this.request<any>("POST", this.gameConfig.basketUrl, payloads);
 
             this.Messages.gotoUrl("/basket");
         });
