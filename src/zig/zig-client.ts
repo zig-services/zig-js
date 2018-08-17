@@ -84,7 +84,7 @@ export class ZigClient {
     public async buyBasketTickets(payloads: BasketItem[] = [], betFactor: Number = 1) {
 
         return this.propagateErrors(async () => {
-            let url = `/basket/tickets?betFactor=${betFactor}&quantity=1`
+            const url = `/basket/tickets?betFactor=${betFactor}&quantity=1`
 
             await this.request<any>("POST", url, payloads);
 
