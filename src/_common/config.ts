@@ -8,8 +8,11 @@ export interface GameConfig {
     // access token for remote game services.
     remoteAccessToken?: string;
 
-    // can be used as a redirect after purchasing a game via basket
+    // the basket endpoint
     basketUrl?: string;
+
+    // can be used as a redirect after purchasing a game via basket
+    basketPurchaseRedirect?: string;
 }
 
 /**
@@ -32,6 +35,10 @@ export function parseGameConfigFromURL(url: string = location.href): GameConfig 
 
     if (!config.basketUrl) {
       config.basketUrl = `/basket/tickets`;
+    }
+
+    if (!config.basketPurchaseRedirect) {
+      config.basketUrl = `/basket`;
     }
 
     return Object.freeze(config);

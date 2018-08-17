@@ -90,7 +90,7 @@ export class ZigClient {
         return this.propagateErrors(async () => {
             await this.request<any>("POST", this.gameConfig.basketUrl, payloads);
 
-            this.Messages.gotoUrl("/basket");
+            this.Messages.gotoUrl(this.gameConfig.basketPurchaseRedirect);
         });
     }
 
