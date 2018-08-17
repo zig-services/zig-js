@@ -7,6 +7,19 @@ import {Bundle, Ticket} from "../_common/domain";
 
 const log = logger("zig.client");
 
+type BasketItemGameId = "iwg";
+
+export interface BasketItem {
+    // must be "iwg"
+    gameId: BasketItemGameId
+
+    // game name, e.g. bingo
+    canonicalGameName: string
+
+    // additional game input for sofortlotto or kenow encoded as bas64
+    gameInput?: string
+}
+
 export interface BuyTicketOptions {
     // Set to true if the ticket is seen as immediately settled.
     // This is the case for games like sofortlotto - you can not resume a
@@ -68,13 +81,11 @@ export class ZigClient {
      *
      * @param options Additional options to buy the ticket, such as bet factor or quantity.
      */
-    public async buyBasketTickets(payloads: Array<any> = [{}], options: BuyTicketOptions = {}) {
+    public async buyBasketTickets(payloads: BasketItem[] = [], betFactor: Number = 1) {
 
         return this.propagateErrors(async () => {
-            let url = `/basket/tickets`;
-            if (options.betFactor) {
-                url += `&betFactor=${options.betFactor}`
-            }
+            let url = `/basket/tickets?betFactor=${betFactor}&quantity=1`
+
             await this.request<any>("POST", url, payloads);
 
             this.Messages.gotoUrl("/basket");
