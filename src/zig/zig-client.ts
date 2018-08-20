@@ -8,9 +8,6 @@ import {Bundle, Ticket} from "../_common/domain";
 const log = logger("zig.client");
 
 export interface BasketItem {
-    // must be "iwg"
-    gameId: "iwg"
-
     // game name, e.g. bingo
     canonicalGameName: string
 
