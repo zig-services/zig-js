@@ -7,17 +7,15 @@ import {Bundle, Ticket} from "../_common/domain";
 
 const log = logger("zig.client");
 
-type BasketItemGameId = "iwg";
-
 export interface BasketItem {
     // must be "iwg"
-    gameId: BasketItemGameId
+    gameId: "iwg"
 
     // game name, e.g. bingo
     canonicalGameName: string
 
     // must be >= 1
-    betFactor: Number
+    betFactor: number
 
     // additional game input for sofortlotto or kenow encoded as bas64
     gameInput?: string
@@ -66,7 +64,7 @@ export class ZigClient {
         return this.propagateErrors(async () => {
             const quantity: number = options.quantity || guessQuantity(payload);
 
-            let url = `/product/iwg/${this.gameConfig.canonicalGameName}/tickets?quantity=${quantity}`;
+            let url = `/zig/games/${this.gameConfig.canonicalGameName}/tickets:buy?quantity=${quantity}`;
             if (options.betFactor) {
                 url += `&betFactor=${options.betFactor}`
             }
@@ -82,13 +80,11 @@ export class ZigClient {
      *
      * @param payloads Game input for the requested tickets. In case of sofortlotto, this is the rows
      * the player selected. You can omit this parameter if your game does not require a game input.
-     *
-     * @param options Additional options to buy the ticket, such as bet factor or quantity.
      */
     public async buyBasketTickets(payloads: BasketItem[] = []) {
 
         return this.propagateErrors(async () => {
-            await this.request<any>("POST", this.gameConfig.basketUrl, payloads);
+            await this.request<any>("POST", `/basket/tickets`, payloads);
 
             this.Messages.gotoUrl(this.gameConfig.basketPurchaseRedirect);
         });
@@ -101,7 +97,7 @@ export class ZigClient {
         return this.propagateErrors(async () => {
             const quantity: number = options.quantity || guessQuantity(payload);
 
-            let url = `/product/iwg/${this.gameConfig.canonicalGameName}/demo?quantity=${quantity}`;
+            let url = `/zig/games/${this.gameConfig.canonicalGameName}/tickets:demo?quantity=${quantity}`;
 
             if (Options.winningClassOverride) {
                 // append extra config parameters if the winning class
@@ -126,7 +122,7 @@ export class ZigClient {
      */
     public async settleTicket(id: string): Promise<void> {
         return await this.propagateErrors(async () => {
-            const url = `/product/iwg/${this.gameConfig.canonicalGameName}/tickets/${encodeURIComponent(id)}/settle`;
+            const url = `/zig/games/${this.gameConfig.canonicalGameName}/tickets:settle/${encodeURIComponent(id)}`;
             await this.request<any>("POST", url);
 
             this.Messages.ticketSettled();
@@ -137,7 +133,7 @@ export class ZigClient {
 
     public async bundle(bundleKey: number): Promise<Bundle> {
         return await this.propagateErrors(async () => {
-            return await this.request<Bundle>("GET", `/iwg/bundles/${bundleKey}`);
+            return await this.request<Bundle>("GET", `/zig/bundles/${bundleKey}`);
         });
     }
 
