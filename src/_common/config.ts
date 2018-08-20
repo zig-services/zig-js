@@ -31,7 +31,7 @@ export function parseGameConfigFromURL(url: string = location.href): GameConfig 
     }
 
     if (!config.basketPurchaseRedirect) {
-      config.basketUrl = `/basket`;
+      config.basketPurchaseRedirect = `/basket`;
     }
 
     return Object.freeze(config);
