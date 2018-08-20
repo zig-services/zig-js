@@ -76,15 +76,14 @@ export class ZigClient {
     }
 
     /**
-     * Request a ticket from the platform.
+     * Puts multiple tickets of same game into the basket.
      *
-     * @param payloads Game input for the requested tickets. In case of sofortlotto, this is the rows
-     * the player selected. You can omit this parameter if your game does not require a game input.
+     * @param items Items that should be added to the basket.
      */
-    public async buyBasketTickets(payloads: BasketItem[] = []) {
+    public async buyBasketTickets(items: BasketItem[] = []) {
 
         return this.propagateErrors(async () => {
-            await this.request<any>("POST", `/zig/games/${this.gameConfig.canonicalGameName}/tickets:basket`, payloads);
+            await this.request<any>("POST", `/zig/games/${this.gameConfig.canonicalGameName}/tickets:basket`, items);
 
             this.Messages.gotoUrl(this.gameConfig.basketPurchaseRedirect);
         });
