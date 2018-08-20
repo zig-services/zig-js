@@ -80,7 +80,7 @@ export class ZigClient {
     public async buyBasketTickets(items: BasketItem[] = []) {
 
         return this.propagateErrors(async () => {
-            await this.request<any>("POST", `/zig/games/${this.gameConfig.canonicalGameName}/tickets:basket`, items);
+            await this.request<any>("POST", `/zig/games/${this.gameConfig.canonicalGameName}/tickets:basket`, items, {"ContentType" : "application/json"});
 
             this.Messages.gotoUrl(this.gameConfig.basketPurchaseRedirect);
         });
