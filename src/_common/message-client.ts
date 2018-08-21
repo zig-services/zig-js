@@ -276,7 +276,7 @@ export interface GotoGameMessage extends BaseMessage {
 
 export interface GotoUrlMessage extends BaseMessage {
     command: "gotoUrl";
-    destinationUrl: string;
+    destination: string;
 }
 
 export interface GotoLeagueTableMessage extends BaseMessage {
@@ -555,8 +555,8 @@ export class GameMessageInterface extends MessageFactory {
         this.send<GotoGameMessage>({command: "gotoGame", game: this.game, destinationGame})
     }
 
-    public gotoUrl(destinationUrl: string) {
-        this.send<GotoUrlMessage>({command: "gotoUrl", game: this.game, destinationUrl})
+    public gotoUrl(destination: string) {
+        this.send<GotoUrlMessage>({command: "gotoUrl", game: this.game, destination})
     }
 
     public gotoLeagueTable() {
