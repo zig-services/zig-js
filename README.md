@@ -31,7 +31,7 @@ ZIG client exposes a `Messages` object (of type `GameMessageInterface`).
 
 ```js
 // tell parent frame, that the game finished loading
-Zig.Client.interface.gameLoaded();
+Zig.Client.Messages.gameLoaded();
 ```
 
 The parent frame now sends a `playGame` or `playDemoGame` message back to the game.
@@ -40,7 +40,7 @@ pass an object containing event handlers with the messagetypes as keys.
 
 ```js
 // wait for the player to start the game
-Zig.Client.interface.registerGeneric({
+Zig.Client.Messages.registerGeneric({
   playGame() {
     Game.runGame();
   },
@@ -59,7 +59,7 @@ and might need transpiling.
 
 ```js
 const Game = {
-  runGame() {
+  async runGame() {
     // get the ticket
     const ticket = await Zig.Client.buyTicket();
     
@@ -70,7 +70,7 @@ const Game = {
     await Zig.Client.settleTicket(ticket.id);
     
     // tell the parent that the game has finish
-    Zig.Client.interface.gameFinished();
+    Zig.Client.Messages.gameFinished();
   }
 };
 ```

@@ -123,11 +123,13 @@ async function _executeRequestLocally(req: Request): Promise<Result> {
  * the request locally.
  */
 export function registerRequestListener(iface: ParentMessageInterface,
-                                        handler: (req: Request) => Promise<Result> = _executeRequestLocally) {
+                                        handler: (req: Request) => Promise<Result> = null) {
+
+    const h = handler || _executeRequestLocally;
 
     iface.register("zig.XMLHttpRequest.request", async (message) => {
         const req: WithCID<Request> = message.request;
-        const result = await handler(req.data);
+        const result = await h(req.data);
 
         if (result.response) {
             // remove xhr instance before sending it via post message.
