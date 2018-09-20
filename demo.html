@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <style>
+        #game {
+            max-width: 30em;
+            border: 2px solid red;
+        }
+
+        #events {
+            background: #eee;
+            font-family: monospace;
+        }
+
+        #events > div {
+            padding: 0.5em;
+            border-bottom: 2px solid #ddd;
+        }
+    </style>
+</head>
+
+<body>
+
+<div id="game"></div>
+
+<div id="sendCommands"></div>
+
+<div id="events"></div>
+
+<script src="dist/libint.js"></script>
+<script>
+    function sendEvent(message) {
+        const target = document.querySelector("iframe").contentWindow;
+        target.postMessage(message, "*");
+    }
+
+    const events = ["playGame", "playDemoGame"];
+    events.forEach(event => {
+        const button = document.createElement("input");
+        button.type = "button";
+        button.onclick = () => sendEvent(event);
+        button.value = JSON.stringify(event);
+
+        const container = document.querySelector("#sendCommands");
+        container.appendChild(button);
+    });
+
+    // dummy scenario the game can read
+    const scenario = {
+        fields: [{
+            number: 1,
+            winningClass: 1,
+            winningsAmountInMinorUnit: 75
+        }, {number: 2, winningClass: 2, winningsAmountInMinorUnit: 100}, {
+            number: 3,
+            winningClass: 3,
+            winningsAmountInMinorUnit: 250
+        }, {number: 4, winningClass: 2, winningsAmountInMinorUnit: 100}, {
+            number: 5,
+            winningClass: 2,
+            winningsAmountInMinorUnit: 100
+        }, {number: 6, winningClass: 5, winningsAmountInMinorUnit: 1000}]
+    };
+
+    function zigRequestHandler(req) {
+        let response = {statusCode: 404, body: ""};
+
+        if (req.path.indexOf("/settle")) {
+            response = {
+                statusCode: 204,
+                body: "",
+            }
+        }
+
+        if (req.path.indexOf("/tickets")) {
+            response = {
+                statusCode: 200,
+                body: JSON.stringify({
+                    id: parseInt(100000 * Math.random()),
+                    externalId: "demogame:" + parseInt(100000 * Math.random()),
+                    ticketNumber: parseInt(100000 * Math.random()),
+                    scenario: btoa(JSON.stringify(scenario)),
+                    winningClass: {
+                        number: 0,
+                        numberOfTickets: -1,
+                        winningsType: "NoWinning",
+                        winnings: {
+                            amount: "0.00",
+                            amountInMajor: 0,
+                            amountInMinor: 0,
+                            currency: "EUR",
+                        },
+                    }
+                }),
+            };
+        }
+
+        if (req.path.indexOf("/demoticket")) {
+            response = {
+                statusCode: 200,
+                body: JSON.stringify({
+                    id: -1,
+                    externalId: "demogame:00000",
+                    ticketNumber: null,
+                    scenario: btoa(JSON.stringify(scenario)),
+
+                    winningClass: {
+                        number: 2,
+                        numberOfTickets: -1,
+                        winningsType: "CashPrize",
+                        winnings: {
+                            amount: "2.00",
+                            amountInMajor: 2,
+                            amountInMinor: 0,
+                            currency: "EUR",
+                        },
+                    }
+                }),
+            };
+        }
+
+        return Promise.resolve({response});
+    }
+
+    let logEventCount = 0;
+
+    function logEvent(event) {
+        const div = document.createElement("div");
+        div.innerText = ++logEventCount + ": " + JSON.stringify(event);
+
+        const container = document.querySelector("#events");
+        container.appendChild(div);
+    }
+
+    window.onload = () => {
+        const gameConfig = {
+            canonicalGameName: "demo",
+            overlay: false,
+        };
+
+        const intConfig = {
+            requestHandler: zigRequestHandler,
+        };
+
+        const integration = Zig.include("#game", "https://mylotto24.frontend.zig.services/dickehose/1.0.5/tipp24_com/game/outer.html", gameConfig, intConfig);
+        integration.messageClient.register(logEvent);
+
+    };
+</script>
+</body>
+
+</html>
