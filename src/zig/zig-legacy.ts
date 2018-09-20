@@ -1,14 +1,14 @@
 /**
  * Test if we want do enable legacy game patching.
  */
-import {logger} from "../_common/common";
+import {Logger} from '../_common/logging';
 import {injectStyle, onDOMLoad, onLoad} from "../_common/dom";
 import {GameMessageInterface, MessageClient} from "../_common/message-client";
 import {executeRequestInParent, Request, Response} from "../_common/request";
 import {parseGameConfigFromURL} from "../_common/config";
 
 function XMLHttpRequestUsingMessageClient() {
-    const log = logger("zig.legacy.xhr");
+    const log = Logger.get("zig.legacy.xhr");
 
     const gameConfig = parseGameConfigFromURL();
 
@@ -158,7 +158,7 @@ function patchInstantWinGamingScripts() {
     let ticketInfo: any = null;
 
     if (window["jQuery"]) {
-        const log = logger("zig.legacy.jQuery");
+        const log = Logger.get("zig.legacy.jQuery");
         const jQuery: any = window["jQuery"];
 
         // jQuery ajax prefilter gets called with the options passed to jQuery.ajax before executing
@@ -192,7 +192,7 @@ function patchInstantWinGamingScripts() {
     }
 
     const parent = (function _parentWindow() {
-        const log = logger("zig.legacy.parent");
+        const log = Logger.get("zig.legacy.parent");
 
         const _parent = window.parent;
         const _postMessage = window.parent.postMessage;
@@ -240,7 +240,7 @@ export function patchLegacyGame() {
     window["XMLHttpRequest"] = XMLHttpRequestUsingMessageClient();
 
     onDOMLoad(() => {
-        let log = logger("zig.legacy");
+        let log = Logger.get("zig.legacy");
 
         // check if it is an instant win gaming game
         if (document.querySelector("#gamecontainer") == null)

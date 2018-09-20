@@ -1,12 +1,13 @@
-import {GameSettings, logger} from "./common";
+import {GameSettings} from "./common";
 import {Request, Result, WithCID} from "./request";
 import {IError, TicketId, TicketNumber} from "./domain";
+import {Logger} from './logging';
 
 export type CommandType = string
 
 export type Message = string | { command: string }
 
-const log = logger("zig.message");
+const log = Logger.get("zig.message");
 
 export class MessageClient {
     private readonly eventHandler: (ev: MessageEvent) => void;

@@ -1,5 +1,5 @@
 import {isLegacyGame, patchLegacyGame} from "./zig-legacy";
-import {logger} from "../_common/common";
+import {Logger} from '../_common/logging';
 import {localStoragePolyfill, objectAssignPolyfill} from "../_common/polyfill";
 import {ZigClient} from "./zig-client";
 import {delegateToVersion} from "../_common/delegate";
@@ -9,7 +9,7 @@ export interface ZigGlobal {
     Client: ZigClient
 }
 
-const log = logger("zig.main");
+const log = Logger.get("zig.main");
 
 let globalZigClient: ZigClient = null;
 

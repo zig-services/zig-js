@@ -1,11 +1,11 @@
-import {logger} from "../_common/common";
-import {GameConfig, parseGameConfigFromURL} from "../_common/config";
-import {Options} from "../_common/options";
-import {GameMessageInterface, MessageClient} from "../_common/message-client";
-import {executeRequestInParent} from "../_common/request";
-import {Bundle, Ticket} from "../_common/domain";
+import {GameConfig, parseGameConfigFromURL} from '../_common/config';
+import {Options} from '../_common/options';
+import {GameMessageInterface, MessageClient} from '../_common/message-client';
+import {executeRequestInParent} from '../_common/request';
+import {Bundle, Ticket} from '../_common/domain';
+import {Logger} from '../_common/logging';
 
-const log = logger("zig.client");
+const log = Logger.get('zig.client');
 
 export interface BasketItem {
     // game name, e.g. bingo
@@ -54,7 +54,7 @@ export class ZigClient {
      */
     public async buyTicket(payload: any = {}, options: BuyTicketOptions = {}): Promise<Ticket> {
         if (Options.winningClassOverride) {
-            log.warn("WinningClassOverride set, get a demo ticket instead of a real one.");
+            log.warn('WinningClassOverride set, get a demo ticket instead of a real one.');
             return this.demoTicket(payload, options);
         }
 
@@ -63,12 +63,12 @@ export class ZigClient {
 
             let url = `/zig/games/${this.gameConfig.canonicalGameName}/tickets:buy?quantity=${quantity}`;
             if (options.betFactor) {
-                url += `&betFactor=${options.betFactor}`
+                url += `&betFactor=${options.betFactor}`;
             }
-            const ticket = await this.request<Ticket>("POST", url, payload);
+            const ticket = await this.request<Ticket>('POST', url, payload);
 
             this.sendGameStartedEvent(options, ticket);
-            return ticket
+            return ticket;
         });
     }
 
@@ -80,7 +80,7 @@ export class ZigClient {
     public async buyBasketTickets(items: BasketItem[] = []) {
 
         return this.propagateErrors(async () => {
-            await this.request<any>("POST", `/zig/games/${this.gameConfig.canonicalGameName}/tickets:basket`, items, {"Content-Type" : "application/json"});
+            await this.request<any>('POST', `/zig/games/${this.gameConfig.canonicalGameName}/tickets:basket`, items, {'Content-Type': 'application/json'});
 
             this.Messages.gotoUrl(this.gameConfig.basketPurchaseRedirect);
         });
@@ -102,10 +102,10 @@ export class ZigClient {
             }
 
             if (options.betFactor) {
-                url += `&betFactor=${options.betFactor}`
+                url += `&betFactor=${options.betFactor}`;
             }
 
-            const ticket = await this.request<Ticket>("POST", url, payload);
+            const ticket = await this.request<Ticket>('POST', url, payload);
 
             this.sendGameStartedEvent(options, ticket);
             return ticket;
@@ -119,17 +119,17 @@ export class ZigClient {
     public async settleTicket(id: string): Promise<void> {
         return await this.propagateErrors(async () => {
             const url = `/zig/games/${this.gameConfig.canonicalGameName}/tickets:settle/${encodeURIComponent(id)}`;
-            await this.request<any>("POST", url);
+            await this.request<any>('POST', url);
 
             this.Messages.ticketSettled();
 
-            return
+            return;
         });
     }
 
     public async bundle(bundleKey: number): Promise<Bundle> {
         return await this.propagateErrors(async () => {
-            return await this.request<Bundle>("GET", `/zig/bundles/${bundleKey}`);
+            return await this.request<Bundle>('GET', `/zig/bundles/${bundleKey}`);
         });
     }
 
@@ -144,7 +144,7 @@ export class ZigClient {
 
     private async propagateErrors<T>(fn: () => Promise<T>): Promise<T> {
         try {
-            return await fn()
+            return await fn();
         } catch (err) {
             this.Messages.error(err);
             throw err;
@@ -160,7 +160,7 @@ export class ZigClient {
         });
 
         if (Math.floor(result.statusCode / 100) === 2) {
-            return JSON.parse(result.body || "null");
+            return JSON.parse(result.body || 'null');
         } else {
             throw result;
         }
@@ -184,13 +184,13 @@ export class ZigClient {
         }
 
         let marker: HTMLElement | null = null;
-        if (typeof markerOrSelector !== "string") {
+        if (typeof markerOrSelector !== 'string') {
             marker = markerOrSelector;
         }
 
         window.setInterval(() => {
             // if we don't have a marker yet, we'll look for it
-            if (marker == null && typeof markerOrSelector === "string") {
+            if (marker == null && typeof markerOrSelector === 'string') {
                 marker = document.querySelector(markerOrSelector) as HTMLElement;
             }
 
@@ -216,13 +216,13 @@ export class ZigClient {
      * @deprecated
      */
     public get interface(): GameMessageInterface {
-        log.warn("Deprecated use of Zig.Client.interface, please use Zig.Client.Messages");
-        return this.Messages
+        log.warn('Deprecated use of Zig.Client.interface, please use Zig.Client.Messages');
+        return this.Messages;
     }
 }
 
 function guessQuantity(payload: any | undefined): number {
-    if (payload != null && typeof payload === "object") {
+    if (payload != null && typeof payload === 'object') {
         if (payload.rows && payload.rows.length) {
             // sofortlotto like payload
             return payload.rows.length;

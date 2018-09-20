@@ -1,6 +1,6 @@
 import 'promise-polyfill/src/polyfill';
 
-import {GameSettings, logger, sleep} from "../_common/common";
+import {GameSettings, sleep} from "../_common/common";
 import {GameMessageInterface, MessageClient, ParentMessageInterface} from "../_common/message-client";
 import {injectStyle, onDOMLoad} from "../_common/dom";
 import {buildTime, clientVersion} from "../_common/vars";
@@ -8,8 +8,9 @@ import {delegateToVersion} from "../_common/delegate";
 import {Options} from "../_common/options";
 import {appendGameConfigToURL, parseGameConfigFromURL} from "../_common/config";
 import {IError} from "../_common/domain";
+import {Logger} from '../_common/logging';
 
-const log = logger("zig.wrapper");
+const log = Logger.get("zig.wrapper");
 
 /**
  * Get game config from window

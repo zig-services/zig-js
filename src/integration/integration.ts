@@ -1,9 +1,10 @@
-import {GameSettings, logger} from '../_common/common';
+import {GameSettings} from '../_common/common';
 import {MessageClient, ParentMessageInterface} from '../_common/message-client';
 import {registerRequestListener, Request, Result} from '../_common/request';
 import {appendGameConfigToURL, GameConfig} from '../_common/config';
+import {Logger} from '../_common/logging';
 
-const log = logger('zig.integration');
+const log = Logger.get('zig.integration');
 
 export type RequestHandler = (req: Request) => Promise<Result>
 

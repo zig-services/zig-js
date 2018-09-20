@@ -1,7 +1,7 @@
 import {GameMessageInterface, ParentMessageInterface} from "./message-client";
-import {logger} from "./common";
+import {Logger} from './logging';
 
-const log = logger("zig.xhr");
+const log = Logger.get("zig.xhr");
 
 export interface Request {
     method: string;

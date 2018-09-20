@@ -1,4 +1,4 @@
-import {logger} from "./common";
+import {Logger} from './logging';
 import {Options} from "./options";
 
 /**
@@ -7,7 +7,7 @@ import {Options} from "./options";
  * property is set.
  */
 export function delegateToVersion(script: string): boolean {
-    const log = logger("zig.main.delegate");
+    const log = Logger.get("zig.main.delegate");
 
     // only delegate once
     if (window["__zig_delegated"]) {

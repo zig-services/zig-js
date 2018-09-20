@@ -2,9 +2,9 @@
  * Injects style into the document.
  * @param css
  */
-import {logger} from "./common";
+import {Logger} from './logging';
 
-const log = logger("zig.dom");
+const log = Logger.get("zig.dom");
 
 export function injectStyle(css: string): void {
     const style = document.createElement("style");

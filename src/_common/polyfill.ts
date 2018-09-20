@@ -1,9 +1,9 @@
-import {logger} from "./common";
+import {Logger} from './logging';
 //
 // polyfill for promises.
 import 'promise-polyfill/src/polyfill';
 
-const log = logger("zig.polyfill");
+const log = Logger.get("zig.polyfill");
 
 export function objectAssignPolyfill() {
     // taken from
