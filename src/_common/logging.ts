@@ -1,5 +1,19 @@
 import {Options} from './options';
 
+const loggingOptions = new (class {
+    private lastUpdate: number = 0;
+    private enabledCached: boolean;
+
+    public get enabled(): boolean {
+        if (Date.now() - this.lastUpdate > 1) {
+            this.lastUpdate = Date.now();
+            this.enabledCached = Options.logging;
+        }
+
+        return this.enabledCached;
+    }
+})();
+
 export class Logger {
     constructor(private name: string) {
     }
@@ -9,19 +23,19 @@ export class Logger {
     }
 
     public log(message: any, ...params: any[]): void {
-        if (Options.logging) {
+        if (loggingOptions.enabled) {
             this.debug(message, ...params);
         }
     }
 
     public debug(message: any, ...params: any[]): void {
-        if (Options.logging) {
+        if (loggingOptions.enabled) {
             console.debug(`%c[DEBUG] %c[${this.name}]`, 'color:teal;', 'color:darkgrey;', message, ...params);
         }
     }
 
     public info(message: any, ...params: any[]): void {
-        if (Options.logging) {
+        if (loggingOptions.enabled) {
             console.info(`%c [INFO] %c[${this.name}]`, 'color:green;', 'color:darkgrey;', message, ...params);
         }
     }
@@ -45,7 +59,7 @@ export class Logger {
      * It will then automatically log something like `${name} took 1.34ms`.
      */
     public time<T>(name: string, action: () => T): T {
-        if (Options.logging) {
+        if (loggingOptions.enabled) {
             const startTime: number = Date.now();
             this.timeStamp(name);
 
@@ -61,3 +75,7 @@ export class Logger {
         }
     }
 }
+
+window['enableZigLogging'] = function () {
+    Options.logging = true;
+};
