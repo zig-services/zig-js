@@ -1,23 +1,24 @@
 import 'promise-polyfill/src/polyfill';
 
-import {GameSettings, sleep} from "../_common/common";
-import {GameMessageInterface, MessageClient, ParentMessageInterface} from "../_common/message-client";
-import {injectStyle, onDOMLoad} from "../_common/dom";
-import {buildTime, clientVersion} from "../_common/vars";
-import {delegateToVersion} from "../_common/delegate";
-import {Options} from "../_common/options";
-import {appendGameConfigToURL, parseGameConfigFromURL} from "../_common/config";
-import {IError} from "../_common/domain";
+import {GameSettings, sleep} from '../_common/common';
+import {GameMessageInterface, MessageClient, ParentMessageInterface} from '../_common/message-client';
+import {injectStyle, onDOMLoad} from '../_common/dom';
+import {buildTime, clientVersion} from '../_common/vars';
+import {delegateToVersion} from '../_common/delegate';
+import {Options} from '../_common/options';
+import {appendGameConfigToURL, parseGameConfigFromURL} from '../_common/config';
+import {IError} from '../_common/domain';
 import {Logger} from '../_common/logging';
 
-const log = Logger.get("zig.wrapper");
+const log = Logger.get('zig.wrapper');
+const anyWindow: any = window;
 
 /**
  * Get game config from window
  */
-const GameSettings = window["GameSettings"] as GameSettings;
+const GameSettings = anyWindow.GameSettings as GameSettings;
 if (GameSettings == null) {
-    throw new Error("window.GameConfig must be initialized.");
+    throw new Error('window.GameConfig must be initialized.');
 }
 
 /**
@@ -26,23 +27,21 @@ if (GameSettings == null) {
  */
 async function initializeGame(): Promise<HTMLIFrameElement> {
     const config = parseGameConfigFromURL();
-    let url = appendGameConfigToURL("inner.html", config);
+    let url = appendGameConfigToURL('inner.html', config);
 
     // legacy games need extra patching. We'll need to inform the inner.html about that.
     if (GameSettings.legacyGame === true) {
-        url += "&legacyGame=true";
+        url += '&legacyGame=true';
     }
 
     log.info(`Creating iframe with URL ${url}`);
 
     // create iframe and insert into document.
-    const iframe = document.createElement("iframe");
+    const iframe = document.createElement('iframe');
     iframe.src = url;
     iframe.allowFullscreen = true;
-    iframe.scrolling = "no";
-    iframe.onerror = function() {
-        console.log("error");
-    }
+    iframe.scrolling = 'no';
+    iframe.onerror = err => log.error('Error in iframe:', err);
 
     const parentMessageClient = new MessageClient(window.parent);
 
@@ -56,7 +55,7 @@ async function initializeGame(): Promise<HTMLIFrameElement> {
     async function trySetupMessageClient(): Promise<void> {
         // wait for the content window to load.
         while (iframe.contentWindow == null) {
-            log.info("contentWindow not yet available, waiting...");
+            log.info('contentWindow not yet available, waiting...');
             await sleep(250);
         }
 
@@ -67,14 +66,19 @@ async function initializeGame(): Promise<HTMLIFrameElement> {
         proxyMessages(parentMessageClient, innerMessageClient);
 
         window.onfocus = () => {
-            log.debug("Got focus, focusing iframe now.");
-            setTimeout(() => iframe.contentWindow.focus(), 100);
+            log.debug('Got focus, focusing iframe now.');
+            setTimeout(() => {
+                const contentWindow = iframe.contentWindow;
+                if (contentWindow != null) {
+                    contentWindow.focus();
+                }
+            });
         };
 
         if (parseGameConfigFromURL().overlay) {
             const iface = new ParentMessageInterface(innerMessageClient, parseGameConfigFromURL().canonicalGameName);
 
-            log.info("Register messages listeners for overlay");
+            log.info('Register messages listeners for overlay');
 
             iface.registerGeneric({
                 gameLoaded: () => showControls(iface),
@@ -93,13 +97,13 @@ async function initializeGame(): Promise<HTMLIFrameElement> {
  * Shows an error dialog for the given error.
  */
 function showErrorDialog(error: IError) {
-    let message = error.details;
+    let message = error.details || '';
 
-    if (error.type === "urn:x-tipp24:remote-client-error") {
-        message = "An error occurred while communicating with the game backend, please try again.";
+    if (error.type === 'urn:x-tipp24:remote-client-error') {
+        message = 'An error occurred while communicating with the game backend, please try again.';
     }
 
-    const div = document.createElement("div");
+    const div = document.createElement('div');
     div.innerHTML = `
       <div class='zig-overlay'>
         <div class='zig-alert'>
@@ -109,9 +113,9 @@ function showErrorDialog(error: IError) {
         </div>
       </div>`;
 
-    div.querySelector<HTMLElement>(".zig-alert__title").innerText = error.title;
-    div.querySelector<HTMLElement>(".zig-alert__text").innerText = message;
-    div.querySelector<HTMLElement>(".zig-alert__button").onclick = () => div.parentNode.removeChild(div);
+    div.querySelector<HTMLElement>('.zig-alert__title')!.innerText = error.title;
+    div.querySelector<HTMLElement>('.zig-alert__text')!.innerText = message;
+    div.querySelector<HTMLElement>('.zig-alert__button')!.onclick = () => div.parentNode!.removeChild(div);
 
     document.body.appendChild(div);
 }
@@ -122,33 +126,33 @@ function showErrorDialog(error: IError) {
  */
 function proxyMessages(parentMessageClient: MessageClient, innerMessageClient: MessageClient): void {
     innerMessageClient.register(ev => {
-        log.debug("Proxy message parent <- game");
+        log.debug('Proxy message parent <- game');
         parentMessageClient.send(ev);
     });
 
     parentMessageClient.register(ev => {
-        log.debug("Proxy message parent -> game");
+        log.debug('Proxy message parent -> game');
         innerMessageClient.send(ev);
     });
 }
 
 function showControls(iface: ParentMessageInterface) {
-    if (document.querySelector(".zig-start-button") != null) {
-        return
+    if (document.querySelector('.zig-start-button') != null) {
+        return;
     }
 
-    const div = document.createElement("a");
-    div.className = "zig-start-button";
-    div.innerText = "Start game";
-    div.href = "#";
+    const div = document.createElement('a');
+    div.className = 'zig-start-button';
+    div.innerText = 'Start game';
+    div.href = '#';
     document.body.appendChild(div);
 
     div.onclick = ev => {
         ev.preventDefault();
 
         iface.playGame();
-        div.parentNode.removeChild(div);
-    }
+        div.parentNode!.removeChild(div);
+    };
 }
 
 function initializeWinningClassOverride(): boolean {
@@ -158,10 +162,10 @@ function initializeWinningClassOverride(): boolean {
 
     const params = `&wc=${override.winningClass}&scenario=${override.scenarioId}`;
     if (location.href.indexOf(params) === -1) {
-        const search = location.search.replace(/\b(scenario|wc)=[^&]+/g, "");
-        const sep = location.search || "&";
+        const search = location.search.replace(/\b(scenario|wc)=[^&]+/g, '');
+        const sep = location.search || '&';
 
-        log.info("Replace outer.html with updated url:", search + sep + params);
+        log.info('Replace outer.html with updated url:', search + sep + params);
         location.search = search + sep + params;
 
         return true;
@@ -174,7 +178,7 @@ onDOMLoad(() => {
     log.info(`Initializing zig wrapper in ${clientVersion}`);
 
     // we might want to delegate the script to another version
-    if (delegateToVersion("wrapper.js")) {
+    if (delegateToVersion('wrapper.js')) {
         return;
     }
 
@@ -185,14 +189,14 @@ onDOMLoad(() => {
     }
 
     // inject the css style for the wrapper into the document
-    injectStyle(require("./style.css"));
+    injectStyle(require('./style.css'));
 
     void initializeGame();
 
     if (Options.debuggingLayer) {
-        log.debug("Debugging options are set, showing debugging layer now.");
+        log.debug('Debugging options are set, showing debugging layer now.');
 
-        const el = document.createElement("div");
+        const el = document.createElement('div');
         el.innerHTML = `
             <div style='position: absolute; top: 0; left: 0; font-size: 0.6em; padding: 0.25em; background: rgba(0, 0, 0, 128); color: white; z-index: 100;'>
                 <strong>ZIG</strong>
@@ -204,6 +208,6 @@ onDOMLoad(() => {
                 build ${(Date.now() - buildTime) / 1000.0}s ago
             </div>`;
 
-        document.body.appendChild(el.firstElementChild);
+        document.body.appendChild(el.firstElementChild!);
     }
 });

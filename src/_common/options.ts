@@ -1,4 +1,4 @@
-import {KV} from "./ipc/kv";
+import {KV} from './ipc/kv';
 
 export interface WinningClassOverride {
     winningClass: number;
@@ -11,33 +11,33 @@ export interface WinningClassOverride {
  */
 export const Options = {
     get logging(): boolean {
-        return KV.get("logging") === true;
+        return KV.get('logging') === true;
     },
 
     set logging(value: boolean) {
-        KV.set("logging", value);
+        KV.set('logging', value);
     },
 
 
-    get version(): string {
-        return KV.get("version");
+    get version(): string | null {
+        return KV.get('version');
     },
 
-    set version(value: string) {
-        KV.set("version", value);
+    set version(value: string | null) {
+        KV.set('version', value);
     },
 
 
     get winningClassOverride(): WinningClassOverride | null {
-        return KV.get("winning-class-override");
+        return KV.get('winning-class-override');
     },
 
     set winningClassOverride(value: WinningClassOverride | null) {
-        KV.set("winning-class-override", value);
+        KV.set('winning-class-override', value);
     },
 
 
     get debuggingLayer(): boolean {
         return this.logging || this.version || this.winningClassOverride != null;
-    }
+    },
 };

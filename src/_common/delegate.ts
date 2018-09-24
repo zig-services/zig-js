@@ -1,5 +1,7 @@
 import {Logger} from './logging';
-import {Options} from "./options";
+import {Options} from './options';
+
+const zigWindow: { __zig_delegated?: boolean; } = window as any;
 
 /**
  * Delegates to another version of the script by injecting a reference to
@@ -7,14 +9,14 @@ import {Options} from "./options";
  * property is set.
  */
 export function delegateToVersion(script: string): boolean {
-    const log = Logger.get("zig.main.delegate");
+    const log = Logger.get('zig.main.delegate');
 
     // only delegate once
-    if (window["__zig_delegated"]) {
+    if (zigWindow.__zig_delegated) {
         return false;
     }
 
-    window["__zig_delegated"] = true;
+    zigWindow.__zig_delegated = true;
 
     // get the override version from the options
     const version = Options.version;
@@ -26,7 +28,7 @@ export function delegateToVersion(script: string): boolean {
 
     log.info(`Delegate script ${script} to ${url}`);
 
-    if (document.readyState === "loading") {
+    if (document.readyState === 'loading') {
         // if we are still loading, we can just write directly to the document.
         // The script will then be executed blockingly
         document.write(`<script src="${url}"></script>`);
@@ -34,7 +36,7 @@ export function delegateToVersion(script: string): boolean {
     } else {
         // if we are not loading anymore, we'll just add the script to the header.
         // The browser will the execute the script once it finishes loading.
-        const scriptTag = document.createElement("script");
+        const scriptTag = document.createElement('script');
         scriptTag.src = url;
         scriptTag.async = false;
         scriptTag.defer = false;

@@ -20,7 +20,12 @@ class Integration {
                 private frame: HTMLIFrameElement,
                 private config: IntegrationConfig) {
 
-        this.messageClient = new MessageClient(frame.contentWindow);
+        const contentWindow = frame.contentWindow;
+        if (contentWindow == null) {
+            throw new Error('iframe has no content window.');
+        }
+
+        this.messageClient = new MessageClient(contentWindow);
         this.interface = new ParentMessageInterface(this.messageClient, game);
 
         this.interface.registerGeneric({
@@ -99,13 +104,18 @@ function includeZigGame(targetSelector: string | HTMLElement, url: string, gameC
         ? document.querySelector(targetSelector)
         : targetSelector;
 
-    target.appendChild(wrapper);
+    target!.appendChild(wrapper);
 
     return zigObserveGame(gameConfig.canonicalGameName, wrapper, frame, intConfig);
 }
 
-function registerHTTPHandlerOnly(game: string, frame: HTMLIFrameElement, handler: RequestHandler = undefined): VoidFunction {
-    const messageClient = new MessageClient(frame.contentWindow);
+function registerHTTPHandlerOnly(game: string, frame: HTMLIFrameElement, handler?: RequestHandler): VoidFunction {
+    const contentWindow = frame.contentWindow;
+    if (contentWindow == null) {
+        throw new Error('Can not register handler, content window is null.');
+    }
+
+    const messageClient = new MessageClient(contentWindow);
     const iface = new ParentMessageInterface(messageClient, game);
 
     registerRequestListener(iface, handler);
@@ -121,4 +131,4 @@ export const Zig = {
 };
 
 // expose to the client also.
-window['Zig'] = Zig;
+(window as any)['Zig'] = Zig;

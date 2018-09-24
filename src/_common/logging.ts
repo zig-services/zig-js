@@ -76,6 +76,6 @@ export class Logger {
     }
 }
 
-window['enableZigLogging'] = function () {
+(window as any)['enableZigLogging'] = function () {
     Options.logging = true;
 };

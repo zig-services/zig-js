@@ -7,8 +7,10 @@
       "es2015.promise",
       "dom"
     ],
+    "strictNullChecks": true,
+    "noImplicitAny": true,
     "declaration": true,
-    "declarationDir": "typings",
+    "declarationDir": "dist/typings",
     "jsx": "react"
   },
   "exclude": [

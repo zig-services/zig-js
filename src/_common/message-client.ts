@@ -1,13 +1,13 @@
-import {GameSettings} from "./common";
-import {Request, Result, WithCID} from "./request";
-import {IError, TicketId, TicketNumber} from "./domain";
+import {GameSettings} from './common';
+import {Request, Result, WithCID} from './request';
+import {IError, TicketId, TicketNumber} from './domain';
 import {Logger} from './logging';
 
 export type CommandType = string
 
 export type Message = string | { command: string }
 
-const log = Logger.get("zig.message");
+const log = Logger.get('zig.message');
 
 export class MessageClient {
     private readonly eventHandler: (ev: MessageEvent) => void;
@@ -16,14 +16,14 @@ export class MessageClient {
     constructor(private readonly partnerWindow: Window) {
         // register event handler for receiving messages
         this.eventHandler = ev => this.handleEvent(ev);
-        window.addEventListener("message", this.eventHandler);
+        window.addEventListener('message', this.eventHandler);
     }
 
     /**
      * Unregisters the global event handler on the window object.
      */
     public close(): void {
-        window.removeEventListener("message", this.eventHandler);
+        window.removeEventListener('message', this.eventHandler);
     }
 
     /**
@@ -40,12 +40,12 @@ export class MessageClient {
         const messageType = typeof message === 'string' ? message : message.command;
 
         // remove "command" field if it is an error message.
-        if (typeof message === "object" && message.command === "error") {
-            delete message["command"];
+        if (typeof message === 'object' && message.command === 'error') {
+            delete message['command'];
         }
 
         log.info(`Send message of type ${messageType}:`, message);
-        this.partnerWindow.postMessage(message, "*");
+        this.partnerWindow.postMessage(message, '*');
     }
 
     /**
@@ -56,8 +56,8 @@ export class MessageClient {
     public sendError(err: IError | Error | any): void {
         const errorValue = toErrorValue(err);
         if (errorValue != null) {
-            log.info("Sending error value:", errorValue);
-            this.partnerWindow.postMessage(errorValue, "*");
+            log.info('Sending error value:', errorValue);
+            this.partnerWindow.postMessage(errorValue, '*');
         }
     }
 
@@ -79,7 +79,7 @@ export class MessageClient {
         try {
             if (ev.source !== this.partnerWindow) {
                 // noinspection ExceptionCaughtLocallyJS
-                throw new Error("do not optimize away the try/catch.");
+                throw new Error('do not optimize away the try/catch.');
             }
         } catch (err) {
             // probably internet explorer 11. This browser can not compare window objects
@@ -96,8 +96,8 @@ export class MessageClient {
         }
 
         // maybe an error? Need to patch legacy messages here.
-        if (typeof data.type === "string" && typeof data.title === "string" && typeof data.command === "undefined") {
-            data.command = "error";
+        if (typeof data.type === 'string' && typeof data.title === 'string' && typeof data.command === 'undefined') {
+            data.command = 'error';
         }
 
         // call handlers with message
@@ -115,7 +115,7 @@ export class MessageClient {
 /**
  * Converts any non null object into an error.
  */
-function toErrorValue(err: any): IError | null {
+export function toErrorValue(err: any): IError | null {
     if (err == null) {
         return null;
     }
@@ -124,26 +124,28 @@ function toErrorValue(err: any): IError | null {
         return err;
     }
 
-    if (typeof err.type === "string" && typeof err.message === "string") {
+    if (typeof err.type === 'string' && typeof err.message === 'string') {
         return {
-            type: "urn:x-tipp24:remote-client-error",
-            title: "Remote error",
+            type: 'urn:x-tipp24:remote-client-error',
+            title: 'Remote error',
             status: err.type,
             details: err.message,
-        }
+        };
     }
 
     const responseText = err.responseText || err.body || err;
-    if (typeof responseText === "string") {
+
+    // noinspection SuspiciousTypeOfGuard
+    if (typeof responseText === 'string') {
         try {
             const parsed = JSON.parse(responseText);
             if (parsed.error && parsed.status) {
                 return {
-                    type: "urn:x-tipp24:remote-client-error",
-                    title: "Remote error",
+                    type: 'urn:x-tipp24:remote-client-error',
+                    title: 'Remote error',
                     details: parsed.error,
-                    status: parsed.status
-                }
+                    status: parsed.status,
+                };
             }
 
             // looks like a properly formatted error
@@ -156,11 +158,11 @@ function toErrorValue(err: any): IError | null {
     }
 
     return {
-        type: "urn:x-tipp24:remote-client-error",
-        title: "Remote error",
+        type: 'urn:x-tipp24:remote-client-error',
+        title: 'Remote error',
         status: 500,
         details: err.toString(),
-    }
+    };
 }
 
 export interface BaseMessage {
@@ -169,62 +171,62 @@ export interface BaseMessage {
 }
 
 export interface ErrorMessage extends BaseMessage, IError {
-    command: "error";
+    command: 'error';
 }
 
 export interface GameLoadedMessage extends BaseMessage {
-    command: "gameLoaded";
+    command: 'gameLoaded';
     inGamePurchase?: boolean;
 }
 
 export interface PlayGameMessage extends BaseMessage {
-    command: "playGame";
+    command: 'playGame';
 }
 
 export interface PlayDemoGameMessage extends BaseMessage {
-    command: "playDemoGame";
+    command: 'playDemoGame';
 }
 
 export interface GameStartedMessage extends BaseMessage {
-    command: "gameStarted";
+    command: 'gameStarted';
     ticketId: TicketId;
     ticketNumber: TicketNumber;
     alreadySettled: boolean;
 }
 
 export interface GameFinishedMessage extends BaseMessage {
-    command: "gameFinished";
+    command: 'gameFinished';
 }
 
 export interface TicketSettledMessage extends BaseMessage {
-    command: "ticketSettled";
+    command: 'ticketSettled';
 }
 
 export interface RequestGameInputMessage extends BaseMessage {
-    command: "requestGameInput";
+    command: 'requestGameInput';
 }
 
 export interface RequestStartGameMessage extends BaseMessage {
-    command: "requestStartGame";
+    command: 'requestStartGame';
 }
 
 export interface GameInputMessage extends BaseMessage {
-    command: "gameInput";
+    command: 'gameInput';
     input: any;
 }
 
 export interface UpdateNicknameMessage extends BaseMessage {
-    command: "updateNickname";
+    command: 'updateNickname';
     nickname: string | undefined;
 }
 
 export interface UpdateGameSettingsMessage extends BaseMessage {
-    command: "updateGameSettings";
+    command: 'updateGameSettings';
     gameSettings: GameSettings;
 }
 
 export interface NewVoucherMessage extends BaseMessage {
-    command: "newVoucher";
+    command: 'newVoucher';
     voucherValueInMinor: number;
     discountInMinor?: number;
 
@@ -235,7 +237,7 @@ export interface NewVoucherMessage extends BaseMessage {
 }
 
 export interface TicketPriceChangedMessage extends BaseMessage {
-    command: "ticketPriceChanged";
+    command: 'ticketPriceChanged';
     priceInMinor: number;
     rowCount: number;
 
@@ -246,93 +248,116 @@ export interface TicketPriceChangedMessage extends BaseMessage {
 }
 
 export interface UpdateGameHeightMessage extends BaseMessage {
-    command: "updateGameHeight";
+    command: 'updateGameHeight';
     height: number;
 }
 
 
 export interface PrepareGameMessage extends BaseMessage {
-    command: "prepareGame";
+    command: 'prepareGame';
     demo: boolean;
 }
 
 export interface ResumeGameMessage extends BaseMessage {
-    command: "resumeGame";
+    command: 'resumeGame';
     resume: boolean;
 }
 
 export interface CancelGameStartRequestMessage extends BaseMessage {
-    command: "cancelRequestStartGame";
+    command: 'cancelRequestStartGame';
 }
 
 export interface BuyMessage extends BaseMessage {
-    command: "buy";
+    command: 'buy';
     betFactor?: number;
 }
 
 export interface GotoGameMessage extends BaseMessage {
-    command: "gotoGame";
+    command: 'gotoGame';
     destinationGame: string;
 }
 
 export interface GotoUrlMessage extends BaseMessage {
-    command: "gotoUrl";
+    command: 'gotoUrl';
     destination: string;
 }
 
 export interface GotoLeagueTableMessage extends BaseMessage {
-    command: "gotoLeagueTable";
+    command: 'gotoLeagueTable';
 }
 
 export interface TicketActivatedEvent extends BaseMessage {
-    command: "ticketActivated";
+    command: 'ticketActivated';
 }
 
 export interface UpdateLeagueTableMessage extends BaseMessage {
-    command: "updateTable";
+    command: 'updateTable';
     response: {
         leagueTable: any;
     }
 }
 
 export interface FetchRequestMessage extends BaseMessage {
-    command: "zig.XMLHttpRequest.request";
+    command: 'zig.XMLHttpRequest.request';
     request: WithCID<Request>;
 }
 
 export interface FetchResultMessage extends BaseMessage {
-    command: "zig.XMLHttpRequest.result";
+    command: 'zig.XMLHttpRequest.result';
     result: WithCID<Result>;
 }
 
-export interface CommandMessageTypes {
-    playGame: PlayGameMessage;
-    playDemoGame: PlayDemoGameMessage;
-    gameLoaded: GameLoadedMessage;
-    gameStarted: GameStartedMessage;
-    gameFinished: GameFinishedMessage;
-    gameInput: GameInputMessage;
-    ticketSettled: TicketSettledMessage;
-    requestGameInput: RequestGameInputMessage;
-    requestStartGame: RequestStartGameMessage;
-    ticketPriceChanged: TicketPriceChangedMessage;
-    newVoucher: NewVoucherMessage;
-    updateNickname: UpdateNicknameMessage;
-    updateGameSettings: UpdateGameSettingsMessage;
-    updateGameHeight: UpdateGameHeightMessage;
-    prepareGame: PrepareGameMessage;
-    resumeGame: ResumeGameMessage;
-    cancelRequestStartGame: CancelGameStartRequestMessage;
-    buy: BuyMessage;
-    error: ErrorMessage;
-
-    "zig.XMLHttpRequest.request": FetchRequestMessage,
-    "zig.XMLHttpRequest.result": FetchResultMessage,
+/**
+ * Returns 'null' but casted to a type of T. This is a little dirty but as we
+ * will never use the value and are only interested in the type, this is okay.
+ */
+function typeOf<T>(): T {
+    return (null as any) as T;
 }
 
+/**
+ * This object defines a mapping from message key to the message type.
+ * You might ask: why is this not just an interface? Later on we require a list of
+ * message keys. If we do not want to define them multiple times, and as types wont really
+ * exist at run time, we will just define them here directly, so we can use them later.
+ */
+const commandMessageTypesObject = {
+    playGame: typeOf<PlayGameMessage>(),
+    playDemoGame: typeOf<PlayDemoGameMessage>(),
+    gameLoaded: typeOf<GameLoadedMessage>(),
+    gameStarted: typeOf<GameStartedMessage>(),
+    gameFinished: typeOf<GameFinishedMessage>(),
+    gameInput: typeOf<GameInputMessage>(),
+    ticketSettled: typeOf<TicketSettledMessage>(),
+    requestGameInput: typeOf<RequestGameInputMessage>(),
+    requestStartGame: typeOf<RequestStartGameMessage>(),
+    ticketPriceChanged: typeOf<TicketPriceChangedMessage>(),
+    newVoucher: typeOf<NewVoucherMessage>(),
+    updateNickname: typeOf<UpdateNicknameMessage>(),
+    updateGameSettings: typeOf<UpdateGameSettingsMessage>(),
+    updateGameHeight: typeOf<UpdateGameHeightMessage>(),
+    prepareGame: typeOf<PrepareGameMessage>(),
+    resumeGame: typeOf<ResumeGameMessage>(),
+    cancelRequestStartGame: typeOf<CancelGameStartRequestMessage>(),
+    buy: typeOf<BuyMessage>(),
+    error: typeOf<ErrorMessage>(),
+
+    'zig.XMLHttpRequest.request': typeOf<FetchRequestMessage>(),
+    'zig.XMLHttpRequest.result': typeOf<FetchResultMessage>(),
+};
+
+
+// Type mapping from message key to message type.
+export type CommandMessageTypes = typeof commandMessageTypesObject;
+
+// This type maps from message key to a handler of this message type.
 export type CommandMessageHandlers = {
     [K in keyof CommandMessageTypes]: (event: CommandMessageTypes[K]) => void
 }
+
+
+// An array of all message types as strings.
+const allCommandKeys = Object.keys(commandMessageTypesObject) as (keyof CommandMessageTypes)[];
 
 export type Command = keyof CommandMessageTypes;
 
@@ -355,22 +380,56 @@ export class MessageDispatcher {
         return () => messageClient.unregister(handler);
     }
 
-    public register<K extends Command>(type: K, handler: (msg: CommandMessageTypes[K]) => void): Unregister {
+    public register<K extends Command>(type: K, handler: CommandMessageHandlers[K]): Unregister {
         log.debug(`Register handler for messages of type ${type}`);
 
         this.handlers[type] = (this.handlers[type] || []).concat(handler);
         return () => this.unregister(type, handler);
     }
 
+    public async waitFor<K extends Command>(type: K): Promise<CommandMessageTypes[K]> {
+        return new Promise<CommandMessageTypes[K]>(((resolve, reject) => {
+            let unregisterError: Unregister, unregisterEvent: Unregister;
+
+            unregisterError = this.register('error', (error: ErrorMessage) => {
+                unregisterError();
+                unregisterEvent();
+
+                reject(error);
+            });
+
+            unregisterEvent = this.register(type, (event: CommandMessageTypes[K]) => {
+                unregisterError();
+                unregisterEvent();
+
+                resolve(event);
+            });
+        }));
+    }
+
     /**
      * Registers an object containing multiple handler methods.
      */
-    public registerGeneric(handler: Partial<CommandMessageHandlers>): Unregister {
-        const unregister: Unregister[] = Object
-            .keys(handler)
-            .map(key => this.register(key as Command, handler[key]));
+    public registerGeneric<H extends Partial<CommandMessageHandlers>>(handler: H): Unregister {
+        const unregister: Unregister[] = [];
 
-        return () => unregister.forEach(m => m());
+        // pick all handlers from the object.
+        allCommandKeys.forEach(key => {
+            const h = handler[key];
+            if (h != null) {
+                unregister.push(this.register(key, h));
+            }
+        });
+
+        // verify that all types are really message types.
+        for (let key in Object.keys(handler)) {
+            if ((allCommandKeys as string[]).indexOf(key) === -1) {
+                log.error(`No such message type: ${key}`);
+            }
+        }
+
+        // return a function that unregisters all message handlers
+        return () => unregister.forEach(Function.call);
     }
 
     private unregister<K extends Command>(type: K, handler: (msg: CommandMessageTypes[K]) => void): void {
@@ -396,7 +455,7 @@ export class MessageDispatcher {
             } catch (err) {
                 log.warn(`Error calling handler for ${message.command}:`, err);
             }
-        })
+        });
     }
 
     /**
@@ -405,7 +464,7 @@ export class MessageDispatcher {
      * This also patches renamed/missing fields.
      */
     private convertToMessage(message: Message): BaseMessage {
-        const converted = typeof message === "string"
+        const converted = typeof message === 'string'
             ? {command: message as string, game: this.game}
             : Object.assign({}, {game: this.game}, message);
 
@@ -417,16 +476,16 @@ export class MessageDispatcher {
         function fallback<T extends BaseMessage, K1 extends keyof T, K2 extends keyof T>(
             e: T, missing: K1, fallback: K2, conv: (value: T[K2]) => T[K1]) {
 
-            if (typeof e[missing] === "undefined" && typeof e[fallback] !== "undefined") {
+            if (typeof e[missing] === 'undefined' && typeof e[fallback] !== 'undefined') {
                 e[missing] = conv(e[fallback]);
             }
         }
 
-        fallback(converted as TicketPriceChangedMessage, `priceInMinor`, "price", price => 100 * price);
-        fallback(converted as TicketPriceChangedMessage, `price`, "priceInMinor", priceInMinor => 0.01 * priceInMinor);
+        fallback(converted as TicketPriceChangedMessage, `priceInMinor`, 'price', price => 100 * price);
+        fallback(converted as TicketPriceChangedMessage, `price`, 'priceInMinor', priceInMinor => 0.01 * priceInMinor);
 
-        fallback(converted as NewVoucherMessage, "voucherValueInCents", "voucherValueInMinor", v => v);
-        fallback(converted as NewVoucherMessage, "voucherValueInMinor", "voucherValueInCents", v => v);
+        fallback(converted as NewVoucherMessage, 'voucherValueInCents', 'voucherValueInMinor', v => v);
+        fallback(converted as NewVoucherMessage, 'voucherValueInMinor', 'voucherValueInCents', v => v);
 
         return converted;
     }
@@ -459,58 +518,58 @@ export class MessageFactory extends MessageDispatcher {
 
 export class ParentMessageInterface extends MessageFactory {
     public playGame() {
-        this.send<PlayGameMessage>({command: "playGame", game: this.game});
+        this.send<PlayGameMessage>({command: 'playGame', game: this.game});
     }
 
     public playDemoGame() {
-        this.send<PlayDemoGameMessage>({command: "playDemoGame", game: this.game});
+        this.send<PlayDemoGameMessage>({command: 'playDemoGame', game: this.game});
     }
 
     public gameInput(input: any) {
-        this.send<GameInputMessage>({command: "gameInput", game: this.game, input});
+        this.send<GameInputMessage>({command: 'gameInput', game: this.game, input});
     }
 
     public newVoucher(voucherValueInMinor: number, discountInMinor?: number) {
         this.send<NewVoucherMessage>({
-            command: "newVoucher", game: this.game,
+            command: 'newVoucher', game: this.game,
             voucherValueInCents: voucherValueInMinor,
             voucherValueInMinor,
-            discountInMinor
-        })
+            discountInMinor,
+        });
     }
 
     public updateNickname(nickname: string) {
         this.send<UpdateNicknameMessage>({
-            command: "updateNickname", game: this.game,
+            command: 'updateNickname', game: this.game,
             nickname,
-        })
+        });
     }
 
     public prepareGame(demo: boolean = false) {
-        this.send<PrepareGameMessage>({command: "prepareGame", game: this.game, demo})
+        this.send<PrepareGameMessage>({command: 'prepareGame', game: this.game, demo});
     }
 
     public resumeGame(resume: boolean = true) {
-        this.send<ResumeGameMessage>({command: "resumeGame", game: this.game, resume})
+        this.send<ResumeGameMessage>({command: 'resumeGame', game: this.game, resume});
     }
 
     public cancelRequestStartGame() {
-        this.send<CancelGameStartRequestMessage>({command: "cancelRequestStartGame", game: this.game})
+        this.send<CancelGameStartRequestMessage>({command: 'cancelRequestStartGame', game: this.game});
     }
 
     public xhrResult(result: WithCID<Result>) {
-        this.send<FetchResultMessage>({command: "zig.XMLHttpRequest.result", game: this.game, result})
+        this.send<FetchResultMessage>({command: 'zig.XMLHttpRequest.result', game: this.game, result});
     }
 }
 
 export class GameMessageInterface extends MessageFactory {
     public gameLoaded(inGamePurchase?: boolean) {
-        this.send<GameLoadedMessage>({command: "gameLoaded", game: this.game, inGamePurchase: inGamePurchase});
+        this.send<GameLoadedMessage>({command: 'gameLoaded', game: this.game, inGamePurchase: inGamePurchase});
     }
 
     public gameStarted(ticketId: TicketId, ticketNumber: TicketNumber, alreadySettled: boolean = false) {
         this.send<GameStartedMessage>({
-            command: "gameStarted",
+            command: 'gameStarted',
             game: this.game,
             ticketId,
             ticketNumber,
@@ -519,65 +578,65 @@ export class GameMessageInterface extends MessageFactory {
     }
 
     public gameFinished() {
-        this.send<GameFinishedMessage>({command: "gameFinished", game: this.game});
+        this.send<GameFinishedMessage>({command: 'gameFinished', game: this.game});
     }
 
     public ticketSettled() {
-        this.send<TicketSettledMessage>({command: "ticketSettled", game: this.game});
+        this.send<TicketSettledMessage>({command: 'ticketSettled', game: this.game});
     }
 
     public requestGameInput() {
-        this.send<RequestGameInputMessage>({command: "requestGameInput", game: this.game});
+        this.send<RequestGameInputMessage>({command: 'requestGameInput', game: this.game});
     }
 
     public requestStartGame() {
-        this.send<RequestStartGameMessage>({command: "requestStartGame", game: this.game});
+        this.send<RequestStartGameMessage>({command: 'requestStartGame', game: this.game});
     }
 
     public ticketPriceChanged(rowCount: number, ticketPriceInMinor: number) {
         this.send<TicketPriceChangedMessage>({
-            command: "ticketPriceChanged",
+            command: 'ticketPriceChanged',
             game: this.game,
             price: 0.01 * ticketPriceInMinor,
             priceInMinor: ticketPriceInMinor,
             rowCount,
-        })
+        });
     }
 
     public updateGameHeight(height: number) {
-        this.send<UpdateGameHeightMessage>({command: "updateGameHeight", game: this.game, height})
+        this.send<UpdateGameHeightMessage>({command: 'updateGameHeight', game: this.game, height});
     }
 
     public buy(betFactor?: number) {
-        this.send<BuyMessage>({command: "buy", game: this.game, betFactor})
+        this.send<BuyMessage>({command: 'buy', game: this.game, betFactor});
     }
 
     public gotoGame(destinationGame: string) {
-        this.send<GotoGameMessage>({command: "gotoGame", game: this.game, destinationGame})
+        this.send<GotoGameMessage>({command: 'gotoGame', game: this.game, destinationGame});
     }
 
     public gotoUrl(destination: string) {
-        this.send<GotoUrlMessage>({command: "gotoUrl", game: this.game, destination})
+        this.send<GotoUrlMessage>({command: 'gotoUrl', game: this.game, destination});
     }
 
     public gotoLeagueTable() {
-        this.send<GotoLeagueTableMessage>({command: "gotoLeagueTable", game: this.game})
+        this.send<GotoLeagueTableMessage>({command: 'gotoLeagueTable', game: this.game});
     }
 
     public updateTable(leagueTable: any) {
         const response = {leagueTable};
-        this.send<UpdateLeagueTableMessage>({command: "updateTable", game: this.game, response})
+        this.send<UpdateLeagueTableMessage>({command: 'updateTable', game: this.game, response});
     }
 
     public ticketActivated() {
-        this.send<TicketActivatedEvent>({command: "ticketActivated", game: this.game})
+        this.send<TicketActivatedEvent>({command: 'ticketActivated', game: this.game});
     }
 
     public xhrRequest(request: WithCID<Request>) {
-        this.send<FetchRequestMessage>({command: "zig.XMLHttpRequest.request", game: this.game, request})
+        this.send<FetchRequestMessage>({command: 'zig.XMLHttpRequest.request', game: this.game, request});
     }
 
     public updateGameSettings(gameSettings: GameSettings) {
-        this.send<UpdateGameSettingsMessage>({command: "updateGameSettings", game: this.game, gameSettings})
+        this.send<UpdateGameSettingsMessage>({command: 'updateGameSettings', game: this.game, gameSettings});
     }
 }

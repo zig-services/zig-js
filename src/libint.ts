@@ -1,1 +1,1 @@
-export * from "./integration/integration"
+export * from './integration/webpage';

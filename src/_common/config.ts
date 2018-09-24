@@ -18,7 +18,7 @@ export interface GameConfig {
 export function parseGameConfigFromURL(url: string = location.href): GameConfig {
     const match = /[?#].*\bconfig=([a-zA-Z0-9+/]+=*)/.exec(url);
     if (match == null) {
-        throw new Error("No config parameter found.")
+        throw new Error('No config parameter found.');
     }
 
     const [, encoded] = match;
@@ -26,12 +26,12 @@ export function parseGameConfigFromURL(url: string = location.href): GameConfig 
     const config = JSON.parse(atob(encoded)) as GameConfig;
 
     // noinspection SuspiciousTypeOfGuard
-    if (typeof config.canonicalGameName !== "string") {
-        throw new Error("canonicalGameName not set in config.");
+    if (typeof config.canonicalGameName !== 'string') {
+        throw new Error('canonicalGameName not set in config.');
     }
 
     if (!config.basketPurchaseRedirect) {
-      config.basketPurchaseRedirect = `/basket`;
+        config.basketPurchaseRedirect = `/basket`;
     }
 
     return Object.freeze(config);

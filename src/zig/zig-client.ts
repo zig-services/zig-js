@@ -82,7 +82,9 @@ export class ZigClient {
         return this.propagateErrors(async () => {
             await this.request<any>('POST', `/zig/games/${this.gameConfig.canonicalGameName}/tickets:basket`, items, {'Content-Type': 'application/json'});
 
-            this.Messages.gotoUrl(this.gameConfig.basketPurchaseRedirect);
+            if (this.gameConfig.basketPurchaseRedirect != null) {
+                this.Messages.gotoUrl(this.gameConfig.basketPurchaseRedirect);
+            }
         });
     }
 

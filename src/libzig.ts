@@ -1,1 +1,1 @@
-export * from "./zig/zig"
+export * from './zig/zig';

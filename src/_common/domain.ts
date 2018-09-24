@@ -85,4 +85,4 @@ export interface BundleTicket {
 }
 
 // Different statuses of a bundle ticket.
-export type BundleTicketStatus = "NOT_ACTIVATED" | "ACTIVATABLE" | "PLAYABLE" | "PLAYED";
+export type BundleTicketStatus = 'NOT_ACTIVATED' | 'ACTIVATABLE' | 'PLAYABLE' | 'PLAYED';

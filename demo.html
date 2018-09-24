@@ -29,22 +29,13 @@
 <div id="events"></div>
 
 <script src="dist/libint.js"></script>
+
 <script>
-    function sendEvent(message) {
-        const target = document.querySelector("iframe").contentWindow;
-        target.postMessage(message, "*");
-    }
-
-    const events = ["playGame", "playDemoGame"];
-    events.forEach(event => {
-        const button = document.createElement("input");
-        button.type = "button";
-        button.onclick = () => sendEvent(event);
-        button.value = JSON.stringify(event);
-
-        const container = document.querySelector("#sendCommands");
-        container.appendChild(button);
-    });
+    // function sendEvent(message) {
+    //     const target = document.querySelector("iframe").contentWindow;
+    //     target.postMessage(message, "*");
+    // }
+    //
 
     // dummy scenario the game can read
     const scenario = {
@@ -63,7 +54,17 @@
         }, {number: 6, winningClass: 5, winningsAmountInMinorUnit: 1000}]
     };
 
-    function zigRequestHandler(req) {
+    let logEventCount = 0;
+
+    function logEvent(event) {
+        const div = document.createElement("div");
+        div.innerText = ++logEventCount + ": " + JSON.stringify(event);
+
+        const container = document.querySelector("#events");
+        container.appendChild(div);
+    }
+
+    function fakeRequestHandler(req) {
         let response = {statusCode: 404, body: ""};
 
         if (req.path.indexOf("/settle")) {
@@ -123,30 +124,63 @@
         return Promise.resolve({response});
     }
 
-    let logEventCount = 0;
+    class Connector extends ZIG.Connector {
+        async fetchCustomerState() {
+            return Promise.resolve({
+                balance: {
+                    amountInMinor: 5000,
+                    amountInMajor: 50.00,
+                    currency: 'EUR',
+                }
+            });
+        }
 
-    function logEvent(event) {
-        const div = document.createElement("div");
-        div.innerText = ++logEventCount + ": " + JSON.stringify(event);
-
-        const container = document.querySelector("#events");
-        container.appendChild(div);
+        executeHttpRequest(req) {
+            return fakeRequestHandler(req);
+        }
     }
 
-    window.onload = () => {
+    function createGameActions(game) {
+        const actions = {
+            "play game": () => game.playGame(),
+            "play demo game": () => game.playDemoGame(),
+        };
+
+        for (let name in actions) {
+            const action = actions[name];
+
+            const button = document.createElement("input");
+            button.type = "button";
+            button.onclick = () => action();
+            button.value = name;
+
+            const container = document.querySelector("#sendCommands");
+            container.appendChild(button);
+        }
+    }
+
+    window.onload = async () => {
         const gameConfig = {
             canonicalGameName: "demo",
             overlay: false,
         };
 
-        const intConfig = {
-            requestHandler: zigRequestHandler,
-        };
+        const container = document.querySelector("#game");
+        const game = ZIG.installGame({
+            container: container,
+            url: "https://mylotto24.frontend.zig.services/dickehose/1.0.5/tipp24_com/game/outer.html",
+            gameConfig: gameConfig,
+            connector: new Connector(),
+        });
 
-        const integration = Zig.include("#game", "https://mylotto24.frontend.zig.services/dickehose/1.0.5/tipp24_com/game/outer.html", gameConfig, intConfig);
-        integration.messageClient.register(logEvent);
+        // log all events.
+        game.rawMessageClient.register(logEvent);
 
+        await game.initialize();
+        createGameActions(game);
     };
+
+
 </script>
 </body>
 

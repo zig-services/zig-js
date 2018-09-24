@@ -1,20 +1,20 @@
-import {GameMessageInterface, ParentMessageInterface} from "./message-client";
+import {FetchRequestMessage, FetchResultMessage, GameMessageInterface, ParentMessageInterface} from './message-client';
 import {Logger} from './logging';
 
-const log = Logger.get("zig.xhr");
+const log = Logger.get('zig.xhr');
 
 export interface Request {
     method: string;
     path: string;
     headers: { [key: string]: string };
-    body: string;
+    body: string | null;
 
-    extraSettings?: any;
+    extraSettings?: Partial<XMLHttpRequest>;
 }
 
 export interface Response {
     statusCode: number;
-    body: string;
+    body: string | null;
 
     // the raw response
     xhr?: XMLHttpRequest;
@@ -39,61 +39,64 @@ export interface WithCID<T> {
  * In case of an error, the error will be thrown as an exception.
  */
 export async function executeRequestLocally(req: Request): Promise<Response> {
-    const result = await _executeRequestLocally(req);
+    const result = await executeRequest(req);
     if (result.error) {
         throw result.error;
     }
 
-    return result.response;
+    return result.response!;
 }
 
 // Need to keep a reference to the original XMLHttpRequest class before
 // monkey patching it for legacy games.
 const OriginalXMLHttpRequest = XMLHttpRequest;
 
-async function _executeRequestLocally(req: Request): Promise<Result> {
-    log.info("Execute http request locally", req);
+export async function executeRequest(req: Request): Promise<Result> {
+    log.info('Execute http request locally', req);
 
     const xhr = new OriginalXMLHttpRequest();
 
-    log.debug("Open request %s %s", req.method, req.path);
+    log.debug(`Open request ${req.method} ${req.path}`);
     xhr.open(req.method, req.path);
 
     // copy request headers to request
     Object.keys(req.headers || {}).forEach(key => {
         const value = req.headers[key];
 
-        log.debug("Add request header %s: %s", key, value);
+        log.debug(`Add request header ${key}: ${value}`);
         xhr.setRequestHeader(key, value);
     });
 
     // copy extra properties.
-    Object.keys(req.extraSettings || {}).forEach(key => {
-        let setting = req.extraSettings[key];
+    const extraSettings = req.extraSettings || {};
+    if (extraSettings != null) {
+        Object.keys(extraSettings).forEach((key: keyof XMLHttpRequest) => {
+            const setting = extraSettings[key];
 
-        log.debug("Add request property %s: %s", key, setting);
-        xhr[key] = setting;
-    });
-
-    // set the x-csrf header based on the cookie value.
-    const match = /X-CSRF-TOKEN=([^;]+)/.exec(document.cookie || "");
-    if (match && match[1]) {
-        log.debug("Set csrf token header based on document cookie");
-        xhr.setRequestHeader("X-CSRF-TOKEN", match[1]);
+            log.debug(`Add request property ${key}: ${setting}`);
+            (xhr as any)[key] = setting;
+        });
     }
 
-    log.debug("Sending XMLHttpRequest with body", req.body);
-    xhr.send(req.body);
+    // set the x-csrf header based on the cookie value.
+    const match = /X-CSRF-TOKEN=([^;]+)/.exec(document.cookie || '');
+    if (match && match[1]) {
+        log.debug('Set csrf token header based on document cookie');
+        xhr.setRequestHeader('X-CSRF-TOKEN', match[1]);
+    }
+
+    log.debug('Sending XMLHttpRequest with body', req.body);
+    xhr.send(req.body === null ? undefined : req.body);
 
     return new Promise<Result>(resolve => {
         // forward request results
         xhr.onreadystatechange = () => {
             if (xhr.readyState === XMLHttpRequest.DONE) {
-                log.debug("Request for %s finished with status code %s", req.path, xhr.status);
+                log.debug(`Request for ${req.path} finished with status code ${xhr.status}`);
 
                 // get body (only type = text is allowed)
                 let body: string | null = null;
-                if (xhr.responseType === "" || xhr.responseType === "text") {
+                if (xhr.responseType === '' || xhr.responseType === 'text') {
                     body = xhr.responseText;
                 }
 
@@ -102,7 +105,7 @@ async function _executeRequestLocally(req: Request): Promise<Result> {
                         statusCode: xhr.status,
                         body: body,
                         xhr: xhr,
-                    }
+                    },
                 };
 
                 resolve(result);
@@ -111,8 +114,8 @@ async function _executeRequestLocally(req: Request): Promise<Result> {
 
         // forward connection errors or something like that
         xhr.onerror = err => {
-            log.debug("Request failed with error:", err);
-            const result: Result = {error: err.message || ""};
+            log.debug('Request failed with error:', err);
+            const result: Result = {error: (err as any).message || ''};
             resolve(result);
         };
     });
@@ -123,17 +126,17 @@ async function _executeRequestLocally(req: Request): Promise<Result> {
  * the request locally.
  */
 export function registerRequestListener(iface: ParentMessageInterface,
-                                        handler: (req: Request) => Promise<Result> = null) {
+                                        handler: ((req: Request) => Promise<Result>) | null = null) {
 
-    const h = handler || _executeRequestLocally;
+    const h = handler || executeRequest;
 
-    iface.register("zig.XMLHttpRequest.request", async (message) => {
+    iface.register('zig.XMLHttpRequest.request', async (message: FetchRequestMessage) => {
         const req: WithCID<Request> = message.request;
         const result = await h(req.data);
 
         if (result.response) {
             // remove xhr instance before sending it via post message.
-            delete result.response["xhr"];
+            delete result.response['xhr'];
         }
 
         iface.xhrResult({cid: req.cid, data: result});
@@ -150,11 +153,11 @@ let cidUniqueNumber = 1;
  * This method will wait for the result to the request and provide it as a promise to a Response object.
  */
 export async function executeRequestInParent(iface: GameMessageInterface, req: Request): Promise<Response> {
-    const cid = req.path + ":" + Date.now() + ":" + cidUniqueNumber++;
+    const cid = req.path + ':' + Date.now() + ':' + cidUniqueNumber++;
 
     return new Promise<Response>((resolve, reject) => {
         // we are interested in results from our partner
-        const unregister = iface.register("zig.XMLHttpRequest.result", message => {
+        const unregister = iface.register('zig.XMLHttpRequest.result', (message: FetchResultMessage) => {
             const result: WithCID<Result> = message.result;
             if (result.cid !== cid) {
                 return;
