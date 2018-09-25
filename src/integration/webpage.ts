@@ -93,8 +93,8 @@ export abstract class Connector {
      * a pay in dialog for the customer here. The default implementation will
      * just return 'true' without doing any extra checking.
      */
-    public async ensureCustomerBalance(amount: MoneyAmount): Promise<boolean> {
-        return Promise.resolve(true);
+    public async ensureCustomerBalance(amount: MoneyAmount): Promise<true> {
+        return Promise.resolve<true>(true);
     }
 
     /**
@@ -188,13 +188,14 @@ export class Game {
 
         this.logger = Logger.get(`zig.Game.${this.config.canonicalGameName}`);
 
-        this.uiState = {
+        // publish initial ui state to hide any ui there is.
+        this.updateUIState({
             ticketPrice: this.config.ticketPrice,
             ticketPriceIsVariable: false,
             enabled: false,
             allowFreeGame: false,
             buttonType: 'none',
-        };
+        });
 
         this.setupMessageHandlers();
     }
@@ -243,47 +244,27 @@ export class Game {
         this.logger.info('Game was loaded.');
         this.connector.onGameLoaded();
 
-        const uiStateUpdate: Partial<UIState> = {
-            enabled: true,
-            unplayedTicketInfo: undefined,
-            allowFreeGame: true,
-        };
-
-        if (customerState.loggedIn) {
-            if (this.inGamePurchase) {
-                uiStateUpdate.buttonType = 'play';
-
-            } else if (customerState.unplayedTicketInfos && customerState.unplayedTicketInfos.length) {
-                uiStateUpdate.allowFreeGame = false;
-                uiStateUpdate.unplayedTicketInfo = customerState.unplayedTicketInfos[0];
-                uiStateUpdate.buttonType = 'unplayed';
-
-            } else if (customerState.hasVoucher) {
-                uiStateUpdate.allowFreeGame = false;
-                uiStateUpdate.buttonType = 'voucher';
-
-            } else if (moneyLessThan(customerState.balance, this.config.ticketPrice)) {
-                uiStateUpdate.buttonType = 'buy';
-            } else {
-                uiStateUpdate.buttonType = 'payin';
-            }
-
-        } else {
-            uiStateUpdate.buttonType = 'login';
-        }
-
-        this.updateUIState(uiStateUpdate);
+        this.resetUIState(customerState);
     }
 
     public async playGame(): Promise<GameResult> {
+        // disable the button to prevent double click issues-
+        this.updateUIState({enabled: false});
+
         return this.flow(async (): Promise<GameResult> => {
             if (this.inGamePurchase) {
+                // hide ui
+                this.updateUIState({buttonType: 'none'});
+
                 // jump directly into the game.
                 this.gameWindow.interface.prepareGame(false);
                 return this.handleInGameBuyGameFlow();
             }
 
             await this.verifyPreConditions();
+
+            // hide ui
+            this.updateUIState({buttonType: 'none'});
 
             this.logger.info('Tell the game to buy a ticket');
             this.gameWindow.interface.playGame();
@@ -293,7 +274,13 @@ export class Game {
     }
 
     public async playDemoGame(): Promise<GameResult> {
+        // disable the button to prevent double click issues-
+        this.updateUIState({enabled: false});
+
         return this.flow(async (): Promise<GameResult> => {
+            // hide ui
+            this.updateUIState({buttonType: 'none'});
+
             if (this.inGamePurchase) {
                 // jump directly into the game.
                 this.gameWindow.interface.prepareGame(true);
@@ -308,6 +295,9 @@ export class Game {
     }
 
     private async requestStartGame() {
+        // hide ui, shouldn't be there anyways.
+        this.updateUIState({buttonType: 'none'});
+
         return this.flow(async (): Promise<GameResult> => {
             try {
                 return await this.playGame();
@@ -342,6 +332,8 @@ export class Game {
             }
 
             return 'failure';
+        } finally {
+            this.resetUIState();
         }
     }
 
@@ -407,17 +399,18 @@ export class Game {
             throw CANCELED;
         }
 
-        this.logger.info('Check if the customer has enough money');
-        if (moneyLessThan(customerState.balance, this.currentTicketPrice)) {
-            const okay = await this.connector.ensureCustomerBalance(this.config.ticketPrice);
-            if (!okay) {
+        const isFreeGame = customerState.unplayedTicketInfos != null || customerState.hasVoucher;
+        if (!isFreeGame) {
+            this.logger.info('Check if the customer has enough money');
+            if (moneyLessThan(customerState.balance, this.currentTicketPrice)) {
+                await this.connector.ensureCustomerBalance(this.config.ticketPrice);
                 throw CANCELED;
             }
-        }
 
-        this.logger.info('Verify that the customer really wants to buy this game');
-        if (!await this.connector.verifyTicketPurchase()) {
-            throw CANCELED;
+            this.logger.info('Verify that the customer really wants to buy this game');
+            if (!await this.connector.verifyTicketPurchase()) {
+                throw CANCELED;
+            }
         }
     }
 
@@ -459,12 +452,53 @@ export class Game {
 
     private updateUIState(override: Partial<UIState>): void {
         // update local ui state
-        const state = TsDeepCopy(this.uiState);
+        const state = TsDeepCopy(this.uiState || {});
         Object.assign(state, override);
         this.uiState = state;
 
-        // and publish it
-        this.connector.updateUIState(TsDeepCopy(state), this);
+        try {
+            // and publish it
+            this.connector.updateUIState(TsDeepCopy(state), this);
+        } catch (err) {
+            this.logger.warn('Ignoring error when updating iu state:', err);
+        }
+    }
+
+    private async resetUIState(customerState?: CustomerState) {
+        if (customerState == null) {
+            customerState = await this.connector.fetchCustomerState();
+        }
+
+        const uiStateUpdate: Partial<UIState> = {
+            enabled: true,
+            unplayedTicketInfo: undefined,
+            allowFreeGame: true,
+        };
+
+        if (customerState.loggedIn) {
+            if (this.inGamePurchase) {
+                uiStateUpdate.buttonType = 'play';
+
+            } else if (customerState.unplayedTicketInfos && customerState.unplayedTicketInfos.length) {
+                uiStateUpdate.allowFreeGame = false;
+                uiStateUpdate.unplayedTicketInfo = customerState.unplayedTicketInfos[0];
+                uiStateUpdate.buttonType = 'unplayed';
+
+            } else if (customerState.hasVoucher) {
+                uiStateUpdate.allowFreeGame = false;
+                uiStateUpdate.buttonType = 'voucher';
+
+            } else if (moneyLessThan(customerState.balance, this.config.ticketPrice)) {
+                uiStateUpdate.buttonType = 'payin';
+            } else {
+                uiStateUpdate.buttonType = 'buy';
+            }
+
+        } else {
+            uiStateUpdate.buttonType = 'login';
+        }
+
+        this.updateUIState(uiStateUpdate);
     }
 
     private ticketPriceChanged(event: TicketPriceChangedMessage) {

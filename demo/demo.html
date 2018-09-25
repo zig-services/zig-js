@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <style>
+        #game {
+            max-width: 30em;
+            border: 2px solid red;
+        }
+
+        #events {
+            background: #eee;
+            font-family: monospace;
+            font-size: 0.8em;
+        }
+
+        #events > div {
+            padding: 0.5em;
+            border-bottom: 2px solid #ddd;
+        }
+
+        .overlay {
+            padding: 0.5em;
+            border: 1px solid #888;
+            background: #aaa;
+        }
+
+        .overlay--hidden {
+            opacity: 0.5;
+        }
+
+        .overlay [data-buttonType] {
+            display: none;
+        }
+    </style>
+</head>
+
+<body>
+
+<div>
+    <a href="?game=dickehose">dickehose</a>
+    <a href="?game=sofortlotto">sofortlotto</a>
+    <a href="?game=cardcash">25 card cash</a>
+</div>
+
+<div id="game"></div>
+
+<div id="sendCommands" class="overlay overlay--hidden">
+    <div>
+        <button data-button-type="login">login</button>
+        <button data-button-type="payin">pay in</button>
+        <button data-button-type="buy">buy ticket</button>
+        <button data-button-type="play">play</button>
+        <button data-button-type="unplayed">play unplayed</button>
+        <button data-button-type="voucher">voucher</button>
+    </div>
+
+    <div>
+        <span>Price per ticket:</span>
+        <span data-price></span>
+    </div>
+</div>
+
+<div id="events"></div>
+
+<script src="../dist/libint.js"></script>
+<script src="demo-data.js"></script>
+<script src="demo-main.js"></script>
+</body>
+
+</html>

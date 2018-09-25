@@ -56,3 +56,24 @@ const GameDataObjects = {
     },
   }
 };
+
+function responseTicket(data) {
+  return {
+    id: -1,
+    externalId: "demogame:00000",
+    ticketNumber: null,
+    scenario: btoa(JSON.stringify(data.scenario)),
+    betFactor: data.betFactor || 1,
+    winningClass: {
+      number: 0,
+      numberOfTickets: -1,
+      winningsType: "NoWinnings",
+      winnings: {
+        amount: "0.00",
+        amountInMajor: 0,
+        amountInMinor: 0,
+        currency: "EUR",
+      },
+    }
+  }
+}
