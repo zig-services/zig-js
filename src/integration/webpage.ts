@@ -5,12 +5,15 @@ import {
     GameStartedMessage,
     MessageClient,
     ParentMessageInterface,
+    TicketPriceChangedMessage,
     toErrorValue,
+    Unregister,
 } from '../_common/message-client';
 import {Logger} from '../_common/logging';
 import {GameSettings} from '../_common/common';
 import {appendGameConfigToURL, GameConfig} from '../_common/config';
 import {executeRequest, registerRequestListener, Request, Result} from '../_common/request';
+import TsDeepCopy from 'ts-deepcopy';
 
 
 export interface UnplayedTicketInfo {
@@ -23,7 +26,10 @@ export interface UnplayedTicketInfo {
     fromBasket?: boolean;
 }
 
-export interface CustomerState {
+export interface AuthorizedCustomerState {
+    // Customer is logged in.
+    loggedIn: true;
+
     // Current balance of the customer. This one must be specified.
     balance: MoneyAmount;
 
@@ -32,6 +38,11 @@ export interface CustomerState {
 
     // Specify a list of unplayed ticket infos of the customer.
     unplayedTicketInfos?: UnplayedTicketInfo[];
+}
+
+export type CustomerState = AuthorizedCustomerState | {
+    // Customer is not logged in.
+    loggedIn: false;
 }
 
 export interface UIState {
@@ -121,30 +132,79 @@ export abstract class Connector {
      */
     public onGameSettled() {
     }
+
+    /**
+     * Update the ui state.
+     */
+    public updateUIState(state: UIState, game: Game) {
+    }
 }
 
+type GameResult = 'success' | 'failure' | 'canceled';
+
 interface Config {
-    price: MoneyAmount;
+    canonicalGameName: string;
+    ticketPrice: MoneyAmount;
 }
+
+function moneyScale(amount: MoneyAmount, factor: number): MoneyAmount {
+    if (Math.round(factor) !== factor) {
+        throw new Error('Can only scale money by an integer value');
+    }
+
+    const minor = factor * amount.amountInMinor;
+    return {
+        currency: amount.currency,
+        amountInMinor: minor,
+        amountInMajor: 0.01 * minor,
+    };
+}
+
+type MultiPick<K extends keyof T, T> = { [P in K]: T[P] }
 
 export class Game {
     private readonly logger: Logger;
     private readonly config: Config;
 
-    constructor(private gameWindow: GameWindow,
-                private connector: Connector) {
+    private uiState: UIState;
 
-        this.logger = Logger.get(`zig.Game.demo`);
+    private inGamePurchase: boolean = false;
+
+    // scaling options
+    private quantity: number = 1;
+    private betFactor: number = 1;
+
+    constructor(private readonly gameWindow: GameWindow,
+                private readonly connector: Connector) {
 
         this.config = {
-            price: {
+            canonicalGameName: 'demo',
+            ticketPrice: {
                 amountInMinor: 150,
                 amountInMajor: 1.5,
                 currency: 'EUR',
             },
         };
 
+        this.logger = Logger.get(`zig.Game.${this.config.canonicalGameName}`);
+
+        this.uiState = {
+            ticketPrice: this.config.ticketPrice,
+            ticketPriceIsVariable: false,
+            enabled: false,
+            allowFreeGame: false,
+            buttonType: 'none',
+        };
+
         this.setupMessageHandlers();
+    }
+
+    /**
+     * Current ticket price.
+     * This is the amount that the game would cost right now.
+     */
+    get currentTicketPrice(): MoneyAmount {
+        return moneyScale(this.config.ticketPrice, this.quantity * this.betFactor);
     }
 
     /**
@@ -154,64 +214,126 @@ export class Game {
         return this.gameWindow.messageClient;
     }
 
-    public async initialize(): Promise<void> {
+    /**
+     * Initializes the game and wait for it to load.
+     */
+    public async initialize(gameInput?: any): Promise<void> {
         const customerState$: Promise<CustomerState> = this.connector.fetchCustomerState();
+
+        if (gameInput !== undefined) {
+            this.logger.info('Got game input, wait for game to request it.');
+            await this.waitForGameEvent('requestGameInput');
+
+            this.logger.info('Sending game input to game frame now.');
+            this.gameWindow.interface.gameInput(gameInput);
+        }
 
         // wait for the game-frame to load
         this.logger.info('Wait for game to load...');
-        await this.waitForGameEvent('gameLoaded');
+        const gameLoadedEvent = await this.waitForGameEvent('gameLoaded');
+
+        if (gameLoadedEvent.inGamePurchase) {
+            this.logger.info('The game has the \'inGamePurchase\' flag set.');
+            this.inGamePurchase = true;
+        }
 
         const customerState = await customerState$;
         // check if money is okay.
 
         this.logger.info('Game was loaded.');
         this.connector.onGameLoaded();
+
+        const uiStateUpdate: Partial<UIState> = {
+            enabled: true,
+            unplayedTicketInfo: undefined,
+            allowFreeGame: true,
+        };
+
+        if (customerState.loggedIn) {
+            if (this.inGamePurchase) {
+                uiStateUpdate.buttonType = 'play';
+
+            } else if (customerState.unplayedTicketInfos && customerState.unplayedTicketInfos.length) {
+                uiStateUpdate.allowFreeGame = false;
+                uiStateUpdate.unplayedTicketInfo = customerState.unplayedTicketInfos[0];
+                uiStateUpdate.buttonType = 'unplayed';
+
+            } else if (customerState.hasVoucher) {
+                uiStateUpdate.allowFreeGame = false;
+                uiStateUpdate.buttonType = 'voucher';
+
+            } else if (moneyLessThan(customerState.balance, this.config.ticketPrice)) {
+                uiStateUpdate.buttonType = 'buy';
+            } else {
+                uiStateUpdate.buttonType = 'payin';
+            }
+
+        } else {
+            uiStateUpdate.buttonType = 'login';
+        }
+
+        this.updateUIState(uiStateUpdate);
     }
 
-    public async playGame(): Promise<void | null> {
-        return this.err<void>(async (): Promise<void> => {
-            const customerState = await this.connector.fetchCustomerState();
-
-            this.logger.info('Check if the customer has enough money');
-            if (customerState.balance.amountInMinor <= this.config.price.amountInMinor) {
-                const okay = await this.connector.ensureCustomerBalance(this.config.price);
-                if (!okay) {
-                    throw CANCELED;
-                }
+    public async playGame(): Promise<GameResult> {
+        return this.flow(async (): Promise<GameResult> => {
+            if (this.inGamePurchase) {
+                // jump directly into the game.
+                this.gameWindow.interface.prepareGame(false);
+                return this.handleInGameBuyGameFlow();
             }
 
-            this.logger.info('Verify that the customer really wants to buy this game');
-            if (!await this.connector.verifyTicketPurchase()) {
-                throw CANCELED;
-            }
+            await this.verifyPreConditions();
 
             this.logger.info('Tell the game to buy a ticket');
             this.gameWindow.interface.playGame();
 
-            this.logger.info('Wait for game to start...');
-            const gameStartedEvent = await this.waitForGameEvent('gameStarted');
-            this.connector.onGameStarted(gameStartedEvent);
-
-            this.logger.info('Wait for game to settle...');
-            await this.waitForGameEvent('ticketSettled');
-            this.connector.onGameSettled();
-
-            this.logger.info('Wait for game to finish...');
-            await this.waitForGameEvent('gameFinished');
-            this.connector.onGameSettled();
-
-            return void 0;
+            return this.handleNormalGameFlow();
         });
     }
 
-    private async err<T>(fn: () => Promise<T>): Promise<T | null> {
+    public async playDemoGame(): Promise<GameResult> {
+        return this.flow(async (): Promise<GameResult> => {
+            if (this.inGamePurchase) {
+                // jump directly into the game.
+                this.gameWindow.interface.prepareGame(true);
+                return this.handleInGameBuyGameFlow();
+            }
+
+            this.logger.info('Tell the game to fetch a demo ticket');
+            this.gameWindow.interface.playDemoGame();
+
+            return this.handleNormalGameFlow();
+        });
+    }
+
+    private async requestStartGame() {
+        return this.flow(async (): Promise<GameResult> => {
+            try {
+                return await this.playGame();
+
+            } catch (err) {
+                // in case of errors, we need to tell the game that starting
+                // the game failed.
+                this.gameWindow.interface.cancelRequestStartGame();
+
+                // continue with the error message
+                throw err;
+            }
+        });
+    }
+
+    /**
+     * Executes the given flow and catches all error values.
+     */
+    private async flow(fn: () => Promise<GameResult>): Promise<GameResult> {
         try {
             return await fn();
 
         } catch (err) {
             if (err === CANCELED) {
                 this.logger.info('Current process was canceled.');
-                return null;
+                return 'canceled';
             }
 
             const errorValue: IError | null = toErrorValue(err);
@@ -219,18 +341,137 @@ export class Game {
                 await this.connector.showErrorDialog(errorValue);
             }
 
-            return null;
+            return 'failure';
         }
     }
 
+    /**
+     * Waits for the given game event type.
+     * If an error occurs, it will be thrown as an exception.
+     */
     private async waitForGameEvent<K extends Command>(type: K): Promise<CommandMessageTypes[K]> {
-        return await this.gameWindow.interface.waitFor(type);
+        const result = await this.waitForGameEvents(type);
+        return result[type]!;
     }
 
-    private setupMessageHandlers() {
+    /**
+     * Waits for one of the given game events to occur.
+     * If an error occurs, it will be thrown as an exception.
+     */
+    private async waitForGameEvents<K extends keyof CommandMessageTypes>(...types: K[]): Promise<Partial<Pick<CommandMessageTypes, K>>> {
+        return new Promise<Partial<Pick<CommandMessageTypes, K>>>((resolve, reject) => {
+            const unregister: Unregister[] = [];
+
+            // register event handlers
+            types.forEach(k => {
+                unregister.push(this.gameWindow.interface.register(k, (event: CommandMessageTypes[K]) => {
+                    unregisterAll();
+
+                    const result: Partial<Pick<CommandMessageTypes, K>> = {};
+                    result[k] = event;
+                    resolve(result);
+                }));
+            });
+
+            // register a handler for errors
+            unregister.push(this.gameWindow.interface.register('error', (error: IError) => {
+                unregisterAll();
+                reject(error);
+            }));
+
+            function unregisterAll() {
+                unregister.forEach(fn => fn());
+            }
+        });
+    }
+
+    private setupMessageHandlers(): void {
         registerRequestListener(this.gameWindow.interface, (req: Request): Promise<Result> => {
             return this.connector.executeHttpRequest(req);
         });
+
+        this.gameWindow.interface.registerGeneric({
+            requestStartGame: () => this.requestStartGame(),
+            ticketPriceChanged: event => this.ticketPriceChanged(event),
+        });
+    }
+
+    /**
+     * Validate that the customer
+     */
+    private async verifyPreConditions(): Promise<void> {
+        const customerState = await this.connector.fetchCustomerState();
+
+        this.logger.info('Check if the customer is logged in');
+        if (!customerState.loggedIn) {
+            throw CANCELED;
+        }
+
+        this.logger.info('Check if the customer has enough money');
+        if (moneyLessThan(customerState.balance, this.currentTicketPrice)) {
+            const okay = await this.connector.ensureCustomerBalance(this.config.ticketPrice);
+            if (!okay) {
+                throw CANCELED;
+            }
+        }
+
+        this.logger.info('Verify that the customer really wants to buy this game');
+        if (!await this.connector.verifyTicketPurchase()) {
+            throw CANCELED;
+        }
+    }
+
+    private async handleNormalGameFlow(): Promise<GameResult> {
+        this.logger.info('Wait for game to start...');
+        const gameStartedEvent = await this.waitForGameEvent('gameStarted');
+        this.connector.onGameStarted(gameStartedEvent);
+
+        this.logger.info('Wait for game to settle...');
+        await this.waitForGameEvent('ticketSettled');
+        this.connector.onGameSettled();
+
+        this.logger.info('Wait for game to finish...');
+        await this.waitForGameEvent('gameFinished');
+        this.connector.onGameSettled();
+
+        return 'success';
+    }
+
+    private async handleInGameBuyGameFlow(): Promise<GameResult> {
+        this.logger.info('Wait for player to buy a game');
+
+        while (true) {
+            const event = await this.waitForGameEvents('buy', 'gameFinished', 'ticketSettled');
+            if (event.gameFinished) {
+                return 'success';
+            }
+
+            if (event.buy) {
+                this.quantity = 1;
+                this.betFactor = event.buy.betFactor || 1;
+                await this.verifyPreConditions();
+
+                this.logger.info('Tell the game to buy a ticket');
+                this.gameWindow.interface.playGame();
+            }
+        }
+    }
+
+    private updateUIState(override: Partial<UIState>): void {
+        // update local ui state
+        const state = TsDeepCopy(this.uiState);
+        Object.assign(state, override);
+        this.uiState = state;
+
+        // and publish it
+        this.connector.updateUIState(TsDeepCopy(state), this);
+    }
+
+    private ticketPriceChanged(event: TicketPriceChangedMessage) {
+        if (event.rowCount) {
+            this.quantity = event.rowCount;
+            this.updateUIState({ticketPrice: this.currentTicketPrice});
+        }
     }
 }
 
@@ -370,4 +611,8 @@ async function waitUntilChildGetsRemoved(parent: HTMLDivElement, child: HTMLIFra
 
 async function runAsync<T>(param: () => Promise<T>): Promise<T> {
     return param();
+}
+
+function moneyLessThan(lhs: MoneyAmount, rhs: MoneyAmount): boolean {
+    return lhs.amountInMinor < rhs.amountInMinor;
 }

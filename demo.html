@@ -22,6 +22,12 @@
 
 <body>
 
+<div>
+    <a href="?game=dickehose">dickehose</a>
+    <a href="?game=sofortlotto">sofortlotto</a>
+    <a href="?game=cardcash">25 card cash</a>
+</div>
+
 <div id="game"></div>
 
 <div id="sendCommands"></div>
@@ -29,39 +35,22 @@
 <div id="events"></div>
 
 <script src="dist/libint.js"></script>
+<script src="demo-data.js"></script>
 
 <script>
-    // function sendEvent(message) {
-    //     const target = document.querySelector("iframe").contentWindow;
-    //     target.postMessage(message, "*");
-    // }
-    //
+    const bootTime = Date.now();
 
-    // dummy scenario the game can read
-    const scenario = {
-        fields: [{
-            number: 1,
-            winningClass: 1,
-            winningsAmountInMinorUnit: 75
-        }, {number: 2, winningClass: 2, winningsAmountInMinorUnit: 100}, {
-            number: 3,
-            winningClass: 3,
-            winningsAmountInMinorUnit: 250
-        }, {number: 4, winningClass: 2, winningsAmountInMinorUnit: 100}, {
-            number: 5,
-            winningClass: 2,
-            winningsAmountInMinorUnit: 100
-        }, {number: 6, winningClass: 5, winningsAmountInMinorUnit: 1000}]
-    };
+    const gameName = (/game=([a-z]+)/.exec(location.search) || ["dummy", "dickehose"])[1];
+    const gameData = GameDataObjects[gameName] || {};
 
-    let logEventCount = 0;
+    function logEvent(prefix, event) {
+        const time = ((Date.now() - bootTime) * 0.001).toFixed(3) + "s";
 
-    function logEvent(event) {
-        const div = document.createElement("div");
-        div.innerText = ++logEventCount + ": " + JSON.stringify(event);
+        const div = document.createElement("pre");
+        div.innerText = `${time}, ${prefix}:\n` + JSON.stringify(event, undefined, "  ");
 
         const container = document.querySelector("#events");
-        container.appendChild(div);
+        container.insertBefore(div, container.firstChild);
     }
 
     function fakeRequestHandler(req) {
@@ -81,7 +70,8 @@
                     id: parseInt(100000 * Math.random()),
                     externalId: "demogame:" + parseInt(100000 * Math.random()),
                     ticketNumber: parseInt(100000 * Math.random()),
-                    scenario: btoa(JSON.stringify(scenario)),
+                    scenario: btoa(JSON.stringify(gameData.scenario)),
+                    betFactor: gameData.betFactor || 1,
                     winningClass: {
                         number: 0,
                         numberOfTickets: -1,
@@ -104,8 +94,8 @@
                     id: -1,
                     externalId: "demogame:00000",
                     ticketNumber: null,
-                    scenario: btoa(JSON.stringify(scenario)),
-
+                    scenario: btoa(JSON.stringify(gameData.scenario)),
+                    betFactor: gameData.betFactor || 1,
                     winningClass: {
                         number: 2,
                         numberOfTickets: -1,
@@ -127,6 +117,8 @@
     class Connector extends ZIG.Connector {
         async fetchCustomerState() {
             return Promise.resolve({
+                loggedIn: true,
+
                 balance: {
                     amountInMinor: 5000,
                     amountInMajor: 50.00,
@@ -137,6 +129,10 @@
 
         executeHttpRequest(req) {
             return fakeRequestHandler(req);
+        }
+
+        updateUIState(state) {
+            logEvent("UIState", state);
         }
     }
 
@@ -168,15 +164,15 @@
         const container = document.querySelector("#game");
         const game = ZIG.installGame({
             container: container,
-            url: "https://mylotto24.frontend.zig.services/dickehose/1.0.5/tipp24_com/game/outer.html",
+            url: `https://mylotto24.frontend.zig.services/${gameName}/latest/tipp24_com/game/outer.html`,
             gameConfig: gameConfig,
             connector: new Connector(),
         });
 
         // log all events.
-        game.rawMessageClient.register(logEvent);
+        game.rawMessageClient.register(event => logEvent("Event", event));
 
-        await game.initialize();
+        await game.initialize(gameData.gameInput || undefined);
         createGameActions(game);
     };
 

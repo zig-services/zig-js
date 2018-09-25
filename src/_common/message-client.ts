@@ -387,26 +387,6 @@ export class MessageDispatcher {
         return () => this.unregister(type, handler);
     }
 
-    public async waitFor<K extends Command>(type: K): Promise<CommandMessageTypes[K]> {
-        return new Promise<CommandMessageTypes[K]>(((resolve, reject) => {
-            let unregisterError: Unregister, unregisterEvent: Unregister;
-
-            unregisterError = this.register('error', (error: ErrorMessage) => {
-                unregisterError();
-                unregisterEvent();
-
-                reject(error);
-            });
-
-            unregisterEvent = this.register(type, (event: CommandMessageTypes[K]) => {
-                unregisterError();
-                unregisterEvent();
-
-                resolve(event);
-            });
-        }));
-    }
-
     /**
      * Registers an object containing multiple handler methods.
      */
@@ -414,22 +394,22 @@ export class MessageDispatcher {
         const unregister: Unregister[] = [];
 
         // pick all handlers from the object.
-        allCommandKeys.forEach(key => {
+        for (const key of allCommandKeys) {
             const h = handler[key];
             if (h != null) {
                 unregister.push(this.register(key, h));
             }
-        });
+        }
 
         // verify that all types are really message types.
-        for (let key in Object.keys(handler)) {
+        for (const key of Object.keys(handler)) {
             if ((allCommandKeys as string[]).indexOf(key) === -1) {
                 log.error(`No such message type: ${key}`);
             }
         }
 
         // return a function that unregisters all message handlers
-        return () => unregister.forEach(Function.call);
+        return () => unregister.forEach(fn => fn());
     }
 
     private unregister<K extends Command>(type: K, handler: (msg: CommandMessageTypes[K]) => void): void {
@@ -494,12 +474,25 @@ export class MessageDispatcher {
 export class MessageFactory extends MessageDispatcher {
     private readonly stopObserver: Unregister;
 
+    // if it is a legacy game, we might use a different protocol variant.
+    protected legacyGame: boolean = false;
+
     constructor(protected readonly messageClient: MessageClient, game: string) {
         super(game);
         this.stopObserver = this.observe(messageClient);
+
+        this.register('updateGameSettings', (event: UpdateGameSettingsMessage) => {
+            if (event.gameSettings.legacyGame) {
+                this.legacyGame = true;
+            }
+        });
     }
 
     protected send<T extends BaseMessage>(msg: T): void {
+        this.messageClient.send(msg);
+    }
+
+    protected commandSend<T extends Command>(msg: T): void {
         this.messageClient.send(msg);
     }
 
@@ -518,7 +511,11 @@ export class MessageFactory extends MessageDispatcher {
 
 export class ParentMessageInterface extends MessageFactory {
     public playGame() {
-        this.send<PlayGameMessage>({command: 'playGame', game: this.game});
+        if (this.legacyGame) {
+            this.commandSend('playGame');
+        } else {
+            this.send<PlayGameMessage>({command: 'playGame', game: this.game});
+        }
     }
 
     public playDemoGame() {
