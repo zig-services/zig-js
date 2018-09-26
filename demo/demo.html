@@ -2,10 +2,41 @@
 <html>
 
 <head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1"/>
+
     <style>
-        #game {
-            max-width: 30em;
+        * {
+            box-sizing: border-box;
+        }
+
+        [v-cloak] {
+            display: none;
+        }
+
+        html, body, input {
+            font-size: 12px;
+            font-family: sans-serif;
+        }
+
+        .game-wrapper {
+            position: relative;
+            max-width: 40em;
+            margin: 2em auto;
+            overflow: hidden;
+        }
+
+        .game-container {
             border: 2px solid red;
+            max-height: 30em;
+            overflow: auto;
+            background: #fee;
+            text-align: center;
+        }
+
+        .game-defer {
+            margin: 2em;
+            padding: 0.66em;
         }
 
         #events {
@@ -22,46 +53,110 @@
         .overlay {
             padding: 0.5em;
             border: 1px solid #888;
-            background: #aaa;
+            background: rgba(200, 200, 200, 0.8);
+            width: 100%;
         }
 
-        .overlay--hidden {
-            opacity: 0.5;
+        .error-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
         }
 
-        .overlay [data-buttonType] {
-            display: none;
+        .error-dialog {
+            position: absolute;
+            top: 4em;
+            left: 2em;
+            padding: 1em;
+            max-width: 20em;
+            background: white;
+            box-shadow: rgba(0, 0, 0, 0.5) 0 0 1em;
+        }
+
+        label {
+            display: block;
+        }
+
+        .demo-state {
+            background: #eef;
+            padding: 1em;
         }
     </style>
 </head>
 
 <body>
 
-<div>
-    <a href="?game=dickehose">dickehose</a>
-    <a href="?game=sofortlotto">sofortlotto</a>
-    <a href="?game=cardcash">25 card cash</a>
-</div>
-
-<div id="game"></div>
-
-<div id="sendCommands" class="overlay overlay--hidden">
+<div id="app" v-cloak>
     <div>
-        <button data-button-type="login">login</button>
-        <button data-button-type="payin">pay in</button>
-        <button data-button-type="buy">buy ticket</button>
-        <button data-button-type="play">play</button>
-        <button data-button-type="unplayed">play unplayed</button>
-        <button data-button-type="voucher">voucher</button>
+        <button @click="updateUrl({defer: true})">defer: true</button>
+        <button @click="updateUrl({defer: false})">defer: false</button>
+        &nbsp;
+        <button @click="updateUrl({game: 'dickehose'})">dickehose</button>
+        <button @click="updateUrl({game: 'sofortlotto'})">sofortlotto</button>
+        <button @click="updateUrl({game: 'cardcash'})">25 card cash</button>
     </div>
 
-    <div>
-        <span>Price per ticket:</span>
-        <span data-price></span>
+    <div class="game-wrapper">
+        <div ref="gameContainer" class="game-container">
+            <button class="game-defer" @click="loadGame()" v-if="game == null">Load game</button>
+        </div>
+
+        <div class="overlay" v-if="uiState.buttonType !== 'none'">
+            <div>
+                <input @click="login()" :disabled="!uiState.enabled" v-if="uiState.buttonType === 'login'"
+                       type="button" value="login">
+
+                <input @click="payin()" :disabled="!uiState.enabled" v-if="uiState.buttonType === 'payin'"
+                       type="button" value="pay in">
+
+                <input @click="play()" :disabled="!uiState.enabled" v-if="uiState.buttonType === 'buy'"
+                       type="button" value="buy ticket">
+
+                <input @click="play()" :disabled="!uiState.enabled" v-if="uiState.buttonType === 'play'"
+                       type="button" value="play">
+
+                <input @click="play()" :disabled="!uiState.enabled" v-if="uiState.buttonType === 'unplayed'"
+                       type="button" value="play unplayed">
+
+                <input @click="play()" :disabled="!uiState.enabled" v-if="uiState.buttonType === 'voucher'"
+                       type="button" value="voucher">
+            </div>
+
+            <div>
+                <span>Price per ticket:</span>
+                <span data-price></span>
+            </div>
+        </div>
+
+        <div @click="closeErrorDialog" v-if='error != null' class="error-overlay"></div>
+
+        <div v-if='error != null' class="error-dialog">
+            <h3>{{ error.title }}</h3>
+            <p>{{ error.details }} <em>({{ error.type }})</em></p>
+            <button @click='closeErrorDialog();'>Okay</button>
+        </div>
     </div>
+
+    <div class="demo-state">
+        <select v-model="demoState.httpStatus">
+            <option value="okay">Okay</option>
+            <option value="connection">No connection</option>
+        </select>
+
+        <label>Balance: <input type="number" v-model.number="demoState.balance"></label>
+        <label>Ticket Price: <input type="number" v-model.number="demoState.ticketPrice"></label>
+        <label>Discount: <input type="number" v-model.number="demoState.discount"></label>
+    </div>
+
 </div>
 
 <div id="events"></div>
+
+<!-- development version, includes helpful console warnings -->
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
 
 <script src="../dist/libint.js"></script>
 <script src="demo-data.js"></script>

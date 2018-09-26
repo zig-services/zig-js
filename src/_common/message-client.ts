@@ -7,15 +7,15 @@ export type CommandType = string
 
 export type Message = string | { command: string }
 
-const log = Logger.get('zig.message');
+const log = Logger.get('zig.Messages');
 
 export class MessageClient {
     private readonly eventHandler: (ev: MessageEvent) => void;
-    private handlers: ((msg: Message) => void)[] = [];
+    private readonly handlers: ((msg: Message) => void)[] = [];
 
     constructor(private readonly partnerWindow: Window) {
         // register event handler for receiving messages
-        this.eventHandler = ev => this.handleEvent(ev);
+        this.eventHandler = this.handleEvent.bind(this);
         window.addEventListener('message', this.eventHandler);
     }
 
@@ -64,15 +64,20 @@ export class MessageClient {
     /**
      * Registers an event handler.
      */
-    public register(handler: (message: Message) => void) {
+    public register(handler: (message: Message) => void): Unregister {
         this.handlers.push(handler);
+        return () => this.unregister(handler);
     }
 
     /**
      * Removes an event handler from this message client instance.
      */
-    public unregister(handler: (message: Message) => void) {
-        this.handlers = this.handlers.filter(it => handler !== it);
+    private unregister(handler: (message: Message) => void) {
+        const idx = this.handlers.indexOf(handler);
+        if (idx >= 0) {
+            // remove the handler from the list.
+            this.handlers.splice(idx, 1);
+        }
     }
 
     private handleEvent(ev: MessageEvent): void {
@@ -370,16 +375,6 @@ export class MessageDispatcher {
     constructor(public readonly game: string) {
     }
 
-    /**
-     * Observes the given message client. You need to call the returned
-     * unregister function to disconnect the MessageDispatcher from the MessageClient
-     */
-    public observe(messageClient: MessageClient): Unregister {
-        const handler = (message: Message) => this.dispatch(message);
-        messageClient.register(handler);
-        return () => messageClient.unregister(handler);
-    }
-
     public register<K extends Command>(type: K, handler: CommandMessageHandlers[K]): Unregister {
         log.debug(`Register handler for messages of type ${type}`);
 
@@ -433,7 +428,47 @@ export class MessageDispatcher {
             try {
                 handler(message);
             } catch (err) {
-                log.warn(`Error calling handler for ${message.command}:`, err);
+                log.warn(`Ignoring error in handler for ${message.command}:`, err);
+            }
+        });
+    }
+
+    /**
+     * Waits for the given game event type.
+     * If an error occurs, it will be thrown as an exception.
+     */
+    public async waitForGameEvent<K extends Command>(type: K): Promise<CommandMessageTypes[K]> {
+        const result = await this.waitForGameEvents(type);
+        return result[type]!;
+    }
+
+    /**
+     * Waits for one of the given game events to occur.
+     * If an error occurs, it will be thrown as an exception.
+     */
+    public async waitForGameEvents<K extends keyof CommandMessageTypes>(...types: K[]): Promise<Partial<Pick<CommandMessageTypes, K>>> {
+        return new Promise<Partial<Pick<CommandMessageTypes, K>>>((resolve, reject) => {
+            const unregister: Unregister[] = [];
+
+            // register event handlers
+            types.forEach(k => {
+                unregister.push(this.register(k, (event: CommandMessageTypes[K]) => {
+                    unregisterAll();
+
+                    const result: Partial<Pick<CommandMessageTypes, K>> = {};
+                    result[k] = event;
+                    resolve(result);
+                }));
+            });
+
+            // register a handler for errors
+            unregister.push(this.register('error', (error: IError) => {
+                unregisterAll();
+                reject(error);
+            }));
+
+            function unregisterAll() {
+                unregister.forEach(fn => fn());
             }
         });
     }
@@ -446,7 +481,7 @@ export class MessageDispatcher {
     private convertToMessage(message: Message): BaseMessage {
         const converted = typeof message === 'string'
             ? {command: message as string, game: this.game}
-            : Object.assign({}, {game: this.game}, message);
+            : {game: this.game, ...message};
 
 
         /**
@@ -479,7 +514,10 @@ export class MessageFactory extends MessageDispatcher {
 
     constructor(protected readonly messageClient: MessageClient, game: string) {
         super(game);
-        this.stopObserver = this.observe(messageClient);
+
+        // start observing the message client for messages
+        const handler = (message: Message) => this.dispatch(message);
+        this.stopObserver = messageClient.register(handler);
 
         this.register('updateGameSettings', (event: UpdateGameSettingsMessage) => {
             if (event.gameSettings.legacyGame) {

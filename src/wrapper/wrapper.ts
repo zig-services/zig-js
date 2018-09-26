@@ -27,7 +27,7 @@ if (GameSettings == null) {
  */
 async function initializeGame(): Promise<HTMLIFrameElement> {
     const config = parseGameConfigFromURL();
-    let url = appendGameConfigToURL('inner.html', config);
+    let url = appendGameConfigToURL(GameSettings.index || 'inner.html', config);
 
     // legacy games need extra patching. We'll need to inform the inner.html about that.
     if (GameSettings.legacyGame === true) {

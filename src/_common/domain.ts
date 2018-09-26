@@ -35,7 +35,7 @@ export interface GameInfo {
     supportsResume: boolean;
 }
 
-export interface MoneyAmount {
+export interface IMoneyAmount {
     amountInMinor: number;
     amountInMajor: number;
     currency: Currency;
@@ -49,7 +49,7 @@ export interface Ticket {
 
     customerNumber: CustomerNumber;
 
-    price: MoneyAmount;
+    price: IMoneyAmount;
     winningClass: WinningClass;
 
     // A bundle key. If this ticket is part of a bundle, the bundleKey will be
@@ -65,7 +65,7 @@ export interface Ticket {
 }
 
 export interface WinningClass {
-    winnings: MoneyAmount;
+    winnings: IMoneyAmount;
 }
 
 export interface Bundle {
@@ -80,9 +80,87 @@ export interface BundleTicket {
     playable: boolean;
     playableFrom: Timestamp;
     played: boolean;
-    prize: MoneyAmount;
+    prize: IMoneyAmount;
     status: BundleTicketStatus;
 }
 
 // Different statuses of a bundle ticket.
 export type BundleTicketStatus = 'NOT_ACTIVATED' | 'ACTIVATABLE' | 'PLAYABLE' | 'PLAYED';
+
+export class MoneyAmount implements IMoneyAmount {
+    public readonly amountInMajor: number;
+
+    private constructor(
+        public readonly amountInMinor: number,
+        public readonly currency: Currency) {
+
+        this.amountInMajor = amountInMinor / 100;
+    }
+
+    public scaled(factor: number): MoneyAmount {
+        if (factor !== (factor | 0)) {
+            throw new Error('factor must be integer');
+        }
+
+        return new MoneyAmount(this.amountInMinor * factor, this.currency);
+    }
+
+    public plus(rhs: IMoneyAmount): MoneyAmount {
+        this.verifyCurrency(rhs);
+        return new MoneyAmount(this.amountInMinor + rhs.amountInMinor, this.currency);
+    }
+
+    public minus(rhs: IMoneyAmount): MoneyAmount {
+        this.verifyCurrency(rhs);
+        return this.plus(MoneyAmount.of(rhs).scaled(-1));
+    }
+
+    public lessThan(rhs: IMoneyAmount): boolean {
+        this.verifyCurrency(rhs);
+        return this.amountInMinor < rhs.amountInMinor;
+    }
+
+    public lessThanOrEqual(rhs: IMoneyAmount): boolean {
+        this.verifyCurrency(rhs);
+        return this.amountInMinor <= rhs.amountInMinor;
+    }
+
+    public greaterThan(rhs: IMoneyAmount): boolean {
+        this.verifyCurrency(rhs);
+        return this.amountInMinor > rhs.amountInMinor;
+    }
+
+    public greaterThanOrEqual(rhs: IMoneyAmount): boolean {
+        this.verifyCurrency(rhs);
+        return this.amountInMinor >= rhs.amountInMinor;
+    }
+
+    public equalTo(rhs: IMoneyAmount): boolean {
+        this.verifyCurrency(rhs);
+        return this.amountInMinor === rhs.amountInMinor;
+    }
+
+    private verifyCurrency(other: IMoneyAmount) {
+        if (this.currency !== other.currency) {
+            throw new Error(`expected currency ${this.currency}, got ${other.currency}`);
+        }
+    }
+
+    static of(amount: IMoneyAmount): MoneyAmount;
+    static of(amountInMinor: number, currency: Currency): MoneyAmount;
+    static of(amount: IMoneyAmount | number, currency?: Currency): MoneyAmount {
+        if (typeof amount === 'number') {
+            if (currency == null) {
+                throw new Error('currency not set');
+            }
+
+            return new MoneyAmount(amount, currency);
+        }
+
+        return new MoneyAmount(amount.amountInMinor, amount.currency);
+    }
+
+    static zero(currency: Currency): MoneyAmount {
+        return new MoneyAmount(0, currency);
+    }
+}

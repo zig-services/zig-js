@@ -19,112 +19,164 @@ function logEvent(prefix, event, textColor) {
   container.insertBefore(div, container.firstChild);
 }
 
-async function fakeRequestHandler(req) {
-  // simulate a slow api call
-  await sleep(500);
-  logEvent("XMLHttpRequest", req, "#808");
-
-  let statusCode = 404;
-  let body = null;
-
-  if (req.path.indexOf("/settle") !== -1) {
-    statusCode = 204;
-  }
-
-  if (req.path.indexOf("/tickets") !== -1) {
-    statusCode = 200;
-    body = responseTicket(gameData)
-  }
-
-  if (req.path.indexOf("/demoticket") !== -1) {
-    statusCode = 200;
-    body = responseTicket(gameData)
-  }
-
-  logEvent("XMLHttpRequest.response " + statusCode, body, "#a0a");
-
-  return {response: {statusCode, body: JSON.stringify(body)}};
-}
-
 class Connector extends ZIG.Connector {
-  Connector() {
-    this.balanceInMinor = 5000;
+  constructor(vm) {
+    super();
+
+    this.vm = vm;
   }
 
   async fetchCustomerState() {
     await sleep(250);
 
+    const demoState = this.vm.demoState;
+
+    if (demoState.httpStatus === "connection") {
+      throw new Error("http connection failed.");
+    }
+
     return {
       loggedIn: true,
-
-      balance: {
-        amountInMinor: this.balanceInMinor,
-        amountInMajor: this.balanceInMinor / 100,
-        currency: 'EUR',
+      balance: ZIG.MoneyAmount.of(demoState.balance, demoState.currency),
+      personalizedTicketPrice: {
+        normalTicketPrice: ZIG.MoneyAmount.of(demoState.ticketPrice, demoState.currency),
+        discountedTicketPrice: ZIG.MoneyAmount.of(demoState.ticketPrice - demoState.discount, demoState.currency),
       }
     };
   }
 
-  executeHttpRequest(req) {
-    return fakeRequestHandler(req);
+  showErrorDialog(error) {
+    logEvent("ERROR", error, "#f00");
+    return this.vm.showErrorDialog(error);
+  }
+
+  async executeHttpRequest(req) {
+    const demoState = this.vm.demoState;
+
+    // simulate a slow api call
+    await sleep(500);
+
+    logEvent("XMLHttpRequest", req, "#808");
+
+    let statusCode = 404;
+    let body = null;
+
+    if (new RegExp("^/product/iwg/[^/]+/tickets/[^/]+/settle").test(req.path)) {
+      statusCode = 204;
+    }
+
+    if (new RegExp("^/product/iwg/[^/]+/tickets($|\\?)").test(req.path)) {
+      demoState.balance -= (demoState.ticketPrice - demoState.discount);
+      statusCode = 200;
+      body = responseTicket(gameData)
+    }
+
+    if (req.path.indexOf("/demoticket") !== -1) {
+      statusCode = 200;
+      body = responseTicket(gameData)
+    }
+
+    logEvent("XMLHttpRequest.response " + statusCode, body, "#a0a");
+
+    return {response: {statusCode, body: JSON.stringify(body)}};
   }
 
   updateUIState(state, game) {
     logEvent("UIState", state, "#008");
-
-    // clear ui state
-    const overlay = document.querySelector(`#sendCommands`);
-    overlay.className = "overlay";
-
-    // hide everything if no button is selected
-    if (state.buttonType === 'none') {
-      overlay.classList.add("overlay--hidden")
-    }
-
-    // hide all buttons and apply enabled/disabled state
-    overlay.querySelectorAll("[data-button-type]").forEach(button => {
-      button.style.display = "none";
-      button.disabled = !state.enabled;
-    });
-
-    // and show the active one
-    const button = overlay.querySelector(`[data-button-type=${state.buttonType}]`);
-    if (button) {
-      button.style.display = "block";
-    }
-
-    overlay.querySelectorAll("[data-button-type=buy], [data-button-type=play], [data-button-type=unplayed], [data-button-type=voucher]").forEach(button => {
-      button.onclick = () => game.playGame();
-    });
-
-    overlay.querySelector("[data-price]").innerText = state.ticketPrice.amountInMinor;
+    this.vm.uiState = state;
   }
 }
 
 window.onload = async () => {
-  const gameConfig = {
-    canonicalGameName: "demo",
-    overlay: false,
-  };
+  const url = new URL(location.href);
 
-  const container = document.querySelector("#game");
-  const game = ZIG.installGame({
-    container: container,
-    url: `https://mylotto24.frontend.zig.services/${gameName}/latest/tipp24_com/game/outer.html`,
-    gameConfig: gameConfig,
-    connector: new Connector(),
+  const vm = new Vue({
+    el: "#app",
+
+    data: {
+      uiState: {},
+      error: null,
+      resolveErrorPromise: null,
+
+      demoState: {
+        balance: 5000,
+        ticketPrice: 150,
+        discount: 0,
+        currency: "EUR",
+        httpStatus: "okay",
+      },
+
+      game: null,
+    },
+
+    mounted() {
+      // automatically load the game if requested.
+      if (url.searchParams.get("defer") !== "true") {
+        this.loadGame();
+      }
+    },
+
+    methods: {
+      async loadGame() {
+        const gameConfig = {
+          canonicalGameName: gameName,
+          overlay: false,
+        };
+
+        const container = this.$refs.gameContainer;
+
+        const game = ZIG.installGame({
+          container: container,
+          url: `https://mylotto24.frontend.zig.services/${gameName}/latest/tipp24_com/game/outer.html`,
+          gameConfig: gameConfig,
+          connector: new Connector(this),
+        });
+
+        // log all events.
+        game.rawMessageClient.register(event => {
+          logEvent("Incoming event", event, "#800");
+        });
+
+        // patch the raw client to intercept messages we send
+        const _send = game.rawMessageClient.send;
+        game.rawMessageClient.send = msg => {
+          logEvent("Outgoing event", msg, "#080");
+          _send.call(game.rawMessageClient, msg);
+        };
+
+        this.game = game;
+
+        await game.initialize(gameData.gameInput || undefined);
+      },
+
+      play() {
+        // play the game
+        this.game.playGame();
+      },
+
+      async showErrorDialog(error) {
+        this.error = error;
+
+        // calling errorClose() with resolve the promise here.
+        await new Promise(resolve => this.resolveErrorPromise = resolve);
+      },
+
+      closeErrorDialog() {
+        this.error = null;
+        this.resolveErrorPromise();
+      },
+
+      updateUrl(update) {
+        const copy = new URL(url.toString());
+
+        for (let key in update) {
+          if (update.hasOwnProperty(key)) {
+            copy.searchParams.set(key, update[key]);
+          }
+        }
+
+        location.href = copy;
+      },
+    },
   });
-
-  // log all events.
-  game.rawMessageClient.register(event => logEvent("Incoming event", event, "#800"));
-
-  // patch the raw client to intercept messages we send
-  const _send = game.rawMessageClient.send;
-  game.rawMessageClient.send = msg => {
-    logEvent("Outgoing event", msg, "#080");
-    _send.call(game.rawMessageClient, msg);
-  };
-
-
-  await game.initialize(gameData.gameInput || undefined);
 };
