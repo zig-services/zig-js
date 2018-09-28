@@ -149,6 +149,11 @@ export class MoneyAmount implements IMoneyAmount {
     static of(amount: IMoneyAmount): MoneyAmount;
     static of(amountInMinor: number, currency: Currency): MoneyAmount;
     static of(amount: IMoneyAmount | number, currency?: Currency): MoneyAmount {
+        // check for dynamic javascript fuck up.
+        if (amount as any == null) {
+            throw new Error('Can not build MoneyAmount from \'null\'');
+        }
+
         if (typeof amount === 'number') {
             if (currency == null) {
                 throw new Error('currency not set');

@@ -19,10 +19,9 @@ function logEvent(prefix, event, textColor) {
   container.insertBefore(div, container.firstChild);
 }
 
-class Connector extends ZIG.Connector {
+class DemoConnector extends ZIG.Connector {
   constructor(vm) {
     super();
-
     this.vm = vm;
   }
 
@@ -66,9 +65,15 @@ class Connector extends ZIG.Connector {
     }
 
     if (new RegExp("^/product/iwg/[^/]+/tickets($|\\?)").test(req.path)) {
-      demoState.balance -= (demoState.ticketPrice - demoState.discount);
-      statusCode = 200;
-      body = responseTicket(gameData)
+      if (demoState.httpStatus === "realitycheck") {
+        statusCode = 500;
+        body = RealityCheckResponse;
+
+      } else {
+        demoState.balance -= (demoState.ticketPrice - demoState.discount);
+        statusCode = 200;
+        body = responseTicket(gameData)
+      }
     }
 
     if (req.path.indexOf("/demoticket") !== -1) {
@@ -90,6 +95,15 @@ class Connector extends ZIG.Connector {
 window.onload = async () => {
   const url = new URL(location.href);
 
+  Vue.filter('money', (moneyAmount) => {
+    if (moneyAmount == null) {
+      return "undefined";
+    }
+
+    const amount = moneyAmount.amountInMajor.toFixed(2);
+    return amount + "\u2009" + moneyAmount.currency;
+  });
+
   const vm = new Vue({
     el: "#app",
 
@@ -104,19 +118,39 @@ window.onload = async () => {
         discount: 0,
         currency: "EUR",
         httpStatus: "okay",
+
+        preserveState: true,
+        autoLoadGame: true,
       },
 
       game: null,
     },
 
     mounted() {
+      // restore demo state if available
+      const previousState = localStorage.getItem("demoState");
+      if (previousState) {
+        this.demoState = JSON.parse(previousState);
+      }
+
+      // observe demo state for changes
+      this.$watch("demoState", () => this.demoStateChanged(), {deep: true});
+
       // automatically load the game if requested.
-      if (url.searchParams.get("defer") !== "true") {
+      if (this.demoState.autoLoadGame) {
         this.loadGame();
       }
     },
 
     methods: {
+      demoStateChanged() {
+        if (this.demoState.preserveState) {
+          localStorage.setItem("demoState", JSON.stringify(this.demoState));
+        } else {
+          localStorage.removeItem("demoState");
+        }
+      },
+
       async loadGame() {
         const gameConfig = {
           canonicalGameName: gameName,
@@ -129,7 +163,7 @@ window.onload = async () => {
           container: container,
           url: `https://mylotto24.frontend.zig.services/${gameName}/latest/tipp24_com/game/outer.html`,
           gameConfig: gameConfig,
-          connector: new Connector(this),
+          connector: new DemoConnector(this),
         });
 
         // log all events.
@@ -147,6 +181,11 @@ window.onload = async () => {
         this.game = game;
 
         await game.initialize(gameData.gameInput || undefined);
+      },
+
+      payin() {
+        this.demoState.balance += 1000;
+        this.game.resetUIState();
       },
 
       play() {
@@ -180,3 +219,4 @@ window.onload = async () => {
     },
   });
 };
+

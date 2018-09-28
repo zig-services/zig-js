@@ -3,7 +3,7 @@ import {MessageClient, ParentMessageInterface, toErrorValue} from '../_common/me
 import {Logger} from '../_common/logging';
 import {registerRequestListener} from '../_common/request';
 import TsDeepCopy from 'ts-deepcopy';
-import {CANCELED, Connector, CustomerState, UIState} from './connector';
+import {BaseCustomerState, CANCELED, Connector, CustomerState, UIState} from './connector';
 import {GameWindow} from './game-window';
 import {GameSettings} from '../_common/common';
 
@@ -14,26 +14,28 @@ interface Config {
     ticketPrice: IMoneyAmount;
 }
 
-class GameContext {
-    // Multiplicand for price and winnings
-    betFactor: number = 1;
+interface Scaling {
+    betFactor: number;
+    quantity: number;
+}
 
-    // this describes the multitude of tickets to buy. This is primarily used
-    // for the number of rows in games like sofortlotto
-    quantity: number = 1;
+class Order {
+    constructor(
+        readonly baseNormalTicketPrice: MoneyAmount,
+        readonly baseDiscountedTicketPrice: MoneyAmount,
+        readonly betFactor: number = 1, readonly quantity: number = 1) {
+    }
 
-    // discount for the next ticket
-    discount?: IMoneyAmount;
+    get hasDiscount(): boolean {
+        return !this.baseNormalTicketPrice.equalTo(this.baseDiscountedTicketPrice);
+    }
 
     /**
-     * Returns the given money amount scaled by the current bet factor and quantity.
+     * The ticket price that the customer needs to pay. This one has
+     * is the discounted ticket price as a base and scales it by bet factor and quantity.
      */
-    scaledMoneyAmount(amount: IMoneyAmount): IMoneyAmount {
-        if (this.discount) {
-            amount = MoneyAmount.of(amount).minus(this.discount);
-        }
-
-        return MoneyAmount.of(amount).scaled(this.betFactor * this.quantity);
+    get customerTicketPrice(): MoneyAmount {
+        return this.baseDiscountedTicketPrice.scaled(this.betFactor * this.quantity);
     }
 }
 
@@ -41,14 +43,11 @@ export class Game {
     private readonly logger: Logger;
     private readonly config: Config;
 
-    // the ui state. Should not be modified directly.
+    // the ui state. Should not be modified directly, always use "updateUIState"
     private uiState: UIState;
 
     // the game wants to use inGamePurchase
     private gameSettings: GameSettings;
-
-    // the latest game state context.
-    private latestGameContext: GameContext = new GameContext();
 
     constructor(private readonly gameWindow: GameWindow,
                 private readonly connector: Connector) {
@@ -60,14 +59,17 @@ export class Game {
 
         this.logger = Logger.get(`zig.Game.${this.config.canonicalGameName}`);
 
-        // publish initial ui state to hide any ui there is.
-        this.updateUIState({
-            ticketPrice: this.config.ticketPrice,
+        // publish initial ui state to hide any ui there is. We define it as a variable here to
+        // ensure that we don't miss any initial values.
+        const baseUIState: UIState = {
             ticketPriceIsVariable: false,
             enabled: false,
             allowFreeGame: false,
             buttonType: 'none',
-        });
+            normalTicketPrice: MoneyAmount.of(this.config.ticketPrice).scaled(0),
+        };
+
+        this.updateUIState(baseUIState);
 
         this.setupMessageHandlers();
     }
@@ -76,14 +78,6 @@ export class Game {
         registerRequestListener(this.gameWindow.interface, req => {
             return this.connector.executeHttpRequest(req);
         });
-    }
-
-    /**
-     * Current ticket price.
-     * This is the amount that the game would cost right now.
-     */
-    get currentTicketPrice(): IMoneyAmount {
-        return this.latestGameContext.scaledMoneyAmount(this.config.ticketPrice);
     }
 
     /**
@@ -154,7 +148,7 @@ export class Game {
                 return this.handleInGameBuyGameFlow();
             }
 
-            await this.verifyPreConditions(new GameContext());
+            await this.verifyPreConditions({quantity: 1, betFactor: 1});
 
             // hide ui
             this.updateUIState({buttonType: 'none'});
@@ -185,26 +179,6 @@ export class Game {
         });
     }
 
-    private async requestStartGame() {
-        // hide ui, shouldn't be there anyways.
-        this.updateUIState({buttonType: 'none'});
-
-        return this.flow(async (): Promise<GameResult> => {
-            try {
-                return await this.playGame();
-
-            } catch (err) {
-                // in case of errors, we need to tell the game that starting
-                // the game failed.
-                this.gameWindow.interface.cancelRequestStartGame();
-
-                // continue with the error message
-                throw err;
-            }
-        });
-    }
-
-
     async handleNormalGameFlow(): Promise<GameResult> {
         this.logger.info('Wait for game to start...');
         const gameStartedEvent = await this.interface.waitForGameEvent('gameStarted');
@@ -230,8 +204,7 @@ export class Game {
 
         this.logger.info('Wait for player to buy a game');
 
-        const gameContext = new GameContext();
-
+        let gameScaling: Scaling = {quantity: 1, betFactor: 1};
         while (true) {
             const event = await this.interface.waitForGameEvents('buy', 'requestStartGame', 'ticketPriceChanged', 'gameFinished');
             if (event.gameFinished) {
@@ -239,19 +212,18 @@ export class Game {
             }
 
             if (event.ticketPriceChanged) {
-                gameContext.quantity = event.ticketPriceChanged.rowCount;
-                gameContext.betFactor = 1;
+                gameScaling.quantity = event.ticketPriceChanged.rowCount;
+                gameScaling.betFactor = 1;
                 continue;
             }
 
             if (event.buy) {
-                gameContext.quantity = 1;
-                gameContext.betFactor = event.buy.betFactor || 1;
+                gameScaling.quantity = 1;
+                gameScaling.betFactor = event.buy.betFactor || 1;
             }
 
             // Looks like the customer wants to start a game.
-
-            await this.verifyPreConditions(gameContext);
+            await this.verifyPreConditions(gameScaling);
 
             this.logger.info('Tell the game to buy a ticket');
             this.interface.playGame();
@@ -270,7 +242,7 @@ export class Game {
     /**
      * Validate that the customer
      */
-    private async verifyPreConditions(context: GameContext): Promise<void> {
+    private async verifyPreConditions(scaling: Scaling): Promise<Order> {
         const customerState = await this.connector.fetchCustomerState();
 
         this.logger.info('Check if the customer is logged in');
@@ -278,10 +250,13 @@ export class Game {
             throw CANCELED;
         }
 
+        const order = makeOrder(scaling, customerState, this.config.ticketPrice);
+
         const isFreeGame = customerState.unplayedTicketInfos != null || customerState.hasVoucher;
         if (!isFreeGame) {
             this.logger.info('Check if the customer has enough money');
-            if (MoneyAmount.of(customerState.balance).lessThan(this.currentTicketPrice)) {
+
+            if (MoneyAmount.of(customerState.balance).lessThan(order.customerTicketPrice)) {
                 await this.connector.ensureCustomerBalance(this.config.ticketPrice);
                 throw CANCELED;
             }
@@ -291,6 +266,8 @@ export class Game {
                 throw CANCELED;
             }
         }
+
+        return order;
     }
 
     /**
@@ -321,30 +298,39 @@ export class Game {
 
     private updateUIState(override: Partial<UIState>): void {
         // update local ui state
-        const state = TsDeepCopy(this.uiState || {});
-        Object.assign(state, override);
-        this.uiState = state;
+        const uiState: UIState = TsDeepCopy(this.uiState || {});
+        Object.assign(uiState, override);
+
+        this.uiState = uiState;
 
         try {
             // and publish it
-            this.connector.updateUIState(TsDeepCopy(state), this);
+            this.connector.updateUIState(TsDeepCopy(uiState), this);
         } catch (err) {
             this.logger.warn('Ignoring error when updating iu state:', err);
         }
     }
 
-    private async resetUIState(customerState?: CustomerState) {
+    async resetUIState(customerState?: CustomerState): Promise<unknown> {
         if (customerState == null) {
             customerState = await this.connector.fetchCustomerState();
         }
 
-        const uiStateUpdate: Partial<UIState> = {
+        const uiStateUpdate: UIState = {
             enabled: true,
             unplayedTicketInfo: undefined,
             allowFreeGame: true,
-            ticketPrice: this.config.ticketPrice,
-            ticketPriceDiscount: MoneyAmount.of(this.config.ticketPrice).scaled(0),
+            buttonType: 'play',
+            normalTicketPrice: MoneyAmount.of(this.config.ticketPrice),
+            ticketPriceIsVariable: false,
         };
+
+        // take the price from the customer state if possible.
+        const personalized = customerState.personalizedTicketPrice;
+        if (personalized) {
+            uiStateUpdate.normalTicketPrice = personalized.normalTicketPrice;
+            uiStateUpdate.discountedTicketPrice = personalized.discountedTicketPrice;
+        }
 
         if (this.gameSettings.chromeless) {
             uiStateUpdate.buttonType = 'none';
@@ -352,6 +338,7 @@ export class Game {
         } else if (customerState.loggedIn) {
             if (this.gameSettings.purchaseInGame) {
                 uiStateUpdate.buttonType = 'play';
+                uiStateUpdate.ticketPriceIsVariable = true;
 
             } else if (customerState.unplayedTicketInfos && customerState.unplayedTicketInfos.length) {
                 uiStateUpdate.allowFreeGame = false;
@@ -367,26 +354,11 @@ export class Game {
             } else {
                 uiStateUpdate.buttonType = 'buy';
             }
-
         } else {
             uiStateUpdate.buttonType = 'login';
         }
 
         this.updateUIState(uiStateUpdate);
-    }
-
-    private static newGameContext(customerState: CustomerState) {
-        if (customerState.personalizedTicketPrice) {
-            const normalTicketPrice = MoneyAmount.of(customerState.personalizedTicketPrice.normalTicketPrice);
-            const discountedTicketPrice = MoneyAmount.of(customerState.personalizedTicketPrice.discountedTicketPrice);
-
-            const ctx = new GameContext();
-            ctx.discount = normalTicketPrice.minus(discountedTicketPrice);
-            return ctx;
-        }
-
-        // just a normal and game context.
-        return new GameContext();
     }
 
     private async startChromelessGameLoop() {
@@ -395,4 +367,17 @@ export class Game {
             await this.flow(() => this.handleInGameBuyGameFlow());
         }
     }
+}
+
+function makeOrder(scaling: Scaling, customerState: BaseCustomerState, baseTicketPrice: IMoneyAmount): Order {
+    let baseNormalTicketPrice = MoneyAmount.of(baseTicketPrice);
+    let baseDiscountedTicketPrice = MoneyAmount.of(baseTicketPrice);
+
+    if (customerState.personalizedTicketPrice) {
+        const p = customerState.personalizedTicketPrice;
+        baseNormalTicketPrice = MoneyAmount.of(p.normalTicketPrice);
+        baseDiscountedTicketPrice = MoneyAmount.of(p.discountedTicketPrice);
+    }
+
+    return new Order(baseNormalTicketPrice, baseDiscountedTicketPrice, scaling.betFactor, scaling.quantity);
 }

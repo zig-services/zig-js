@@ -39,6 +39,8 @@ const GameDataObjects = {
       ]
     },
 
+    winningsInMinor: 200,
+
     scenario: {
       winningNumbers: [1, 2, 42, 43, 44, 45, 46],
       rows: [
@@ -58,6 +60,7 @@ const GameDataObjects = {
 };
 
 function responseTicket(data) {
+  const winningsInMinor = data.winningsInMinor || 0;
   return {
     id: -1,
     externalId: "demogame:00000",
@@ -65,15 +68,28 @@ function responseTicket(data) {
     scenario: btoa(JSON.stringify(data.scenario)),
     betFactor: data.betFactor || 1,
     winningClass: {
-      number: 0,
+      number: data.winningsInMinor || 0,
       numberOfTickets: -1,
-      winningsType: "NoWinnings",
+      winningsType: data.winningsInMinor ? "CashPrize" : "NoWinnings",
       winnings: {
-        amount: "0.00",
-        amountInMajor: 0,
-        amountInMinor: 0,
+        amount: (winningsInMinor / 100).toFixed(2),
+        amountInMajor: winningsInMinor / 100,
+        amountInMinor: winningsInMinor,
         currency: "EUR",
       },
     }
   }
 }
+
+const RealityCheckResponse = {
+  "details": "Reason: urn:x-tipp24:realitycheck-limit-reached",
+  "realityCheckReachedInfo": {
+    "fallbackContent": "<p>In Island sind die Telefonb\u00FCcher nach Vornamen sortiert, da es keine echten Nachnamen gibt.</p>",
+    "restTimeBlockedInMillis": 8000,
+    "totalTimeBlockedInMillis": 10000
+  },
+  "reloadGame": false,
+  "status": 500,
+  "title": "RealityCheckReachedException",
+  "type": "urn:x-tipp24:realitycheck-limit-reached"
+};

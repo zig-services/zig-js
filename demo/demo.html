@@ -84,6 +84,20 @@
             background: #eef;
             padding: 1em;
         }
+
+        .demo-state input, .demo-state select {
+            padding: 0.33em;
+            border: 1px solid #ddd;
+        }
+
+        .demo-state label {
+            line-height: 2.33em;
+        }
+
+        .demo-state label span {
+            display: inline-block;
+            min-width: 10em;
+        }
     </style>
 </head>
 
@@ -91,9 +105,6 @@
 
 <div id="app" v-cloak>
     <div>
-        <button @click="updateUrl({defer: true})">defer: true</button>
-        <button @click="updateUrl({defer: false})">defer: false</button>
-        &nbsp;
         <button @click="updateUrl({game: 'dickehose'})">dickehose</button>
         <button @click="updateUrl({game: 'sofortlotto'})">sofortlotto</button>
         <button @click="updateUrl({game: 'cardcash'})">25 card cash</button>
@@ -126,8 +137,11 @@
             </div>
 
             <div>
-                <span>Price per ticket:</span>
-                <span data-price></span>
+                <div v-if="uiState.normalTicketPrice">
+                    Normal ticket price: {{ uiState.normalTicketPrice|money }}</div>
+
+                <div v-if="uiState.discountedTicketPrice">
+                    Actual ticket price: {{ uiState.discountedTicketPrice|money }}</div>
             </div>
         </div>
 
@@ -141,15 +155,30 @@
     </div>
 
     <div class="demo-state">
-        <select v-model="demoState.httpStatus">
-            <option value="okay">Okay</option>
-            <option value="connection">No connection</option>
-        </select>
+        <label>
+            <input type="checkbox" v-model="demoState.preserveState">
+            Preserve state
+        </label>
 
-        <label>Balance: <input type="number" v-model.number="demoState.balance"></label>
-        <label>Ticket Price: <input type="number" v-model.number="demoState.ticketPrice"></label>
-        <label>Discount: <input type="number" v-model.number="demoState.discount"></label>
+        <label>
+            <input type="checkbox" v-model="demoState.autoLoadGame">
+            Automatically load game
+        </label>
+
+        <label>
+            <span>Response</span>
+            <select v-model="demoState.httpStatus">
+                <option value="okay">Okay</option>
+                <option value="connection">No connection</option>
+                <option value="realitycheck">Reality check reached</option>
+            </select>
+        </label>
+
+        <label><span>Balance:</span> <input type="number" v-model.number="demoState.balance"></label>
+        <label><span>Ticket Price:</span> <input type="number" v-model.number="demoState.ticketPrice"></label>
+        <label><span>Discount:</span> <input type="number" v-model.number="demoState.discount"></label>
     </div>
+</div>
 
 </div>
 

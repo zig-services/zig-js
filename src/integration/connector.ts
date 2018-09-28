@@ -1,4 +1,4 @@
-import {IError, IMoneyAmount} from '../_common/domain';
+import {IError, IMoneyAmount, MoneyAmount} from '../_common/domain';
 import {Logger} from '../_common/logging';
 import {executeRequest, Request, Result} from '../_common/request';
 import {GameStartedMessage} from '../_common/message-client';
@@ -15,12 +15,12 @@ export interface UnplayedTicketInfo {
 }
 
 export interface TicketPricing {
-    normalTicketPrice: IMoneyAmount;
+    normalTicketPrice: MoneyAmount;
 
     // Provide a discounted ticket price that is less than the normal ticket price if
     // the customer gets the ticket cheaper. Set it to the same value as
     // the normal ticket price if the customer gets no discount on the ticket.
-    discountedTicketPrice: IMoneyAmount;
+    discountedTicketPrice: MoneyAmount;
 }
 
 export interface BaseCustomerState {
@@ -42,7 +42,7 @@ export interface AuthorizedCustomerState extends BaseCustomerState {
     loggedIn: true;
 
     // Current balance of the customer. This one must be specified.
-    balance: IMoneyAmount;
+    balance: MoneyAmount;
 
     // Set this to true if the customer wont need to pay for the next game.
     hasVoucher?: boolean;
@@ -53,7 +53,6 @@ export interface AuthorizedCustomerState extends BaseCustomerState {
 
 export type CustomerState = AuthorizedCustomerState | AnonymousCustomerState
 
-
 export interface UIState {
     // State of the main button that the ui shows.
     // Use this as main indicator to decide how to render the UI.
@@ -62,11 +61,11 @@ export interface UIState {
     // If this is true you might offer a demo ticket to the customer.
     allowFreeGame: boolean;
 
-    // The current ticket price.
-    ticketPrice: IMoneyAmount;
+    // The normal ticket price
+    normalTicketPrice: MoneyAmount;
 
-    // A discount on the ticket price. Might be a zero value.
-    ticketPriceDiscount: IMoneyAmount;
+    // The discounted ticket price. Only set if there is a discount on the ticket.
+    discountedTicketPrice?: MoneyAmount;
 
     // True if the ticket price can be adjusted by switching a bet factor in the game
     ticketPriceIsVariable: boolean;
@@ -77,7 +76,6 @@ export interface UIState {
     // This field is set if the player can continue with an existing ticket.
     unplayedTicketInfo?: UnplayedTicketInfo;
 }
-
 
 /**
  * Throw this instance to cancel the current request/response.
