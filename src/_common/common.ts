@@ -2,8 +2,6 @@ export function sleep(millis: number): Promise<{}> {
     return new Promise<{}>((resolve => window.setTimeout(resolve, millis)));
 }
 
-export type Stage = 'test' | 'live'
-
 /**
  * Game settings as sent to the zig client by the
  * integration wrapper frame (outer.html).
@@ -26,8 +24,4 @@ export interface GameSettings {
     // Set this to signal that the game will handle the purchase flow itself.
     // This might be because it will handle bet factors or quantity selection.
     purchaseInGame?: boolean;
-
-    // The stage. Set it to 'test' to enable test features. For production,
-    // set it to live. Leaving this out assumes production 'live'.
-    stage?: Stage;
 }

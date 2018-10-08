@@ -10,6 +10,10 @@ export interface GameConfig {
 
     // can be used as a redirect after purchasing a game via basket
     basketPurchaseRedirect?: string;
+
+    // Set this to true to enable a test stage mode. Defaults to false
+    // if not set.
+    isTestStage?: boolean;
 }
 
 /**
