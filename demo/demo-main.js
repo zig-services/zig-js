@@ -1,7 +1,8 @@
 const bootTime = Date.now();
 
 // pick config from URL
-const gameName = (/game=([a-z]+)/.exec(location.search) || ["", "dickehose"])[1];
+const url = new URL(location.href);
+const gameName = url.searchParams.get("game") || "dickehose";
 const gameData = GameDataObjects[gameName] || {};
 
 async function sleep(ms) {
@@ -44,7 +45,7 @@ class DemoConnector extends ZIG.Connector {
     };
   }
 
-  showErrorDialog(error) {
+  async showErrorDialog(error) {
     logEvent("ERROR", error, "#f00");
     return this.vm.showErrorDialog(error);
   }
@@ -93,8 +94,6 @@ class DemoConnector extends ZIG.Connector {
 }
 
 window.onload = async () => {
-  const url = new URL(location.href);
-
   Vue.filter('money', (moneyAmount) => {
     if (moneyAmount == null) {
       return "undefined";
@@ -104,7 +103,7 @@ window.onload = async () => {
     return amount + "\u2009" + moneyAmount.currency;
   });
 
-  const vm = new Vue({
+  new Vue({
     el: "#app",
 
     data: {

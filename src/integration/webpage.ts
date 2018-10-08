@@ -43,6 +43,8 @@ export class Game {
     private readonly logger: Logger;
     private readonly config: Config;
 
+    private readonly fullscreenService: FullscreenService;
+
     // the ui state. Should not be modified directly, always use "updateUIState"
     private uiState: UIState;
 
@@ -51,6 +53,8 @@ export class Game {
 
     constructor(private readonly gameWindow: GameWindow,
                 private readonly connector: Connector) {
+
+        this.fullscreenService = new FullscreenService(gameWindow.wrapper);
 
         this.config = {
             canonicalGameName: 'demo',
@@ -155,6 +159,8 @@ export class Game {
 
             this.logger.info('Tell the game to buy a ticket');
             this.gameWindow.interface.playGame();
+
+            this.fullscreenService.enable();
 
             return this.handleNormalGameFlow();
         });
@@ -380,4 +386,54 @@ function makeOrder(scaling: Scaling, customerState: BaseCustomerState, baseTicke
     }
 
     return new Order(baseNormalTicketPrice, baseDiscountedTicketPrice, scaling.betFactor, scaling.quantity);
+}
+
+
+var requestFullscreen = Element.prototype.requestFullscreen
+    || Element.prototype.webkitRequestFullScreen;
+
+class FullscreenService {
+    private readonly logger = Logger.get('zig.Fullscreen');
+    private isInFullscreen: boolean = false;
+
+    constructor(private node: HTMLElement) {
+    }
+
+    public async enable(): Promise<void> {
+        const parent = this.node.parentElement;
+        if (parent) {
+            parent.removeChild(this.node);
+        }
+
+        const wrapper = document.createElement("div");
+        wrapper.style.position = "fixed";
+        wrapper.style.top = "0";
+        wrapper.style.left = "0";
+        wrapper.style.width = '100vh';
+        wrapper.style.height = '100vw';
+        wrapper.style.background = "black";
+        wrapper.style.zIndex = "9999";
+        wrapper.style.transform = "rotate(90deg)";
+
+        wrapper.style.display = "flex";
+        wrapper.style.alignItems = "center";
+        wrapper.style.justifyContent = "center";
+
+        this.node.style.position = 'relative';
+        this.node.style.top = '0';
+        this.node.style.left = '0';
+        this.node.style.width = '100vw';
+        this.node.style.height = '100vh';
+
+        wrapper.appendChild(this.node);
+        document.body.appendChild(wrapper);
+
+        // if (document.fullscreenElement == null) {
+        //     requestFullscreen.call(this.node);
+        // }
+    }
+
+    public disable() {
+        document.exitFullscreen();
+    }
 }

@@ -40,8 +40,8 @@ export class GameWindow {
     readonly interface: ParentMessageInterface;
 
     constructor(readonly gameName: string,
-                private readonly wrapper: HTMLDivElement,
-                private readonly frame: HTMLIFrameElement) {
+                readonly wrapper: HTMLDivElement,
+                readonly frame: HTMLIFrameElement) {
 
         this.logger = Logger.get(`zig.GameWindow.${gameName}`);
 
