@@ -1,9 +1,11 @@
+import '../_common/polyfills';
+
 import {isLegacyGame, patchLegacyGame} from './zig-legacy';
 import {Logger} from '../_common/logging';
 import {ZigClient} from './zig-client';
 import {delegateToVersion} from '../_common/delegate';
 import {buildTime, clientVersion} from '../_common/vars';
-import {objectAssignPolyfill} from '../_common/polyfill';
+
 
 export interface ZigGlobal {
     Client: ZigClient
@@ -25,9 +27,6 @@ export const Zig: ZigGlobal = {
 };
 
 export function main() {
-    // initialize Object.assign polyfill for ie11.
-    objectAssignPolyfill();
-
     if (isLegacyGame()) {
         log.info('Enable legacy game patches');
         patchLegacyGame();

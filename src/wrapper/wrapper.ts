@@ -1,4 +1,4 @@
-import 'promise-polyfill/src/polyfill';
+import '../_common/polyfills';
 
 import {GameSettings, sleep} from '../_common/common';
 import {GameMessageInterface, MessageClient, ParentMessageInterface} from '../_common/message-client';
@@ -11,12 +11,11 @@ import {IError} from '../_common/domain';
 import {Logger} from '../_common/logging';
 
 const log = Logger.get('zig.wrapper');
-const anyWindow: any = window;
 
 /**
  * Get game config from window
  */
-const GameSettings = anyWindow.GameSettings as GameSettings;
+const GameSettings = (<any>window).GameSettings as GameSettings;
 if (GameSettings == null) {
     throw new Error('window.GameConfig must be initialized.');
 }

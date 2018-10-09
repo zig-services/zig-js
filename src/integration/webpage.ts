@@ -311,7 +311,7 @@ export class Game {
         }
     }
 
-    async resetUIState(customerState?: CustomerState): Promise<unknown> {
+    async resetUIState(customerState?: CustomerState): Promise<void> {
         if (customerState == null) {
             customerState = await this.connector.fetchCustomerState();
         }
@@ -383,9 +383,6 @@ function makeOrder(scaling: Scaling, customerState: BaseCustomerState, baseTicke
     return new Order(baseNormalTicketPrice, baseDiscountedTicketPrice, scaling.betFactor, scaling.quantity);
 }
 
-
-var requestFullscreen = Element.prototype.requestFullscreen
-    || Element.prototype.webkitRequestFullScreen;
 
 class FullscreenService {
     private readonly logger = Logger.get('zig.Fullscreen');
