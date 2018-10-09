@@ -75,6 +75,9 @@ export interface UIState {
 
     // This field is set if the player can continue with an existing ticket.
     unplayedTicketInfo?: UnplayedTicketInfo;
+
+    // True if the player is currently playing a demo game.
+    isDemoGame: boolean;
 }
 
 /**

@@ -117,6 +117,9 @@
 
         <div class="overlay" v-if="uiState.buttonType !== 'none'">
             <div>
+                <input @click="demo()" :disabled="!uiState.enabled" v-if="uiState.allowFreeGame"
+                       type="button" value="demo">
+
                 <input @click="login()" :disabled="!uiState.enabled" v-if="uiState.buttonType === 'login'"
                        type="button" value="login">
 

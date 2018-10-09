@@ -154,6 +154,7 @@ window.onload = async () => {
         const gameConfig = {
           canonicalGameName: gameName,
           overlay: false,
+          isTestStage: true,
         };
 
         const container = this.$refs.gameContainer;
@@ -190,6 +191,10 @@ window.onload = async () => {
       play() {
         // play the game
         this.game.playGame();
+      },
+
+      demo() {
+        this.game.playDemoGame();
       },
 
       async showErrorDialog(error) {

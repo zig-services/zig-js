@@ -118,56 +118,93 @@ export class MessageClient {
 }
 
 /**
- * Converts any non null object into an error.
+ * Converts any non null object into an error. This tries to make sense of the most common
+ * normal error formats we have. If you pass null, this method will also return null.
  */
-export function toErrorValue(err: any): IError | null {
-    if (err == null) {
+export function toErrorValue(inputValue: any): IError | null {
+    if (inputValue == null) {
         return null;
     }
 
-    if (err.type && err.title && err.status !== undefined && err.details !== undefined) {
-        return err;
-    }
+    let err: any = inputValue;
 
-    if (typeof err.type === 'string' && typeof err.message === 'string') {
-        return {
-            type: 'urn:x-tipp24:remote-client-error',
-            title: 'Remote error',
-            status: err.type,
-            details: err.message,
-        };
-    }
-
-    const responseText = err.responseText || err.body || err;
-
-    // noinspection SuspiciousTypeOfGuard
+    // try to parse an error response text
+    const responseText = (err.responseText || err.body || {}) as any;
     if (typeof responseText === 'string') {
-        try {
-            const parsed = JSON.parse(responseText);
-            if (parsed.error && parsed.status) {
-                return {
-                    type: 'urn:x-tipp24:remote-client-error',
-                    title: 'Remote error',
-                    details: parsed.error,
-                    status: parsed.status,
-                };
-            }
-
-            // looks like a properly formatted error
-            if (parsed.type && parsed.title && parsed.details) {
-                return <IError> parsed;
-            }
-        } catch {
-            // probably json decoding error, just continue with a default error.
-        }
+        // parse as json or use the response text directly, if parsing fails.
+        err = tryParseJSON(responseText) || responseText;
     }
 
     return {
-        type: 'urn:x-tipp24:remote-client-error',
-        title: 'Remote error',
-        status: 500,
-        details: err.toString(),
+        // if we have a valid urn type, we use that one as the resulting error type.
+        type: guessErrorType(inputValue.type || err.type),
+
+        // Find a http status code, fall back to 500 if we dont have one.
+        status: parseInt(inputValue.statusCode || inputValue.status || err.status, 10) || 500,
+
+        // Use an existing 'title' attribute if available.
+        title: convertToString(err.title, inputValue.title, 'Remote error'),
+
+        // And try to get the details from some common places.
+        details: convertToString(err.details, err.message, err.error, err, inputValue),
     };
+}
+
+/**
+ * Guesses the urn error code based on the input type value. If the input value
+ * is a string starting with "urn:", it will be used as the result, if not,
+ * a generic default value will be used.
+ */
+function guessErrorType(type: any | null): string {
+    // noinspection SuspiciousTypeOfGuard
+    if (typeof type === 'string' && type.match(/^urn:/)) {
+        return type;
+    }
+
+    return 'urn:x-tipp24:remote-client-error';
+}
+
+/**
+ * Iterates over the arguments and converts the first not-null argument to a string.
+ */
+function convertToString(...values: (any | null)[]): string {
+    for (const value of values) {
+        if (value == null) {
+            continue;
+        }
+
+        // use string directly
+        // noinspection SuspiciousTypeOfGuard
+        if (typeof value === 'string') {
+            return value;
+        }
+
+        // convert numerics to string
+        // noinspection SuspiciousTypeOfGuard
+        if (typeof value === 'number') {
+            return value.toString();
+        }
+
+        // try to convert object to a json string.
+        try {
+            return JSON.stringify(value);
+        } catch {
+        }
+    }
+
+    return 'unknown';
+}
+
+/**
+ * Try to parse the given string as json. If json parsing fails,
+ * this method will return 'null'.
+ */
+function tryParseJSON(input: string): object | null {
+    try {
+        return JSON.parse(input);
+    } catch {
+        return null;
+    }
 }
 
 export interface BaseMessage {

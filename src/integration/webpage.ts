@@ -26,10 +26,6 @@ class Order {
         readonly betFactor: number = 1, readonly quantity: number = 1) {
     }
 
-    get hasDiscount(): boolean {
-        return !this.baseNormalTicketPrice.equalTo(this.baseDiscountedTicketPrice);
-    }
-
     /**
      * The ticket price that the customer needs to pay. This one has
      * is the discounted ticket price as a base and scales it by bet factor and quantity.
@@ -71,6 +67,7 @@ export class Game {
             allowFreeGame: false,
             buttonType: 'none',
             normalTicketPrice: MoneyAmount.of(this.config.ticketPrice).scaled(0),
+            isDemoGame: false,
         };
 
         this.updateUIState(baseUIState);
@@ -144,6 +141,24 @@ export class Game {
     }
 
     public async playGame(): Promise<GameResult> {
+        return this.play(async () => {
+            await this.verifyPreConditions({quantity: 1, betFactor: 1});
+
+            this.logger.info('Tell the game to buy a ticket');
+            this.gameWindow.interface.playGame();
+        });
+    }
+
+    public async playDemoGame(): Promise<GameResult> {
+        return this.play(async () => {
+            this.logger.info('Tell the game to fetch a demo ticket');
+            this.gameWindow.interface.playDemoGame();
+
+            this.updateUIState({isDemoGame: true});
+        });
+    }
+
+    private async play(initGame: () => Promise<void>): Promise<GameResult> {
         // disable the button to prevent double click issues-
         this.updateUIState({enabled: false});
 
@@ -152,13 +167,10 @@ export class Game {
                 return this.handleInGameBuyGameFlow();
             }
 
-            await this.verifyPreConditions({quantity: 1, betFactor: 1});
+            await initGame();
 
             // hide ui
             this.updateUIState({buttonType: 'none'});
-
-            this.logger.info('Tell the game to buy a ticket');
-            this.gameWindow.interface.playGame();
 
             this.fullscreenService.enable();
 
@@ -166,26 +178,7 @@ export class Game {
         });
     }
 
-    public async playDemoGame(): Promise<GameResult> {
-        // disable the button to prevent double click issues-
-        this.updateUIState({enabled: false});
-
-        return this.flow(async (): Promise<GameResult> => {
-            if (this.gameSettings.purchaseInGame) {
-                return this.handleInGameBuyGameFlow();
-            }
-
-            // hide ui
-            this.updateUIState({buttonType: 'none'});
-
-            this.logger.info('Tell the game to fetch a demo ticket');
-            this.gameWindow.interface.playDemoGame();
-
-            return this.handleNormalGameFlow();
-        });
-    }
-
-    async handleNormalGameFlow(): Promise<GameResult> {
+    private async handleNormalGameFlow(): Promise<GameResult> {
         this.logger.info('Wait for game to start...');
         const gameStartedEvent = await this.interface.waitForGameEvent('gameStarted');
         this.connector.onGameStarted(gameStartedEvent);
@@ -329,6 +322,7 @@ export class Game {
             buttonType: 'play',
             normalTicketPrice: MoneyAmount.of(this.config.ticketPrice),
             ticketPriceIsVariable: false,
+            isDemoGame: false,
         };
 
         // take the price from the customer state if possible.
@@ -405,19 +399,19 @@ class FullscreenService {
             parent.removeChild(this.node);
         }
 
-        const wrapper = document.createElement("div");
-        wrapper.style.position = "fixed";
-        wrapper.style.top = "0";
-        wrapper.style.left = "0";
+        const wrapper = document.createElement('div');
+        wrapper.style.position = 'fixed';
+        wrapper.style.top = '0';
+        wrapper.style.left = '0';
         wrapper.style.width = '100vh';
         wrapper.style.height = '100vw';
-        wrapper.style.background = "black";
-        wrapper.style.zIndex = "9999";
-        wrapper.style.transform = "rotate(90deg)";
+        wrapper.style.background = 'black';
+        wrapper.style.zIndex = '9999';
+        wrapper.style.transform = 'rotate(90deg)';
 
-        wrapper.style.display = "flex";
-        wrapper.style.alignItems = "center";
-        wrapper.style.justifyContent = "center";
+        wrapper.style.display = 'flex';
+        wrapper.style.alignItems = 'center';
+        wrapper.style.justifyContent = 'center';
 
         this.node.style.position = 'relative';
         this.node.style.top = '0';
