@@ -155,6 +155,7 @@ window.onload = async () => {
           canonicalGameName: gameName,
           overlay: false,
           isTestStage: true,
+          remoteAccessToken: "dummy token",
         };
 
         const container = this.$refs.gameContainer;

@@ -19,6 +19,7 @@ export interface GameSettings {
     legacyGame?: boolean;
 
     // Set to true if the game should not have any overlay displayed.
+    // This also implies purchaseInGame=true.e
     chromeless?: boolean;
 
     // Set this to signal that the game will handle the purchase flow itself.

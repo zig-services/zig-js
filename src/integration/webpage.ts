@@ -104,7 +104,13 @@ export class Game {
 
             this.logger.info('Wait for game settings');
             const gameSettingsEvent = await this.interface.waitForGameEvent('updateGameSettings');
+
             this.gameSettings = gameSettingsEvent.gameSettings;
+
+            if (this.gameSettings.chromeless) {
+                this.logger.info('gameSettings.chromeless implies gameSettings.purcahseInGame');
+                this.gameSettings.purchaseInGame = true;
+            }
 
             if (gameInput !== undefined) {
                 this.logger.info('Got game input, wait for game to request it.');
@@ -118,6 +124,7 @@ export class Game {
             this.logger.info('Wait for game to load...');
             const gameLoadedEvent = await this.interface.waitForGameEvent('gameLoaded');
 
+            // verify the inGamePurchase flag on the gameLoaded event.
             if (gameLoadedEvent.inGamePurchase !== undefined) {
                 if ((this.gameSettings.purchaseInGame === true) !== gameLoadedEvent.inGamePurchase) {
                     throw new Error('purchaseInGame does not match inGamePurchase flag in gameLoaded event');
@@ -141,7 +148,7 @@ export class Game {
     }
 
     public async playGame(): Promise<GameResult> {
-        return this.play(async () => {
+        return this.play(false, async () => {
             await this.verifyPreConditions({quantity: 1, betFactor: 1});
 
             this.logger.info('Tell the game to buy a ticket');
@@ -150,21 +157,19 @@ export class Game {
     }
 
     public async playDemoGame(): Promise<GameResult> {
-        return this.play(async () => {
+        return this.play(true, async () => {
             this.logger.info('Tell the game to fetch a demo ticket');
             this.gameWindow.interface.playDemoGame();
-
-            this.updateUIState({isDemoGame: true});
         });
     }
 
-    private async play(initGame: () => Promise<void>): Promise<GameResult> {
+    private async play(demoGame: boolean, initGame: () => Promise<void>): Promise<GameResult> {
         // disable the button to prevent double click issues-
-        this.updateUIState({enabled: false});
+        this.updateUIState({enabled: false, isDemoGame: demoGame});
 
         return this.flow(async (): Promise<GameResult> => {
             if (this.gameSettings.purchaseInGame) {
-                return this.handleInGameBuyGameFlow();
+                return this.handleInGameBuyGameFlow(demoGame, initGame);
             }
 
             await initGame();
@@ -193,13 +198,13 @@ export class Game {
         return 'success';
     }
 
-    async handleInGameBuyGameFlow(): Promise<GameResult> {
+    async handleInGameBuyGameFlow(demoGame: boolean, initGame: () => Promise<void>): Promise<GameResult> {
         // hide ui
         this.updateUIState({buttonType: 'none'});
 
         // jump directly into the game.
         this.logger.info('Set the game into prepare mode');
-        this.gameWindow.interface.prepareGame(false);
+        this.gameWindow.interface.prepareGame(demoGame);
 
         this.logger.info('Wait for player to buy a game');
 
@@ -221,11 +226,7 @@ export class Game {
                 gameScaling.betFactor = event.buy.betFactor || 1;
             }
 
-            // Looks like the customer wants to start a game.
-            await this.verifyPreConditions(gameScaling);
-
-            this.logger.info('Tell the game to buy a ticket');
-            this.interface.playGame();
+            await initGame();
 
             this.logger.info('Wait for game to start...');
             const gameStartedEvent = await this.interface.waitForGameEvent('gameStarted');
@@ -364,7 +365,7 @@ export class Game {
     private async startChromelessGameLoop() {
         // noinspection InfiniteLoopJS
         while (true) {
-            await this.flow(() => this.handleInGameBuyGameFlow());
+            await this.flow(() => this.playGame());
         }
     }
 }
