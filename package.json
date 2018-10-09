@@ -21,7 +21,8 @@
     "typescript": "^3.0.3",
     "webpack": "^4.19.1",
     "webpack-cli": "^3.1.0",
-    "webpack-dts-bundle": "0.0.2"
+    "webpack-dts-bundle": "0.0.2",
+    "nodelist-foreach-polyfill": "^1.2.0"
   },
   "scripts": {
     "watch": "webpack --mode=development --watch",

@@ -5,6 +5,9 @@ import 'promise-polyfill/src/polyfill';
 //
 // and for local storage.
 import 'localstorage-browser-polyfill';
+//
+// forEach on NodeList class is missing in older IE.
+import 'nodelist-foreach-polyfill';
 
 const log = Logger.get('zig.polyfill');
 
