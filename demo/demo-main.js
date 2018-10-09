@@ -20,7 +20,10 @@ function logEvent(prefix, event, textColor) {
   container.insertBefore(div, container.firstChild);
 }
 
-class DemoConnector extends ZIG.Connector {
+// expose on window
+Object.assign(window, ZIG);
+
+class DemoConnector extends Connector {
   constructor(vm) {
     super();
     this.vm = vm;
@@ -77,7 +80,7 @@ class DemoConnector extends ZIG.Connector {
       }
     }
 
-    if (req.path.indexOf("/demoticket") !== -1) {
+    if (req.path.indexOf("/demo") !== -1) {
       statusCode = 200;
       body = responseTicket(gameData)
     }
@@ -90,6 +93,10 @@ class DemoConnector extends ZIG.Connector {
   updateUIState(state, game) {
     logEvent("UIState", state, "#008");
     this.vm.uiState = state;
+  }
+
+  get allowFullscreen() {
+    return !!this.vm.demoState.allowFullscreen;
   }
 }
 
@@ -120,9 +127,8 @@ window.onload = async () => {
 
         preserveState: true,
         autoLoadGame: true,
+        allowFullscreen: false,
       },
-
-      game: null,
     },
 
     mounted() {

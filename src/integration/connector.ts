@@ -76,8 +76,8 @@ export interface UIState {
     // This field is set if the player can continue with an existing ticket.
     unplayedTicketInfo?: UnplayedTicketInfo;
 
-    // True if the player is currently playing a demo game.
-    isDemoGame: boolean;
+    // True if the player is _currently_ playing a free demo game round.
+    isFreeGame: boolean;
 }
 
 /**
@@ -126,6 +126,13 @@ export abstract class Connector {
     public async executeHttpRequest(req: Request): Promise<Result> {
         this.logger.debug('Executing http request: ', req);
         return executeRequest(req);
+    }
+
+    /**
+     * Override to disable fullscreen mode.
+     */
+    public get allowFullscreen(): boolean {
+        return true;
     }
 
     /**

@@ -594,7 +594,11 @@ export class ParentMessageInterface extends MessageFactory {
     }
 
     public playDemoGame() {
-        this.send<PlayDemoGameMessage>({command: 'playDemoGame', game: this.game});
+        if (this.legacyGame) {
+            this.commandSend('playDemoGame');
+        } else {
+            this.send<PlayDemoGameMessage>({command: 'playDemoGame', game: this.game});
+        }
     }
 
     public gameInput(input: any) {

@@ -6,6 +6,7 @@
   "license": "MIT",
   "devDependencies": {
     "css-loader": "^1.0.0",
+    "fullscreen-polyfill": "^1.0.2",
     "localstorage-browser-polyfill": "^0.1.0",
     "release-it": "^7.6.1",
     "ts-deepcopy": "^0.1.4",

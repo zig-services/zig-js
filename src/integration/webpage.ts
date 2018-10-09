@@ -1,3 +1,5 @@
+import '../_common/polyfills';
+
 import {IError, IMoneyAmount, MoneyAmount} from '../_common/domain';
 import {MessageClient, ParentMessageInterface, toErrorValue} from '../_common/message-client';
 import {Logger} from '../_common/logging';
@@ -6,6 +8,7 @@ import TsDeepCopy from 'ts-deepcopy';
 import {BaseCustomerState, CANCELED, Connector, CustomerState, UIState} from './connector';
 import {GameWindow} from './game-window';
 import {GameSettings} from '../_common/common';
+import {FullscreenService} from './fullscreen';
 
 type GameResult = 'success' | 'failure' | 'canceled';
 
@@ -47,6 +50,9 @@ export class Game {
     // the game wants to use inGamePurchase
     private gameSettings: GameSettings;
 
+    // set to true to disable further free games.
+    private disallowFreeGames: boolean = false;
+
     constructor(private readonly gameWindow: GameWindow,
                 private readonly connector: Connector) {
 
@@ -67,7 +73,7 @@ export class Game {
             allowFreeGame: false,
             buttonType: 'none',
             normalTicketPrice: MoneyAmount.of(this.config.ticketPrice).scaled(0),
-            isDemoGame: false,
+            isFreeGame: false,
         };
 
         this.updateUIState(baseUIState);
@@ -93,6 +99,18 @@ export class Game {
      */
     private get interface(): ParentMessageInterface {
         return this.gameWindow.interface;
+    }
+
+    /**
+     * Returns true if the service should try to jump into fullscreen mode.
+     */
+    private get allowFullscreen(): boolean {
+        if (this.gameSettings.chromeless) {
+            // never allow fullscreen for chromeless games.
+            return false;
+        }
+
+        return this.connector.allowFullscreen;
     }
 
     /**
@@ -165,7 +183,7 @@ export class Game {
 
     private async play(demoGame: boolean, initGame: () => Promise<void>): Promise<GameResult> {
         // disable the button to prevent double click issues-
-        this.updateUIState({enabled: false, isDemoGame: demoGame});
+        this.updateUIState({enabled: false, isFreeGame: demoGame});
 
         return this.flow(async (): Promise<GameResult> => {
             if (this.gameSettings.purchaseInGame) {
@@ -177,7 +195,9 @@ export class Game {
             // hide ui
             this.updateUIState({buttonType: 'none'});
 
-            this.fullscreenService.enable();
+            if (this.allowFullscreen) {
+                this.fullscreenService.enable();
+            }
 
             return this.handleNormalGameFlow();
         });
@@ -198,18 +218,23 @@ export class Game {
         return 'success';
     }
 
-    async handleInGameBuyGameFlow(demoGame: boolean, initGame: () => Promise<void>): Promise<GameResult> {
+    private async handleInGameBuyGameFlow(demoGame: boolean, initGame: () => Promise<void>): Promise<GameResult> {
         // hide ui
         this.updateUIState({buttonType: 'none'});
+
+        // go to fullscreen mode
+        if (this.allowFullscreen) {
+            this.fullscreenService.enable();
+        }
 
         // jump directly into the game.
         this.logger.info('Set the game into prepare mode');
         this.gameWindow.interface.prepareGame(demoGame);
 
-        this.logger.info('Wait for player to buy a game');
+        this.logger.info('Wait for player to start a game');
 
-        let gameScaling: Scaling = {quantity: 1, betFactor: 1};
-        while (true) {
+        const gameScaling: Scaling = {quantity: 1, betFactor: 1};
+        do {
             const event = await this.interface.waitForGameEvents('buy', 'requestStartGame', 'ticketPriceChanged', 'gameFinished');
             if (event.gameFinished) {
                 return 'success';
@@ -226,6 +251,8 @@ export class Game {
                 gameScaling.betFactor = event.buy.betFactor || 1;
             }
 
+            // verify if customer is allowed to play
+            // and start the game inside the frame
             await initGame();
 
             this.logger.info('Wait for game to start...');
@@ -235,7 +262,11 @@ export class Game {
             this.logger.info('Wait for game to settle...');
             await this.interface.waitForGameEvent('ticketSettled');
             this.connector.onGameSettled();
-        }
+
+        } while (!demoGame);
+
+        this.logger.info('Leaving inGame flow');
+        return 'success';
     }
 
 
@@ -275,7 +306,16 @@ export class Game {
      */
     private async flow(fn: () => Promise<GameResult>, resetUIState: boolean = true): Promise<GameResult> {
         try {
-            return await fn();
+            try {
+                const result = await fn();
+
+                // disable further free demo games after the first round
+                this.disallowFreeGames = true;
+                return result;
+
+            } finally {
+                this.fullscreenService.disable();
+            }
 
         } catch (err) {
             if (err === CANCELED) {
@@ -319,11 +359,11 @@ export class Game {
         const uiStateUpdate: UIState = {
             enabled: true,
             unplayedTicketInfo: undefined,
-            allowFreeGame: true,
+            allowFreeGame: !this.disallowFreeGames,
             buttonType: 'play',
             normalTicketPrice: MoneyAmount.of(this.config.ticketPrice),
             ticketPriceIsVariable: false,
-            isDemoGame: false,
+            isFreeGame: false,
         };
 
         // take the price from the customer state if possible.
@@ -381,51 +421,4 @@ function makeOrder(scaling: Scaling, customerState: BaseCustomerState, baseTicke
     }
 
     return new Order(baseNormalTicketPrice, baseDiscountedTicketPrice, scaling.betFactor, scaling.quantity);
-}
-
-
-class FullscreenService {
-    private readonly logger = Logger.get('zig.Fullscreen');
-    private isInFullscreen: boolean = false;
-
-    constructor(private node: HTMLElement) {
-    }
-
-    public async enable(): Promise<void> {
-        const parent = this.node.parentElement;
-        if (parent) {
-            parent.removeChild(this.node);
-        }
-
-        const wrapper = document.createElement('div');
-        wrapper.style.position = 'fixed';
-        wrapper.style.top = '0';
-        wrapper.style.left = '0';
-        wrapper.style.width = '100vh';
-        wrapper.style.height = '100vw';
-        wrapper.style.background = 'black';
-        wrapper.style.zIndex = '9999';
-        wrapper.style.transform = 'rotate(90deg)';
-
-        wrapper.style.display = 'flex';
-        wrapper.style.alignItems = 'center';
-        wrapper.style.justifyContent = 'center';
-
-        this.node.style.position = 'relative';
-        this.node.style.top = '0';
-        this.node.style.left = '0';
-        this.node.style.width = '100vw';
-        this.node.style.height = '100vh';
-
-        wrapper.appendChild(this.node);
-        document.body.appendChild(wrapper);
-
-        // if (document.fullscreenElement == null) {
-        //     requestFullscreen.call(this.node);
-        // }
-    }
-
-    public disable() {
-        document.exitFullscreen();
-    }
 }
