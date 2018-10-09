@@ -62,13 +62,13 @@ class DemoConnector extends Connector {
     logEvent("XMLHttpRequest", req, "#808");
 
     let statusCode = 404;
-    let body = null;
+    let body = `No body for request ${req.method} ${req.url}`;
 
-    if (new RegExp("^/product/iwg/[^/]+/tickets/[^/]+/settle").test(req.path)) {
+    if (new RegExp("^/product/iwg/[^/]+/tickets/[^/]+/settle").test(req.path) || req.path.indexOf("/tickets:settle") !== -1) {
       statusCode = 204;
     }
 
-    if (new RegExp("^/product/iwg/[^/]+/tickets($|\\?)").test(req.path)) {
+    if (new RegExp("^/product/iwg/[^/]+/tickets($|\\?)").test(req.path) || req.path.indexOf("/tickets:buy") !== -1) {
       if (demoState.httpStatus === "realitycheck") {
         statusCode = 500;
         body = RealityCheckResponse;
@@ -80,7 +80,7 @@ class DemoConnector extends Connector {
       }
     }
 
-    if (req.path.indexOf("/demo") !== -1) {
+    if (req.path.indexOf("/demo") !== -1 || req.path.indexOf("/tickets:demo") !== -1) {
       statusCode = 200;
       body = responseTicket(gameData)
     }
