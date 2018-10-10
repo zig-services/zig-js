@@ -354,7 +354,7 @@ export class Game {
 
     private updateUIState(override: Partial<UIState>): void {
         // update local ui state
-        const uiState: UIState = TsDeepCopy(this.uiState || {});
+        const uiState: UIState = TsDeepCopy(this._uiState as any || {});
         Object.assign(uiState, override);
 
         this._uiState = uiState;

@@ -131,6 +131,10 @@ window.onload = async () => {
       },
     },
 
+    created() {
+      this.game = null;
+    },
+
     mounted() {
       // restore demo state if available
       const previousState = localStorage.getItem("demoState");
