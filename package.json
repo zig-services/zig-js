@@ -6,14 +6,10 @@
   "license": "MIT",
   "devDependencies": {
     "css-loader": "^1.0.0",
-    "fullscreen-polyfill": "^1.0.2",
-    "localstorage-browser-polyfill": "^0.1.0",
     "release-it": "^7.6.1",
     "ts-deepcopy": "^0.1.4",
     "ts-loader": "^5.2.1",
     "typescript": "^3.1.1",
-    "vue": "^2.5.17",
-    "vue-class-component": "^6.2.0",
     "webpack": "^4.20.2",
     "webpack-cli": "^3.1.2",
     "webpack-dts-bundle": "0.0.2"
@@ -27,6 +23,10 @@
     "beta": "node_modules/.bin/release-it --preRelease=beta"
   },
   "dependencies": {
-    "core-js": "^2.5.7"
+    "fullscreen-polyfill": "^1.0.2",
+    "localstorage-browser-polyfill": "^0.1.0",
+    "core-js": "^2.5.7",
+    "vue": "^2.5.17",
+    "vue-class-component": "^6.2.0"
   }
 }
