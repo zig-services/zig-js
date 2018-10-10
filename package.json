@@ -14,6 +14,13 @@
     "webpack-cli": "^3.1.2",
     "webpack-dts-bundle": "0.0.2"
   },
+  "dependencies": {
+    "fullscreen-polyfill": "^1.0.2",
+    "localstorage-browser-polyfill": "^0.1.0",
+    "core-js": "^2.5.7",
+    "vue": "^2.5.17",
+    "vue-class-component": "^6.2.0"
+  },
   "scripts": {
     "watch": "webpack --mode=development --watch",
     "watch-prod": "webpack --mode=production --watch",
@@ -21,12 +28,5 @@
     "build-upload": "./build.sh && ./upload.sh",
     "release": "node_modules/.bin/release-it",
     "beta": "node_modules/.bin/release-it --preRelease=beta"
-  },
-  "dependencies": {
-    "fullscreen-polyfill": "^1.0.2",
-    "localstorage-browser-polyfill": "^0.1.0",
-    "core-js": "^2.5.7",
-    "vue": "^2.5.17",
-    "vue-class-component": "^6.2.0"
   }
 }

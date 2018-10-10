@@ -38,8 +38,9 @@ s3cmd put -P -q --no-preserve \
     --add-header="Cache-Control: $CACHE_CONTROL" \
      dist/*.js s3://lib.zig.services/zig/$VERSION/
 
-echo "Uploading debug page"
+echo "Uploading debug page and dev content"
 s3cmd put -P -q --no-preserve \
+    --recursive \
     --mime-type="text/html; charset=utf8" \
     --add-header='Cache-Control: private, no-store, no-cache' \
-     debug-page.html s3://mylotto24.frontend.zig.services/dev/
+     debug-page.html dist demo s3://mylotto24.frontend.zig.services/dev/
