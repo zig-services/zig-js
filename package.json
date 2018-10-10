@@ -12,6 +12,8 @@
     "ts-deepcopy": "^0.1.4",
     "ts-loader": "^5.2.1",
     "typescript": "^3.1.1",
+    "vue": "^2.5.17",
+    "vue-class-component": "^6.2.0",
     "webpack": "^4.20.2",
     "webpack-cli": "^3.1.2",
     "webpack-dts-bundle": "0.0.2"

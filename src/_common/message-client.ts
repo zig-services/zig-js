@@ -136,6 +136,10 @@ export function toErrorValue(inputValue: any): IError | null {
     }
 
     return {
+        // expand all properties into the target object and overwrite them later with
+        // the error objects.
+        ...(typeof err === 'object' ? err : {}),
+
         // if we have a valid urn type, we use that one as the resulting error type.
         type: guessErrorType(inputValue.type || err.type),
 
@@ -397,6 +401,7 @@ export type CommandMessageHandlers = {
     [K in keyof CommandMessageTypes]: (event: CommandMessageTypes[K]) => void
 }
 
+export type CommandMessageHandler<T extends Command> = CommandMessageHandlers[T]
 
 // An array of all message types as strings.
 const allCommandKeys = Object.keys(commandMessageTypesObject) as (keyof CommandMessageTypes)[];
@@ -412,7 +417,7 @@ export class MessageDispatcher {
     constructor(public readonly game: string) {
     }
 
-    public register<K extends Command>(type: K, handler: CommandMessageHandlers[K]): Unregister {
+    public register<K extends Command>(type: K, handler: CommandMessageHandler<K>): Unregister {
         log.debug(`Register handler for messages of type ${type}`);
 
         this.handlers[type] = (this.handlers[type] || []).concat(handler);
@@ -444,7 +449,7 @@ export class MessageDispatcher {
         return () => unregister.forEach(fn => fn());
     }
 
-    private unregister<K extends Command>(type: K, handler: (msg: CommandMessageTypes[K]) => void): void {
+    private unregister<K extends Command>(type: K, handler: CommandMessageHandler<K>): void {
         log.debug(`Unregister handler for messages of type ${type}`);
         this.handlers[type] = (this.handlers[type] || []).filter(it => it !== handler);
     }

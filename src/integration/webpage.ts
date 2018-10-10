@@ -45,10 +45,10 @@ export class Game {
     private readonly fullscreenService: FullscreenService;
 
     // the ui state. Should not be modified directly, always use "updateUIState"
-    private uiState: UIState;
+    private _uiState?: UIState;
 
     // the game wants to use inGamePurchase
-    private gameSettings: GameSettings;
+    private _gameSettings?: GameSettings;
 
     // set to true to disable further free games.
     private disallowFreeGames: boolean = false;
@@ -79,6 +79,22 @@ export class Game {
         this.updateUIState(baseUIState);
 
         this.setupMessageHandlers();
+    }
+
+    private get uiState(): UIState {
+        if (!this._uiState) {
+            throw new Error('uiState not yet set.');
+        }
+
+        return this._uiState!;
+    }
+
+    private get gameSettings(): GameSettings {
+        if (!this._gameSettings) {
+            throw new Error('gameSettings not yet set.');
+        }
+
+        return this._gameSettings!;
     }
 
     private setupMessageHandlers(): void {
@@ -123,7 +139,7 @@ export class Game {
             this.logger.info('Wait for game settings');
             const gameSettingsEvent = await this.interface.waitForGameEvent('updateGameSettings');
 
-            this.gameSettings = gameSettingsEvent.gameSettings;
+            this._gameSettings = gameSettingsEvent.gameSettings;
 
             if (this.gameSettings.chromeless) {
                 this.logger.info('gameSettings.chromeless implies gameSettings.purcahseInGame');
@@ -341,7 +357,7 @@ export class Game {
         const uiState: UIState = TsDeepCopy(this.uiState || {});
         Object.assign(uiState, override);
 
-        this.uiState = uiState;
+        this._uiState = uiState;
 
         try {
             // and publish it

@@ -9,10 +9,13 @@
     ],
     "moduleResolution": "node",
     "strictNullChecks": true,
+    "strict": true,
     "noImplicitAny": true,
     "declaration": true,
     "declarationDir": "dist/typings",
-    "jsx": "react"
+    "jsx": "preserve",
+    "jsxFactory": "h",
+    "experimentalDecorators": true
   },
   "exclude": [
     "node_modules/**"

@@ -2,7 +2,7 @@ import {Options} from './options';
 
 const loggingOptions = new (class {
     private lastUpdate: number = 0;
-    private enabledCached: boolean;
+    private enabledCached: boolean = false;
 
     public get enabled(): boolean {
         if (Date.now() - this.lastUpdate > 1) {
