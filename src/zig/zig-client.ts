@@ -35,23 +35,69 @@ export interface BuyTicketOptions {
     betFactor?: number
 }
 
-export class ZigClient {
+export interface ZigClient {
+    /**
+     * Exposes access to the raw message interface for event sending.
+     */
     readonly Messages: GameMessageInterface;
 
-    constructor(readonly gameConfig: Readonly<GameConfig> = parseGameConfigFromURL()) {
-        const messageClient = new MessageClient(window.parent);
-        this.Messages = new GameMessageInterface(messageClient,
-            gameConfig.canonicalGameName);
-    }
+    /**
+     * The configuration object.
+     */
+    readonly gameConfig: Readonly<GameConfig>;
 
     /**
-     * Request a ticket from the platform.
+     * Request a ticket from the platform. Hold on to the returned ticket instance, you need
+     * that one later. This method will also send a gameStarted message to the parent frame.
      *
      * @param payload Game input for the requested ticket. In case of sofortlotto, this is the rows
      * the player selected. You can omit this parameter if your game does not require a game input.
      *
      * @param options Additional options to buy the ticket, such as bet factor or quantity.
      */
+    buyTicket(payload?: any, options?: BuyTicketOptions): Promise<Ticket>;
+
+    /**
+     * Request a demo ticket. See buyTicket for more information about the parameters.
+     * This method will also send a gameStarted message to the parent frame.
+     */
+    demoTicket(payload?: any, options?: BuyTicketOptions): Promise<Ticket>;
+
+    /**
+     * Finishes a previously played ticket. You need to pass the 'id' field of the ticket
+     * you received back in buyTicket or demoTicket. This will also send a ticketSettled message
+     * back to the parent frame.
+     *
+     * @param id The ticket id.
+     */
+    settleTicket(id: string): Promise<void>;
+
+    /**
+     * Queries for the given bundle information. This is used in some of our games
+     * to offer extended functionality.
+     */
+    bundle(bundleKey: number): Promise<Bundle>
+
+    /**
+     * Observes and tracks the position of the given marker element. Every time the
+     * position changes an updateGameHeight message containing the new position
+     * will be send to the parent to adjust the game frames height.
+     */
+    trackGameHeight(markerOrSelector: HTMLElement | string): void
+}
+
+export class ZigClientImpl implements ZigClient {
+    readonly Messages: GameMessageInterface;
+
+    constructor(readonly gameConfig: Readonly<GameConfig> = parseGameConfigFromURL()) {
+        const messageClient = new MessageClient(window.parent);
+
+        // start communication
+        this.Messages = new GameMessageInterface(messageClient,
+            gameConfig.canonicalGameName);
+    }
+
+
     public async buyTicket(payload: any = {}, options: BuyTicketOptions = {}): Promise<Ticket> {
         if (Options.winningClassOverride) {
             log.warn('WinningClassOverride set, get a demo ticket instead of a real one.');
@@ -78,7 +124,6 @@ export class ZigClient {
      * @param items Items that should be added to the basket.
      */
     public async buyBasketTickets(items: BasketItem[] = []) {
-
         return this.propagateErrors(async () => {
             await this.request<any>('POST', `/zig/games/${this.gameConfig.canonicalGameName}/tickets:basket`, items, {'Content-Type': 'application/json'});
 
@@ -88,9 +133,6 @@ export class ZigClient {
         });
     }
 
-    /**
-     * Request a demo ticket. See buyTicket for more information about the parameters.
-     */
     public async demoTicket(payload: any = {}, options: BuyTicketOptions = {}): Promise<Ticket> {
         return this.propagateErrors(async () => {
             const quantity: number = options.quantity || guessQuantity(payload);
@@ -176,21 +218,15 @@ export class ZigClient {
     public trackGameHeight(markerOrSelector: HTMLElement | string): void {
         let previousMarkerTop = 0;
 
-        function topOf(element: HTMLElement): number {
-            const top = element.offsetTop;
-            if (!element.offsetParent) {
-                return top;
-            }
-
-            return topOf(<HTMLElement>element.offsetParent) + element.offsetTop;
-        }
-
+        // get the marker element
         let marker: HTMLElement | null = null;
         if (typeof markerOrSelector !== 'string') {
             marker = markerOrSelector;
         }
 
-        window.setInterval(() => {
+        const messageClient = this.Messages;
+
+        function checkOnce() {
             // if we don't have a marker yet, we'll look for it
             if (marker == null && typeof markerOrSelector === 'string') {
                 marker = document.querySelector(markerOrSelector) as HTMLElement;
@@ -201,16 +237,26 @@ export class ZigClient {
                 return;
             }
 
-            const markerTop = topOf(marker);
+            // get the new position and difference to the old one
+            const markerTop = marker.getBoundingClientRect().top;
             const difference = Math.abs(markerTop - previousMarkerTop);
 
+            // and send an update if the position changed by more than one pixel.
             if (difference > 1) {
                 previousMarkerTop = markerTop;
-                this.Messages.updateGameHeight(markerTop);
-            }
-        }, 100);
-    }
+                messageClient.updateGameHeight(markerTop);
 
+                // check in the next frame again
+                requestAnimationFrame(checkOnce);
+            }
+        }
+
+        // start the first check right now
+        checkOnce();
+
+        // and schedule periodic checks
+        window.setInterval(checkOnce, 100);
+    }
 
     /**
      * Returns the 'Messages' field. This accessor is deprecated.

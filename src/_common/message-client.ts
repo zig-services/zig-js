@@ -10,20 +10,20 @@ export type Message = string | { command: string }
 const log = Logger.get('zig.Messages');
 
 export class MessageClient {
-    private readonly eventHandler: (ev: MessageEvent) => void;
+    private readonly boundHandleEvent: (ev: MessageEvent) => void;
     private readonly handlers: ((msg: Message) => void)[] = [];
 
     constructor(private readonly partnerWindow: Window) {
         // register event handler for receiving messages
-        this.eventHandler = this.handleEvent.bind(this);
-        window.addEventListener('message', this.eventHandler);
+        this.boundHandleEvent = (ev: MessageEvent) => this.handleEvent(ev);
+        window.addEventListener('message', this.boundHandleEvent);
     }
 
     /**
      * Unregisters the global event handler on the window object.
      */
     public close(): void {
-        window.removeEventListener('message', this.eventHandler);
+        window.removeEventListener('message', this.boundHandleEvent);
     }
 
     /**
@@ -72,7 +72,7 @@ export class MessageClient {
     /**
      * Removes an event handler from this message client instance.
      */
-    private unregister(handler: (message: Message) => void) {
+    private unregister(handler: (message: Message) => void): void {
         const idx = this.handlers.indexOf(handler);
         if (idx >= 0) {
             // remove the handler from the list.
@@ -80,7 +80,7 @@ export class MessageClient {
         }
     }
 
-    private handleEvent(ev: MessageEvent): void {
+    protected handleEvent(ev: MessageEvent): void {
         try {
             if (ev.source !== this.partnerWindow) {
                 // noinspection ExceptionCaughtLocallyJS
@@ -554,7 +554,7 @@ export class MessageFactory extends MessageDispatcher {
     // if it is a legacy game, we might use a different protocol variant.
     protected legacyGame: boolean = false;
 
-    constructor(protected readonly messageClient: MessageClient, game: string) {
+    constructor(readonly messageClient: MessageClient, game: string) {
         super(game);
 
         // start observing the message client for messages
