@@ -26,7 +26,6 @@ export const Zig: ZigGlobal = {
     get Client(): ZigClient {
         if (zigWindow.__zigClientInstance == null) {
             log.warn('globalZigClient variable is currently null, creating a lazy zig client');
-
             zigWindow.__zigClientInstance = new LazyZigClient();
         }
 
@@ -55,7 +54,8 @@ export function main() {
 
     // if there was a previously constructed lazy zig client, we'll now
     // delegate to the new one.
-    if (previousZigClient instanceof LazyZigClient) {
+    if (isLazyZigClient(previousZigClient)) {
+        log.info('Found a LazyZigClient, delegate all calls to new instance.');
         previousZigClient.delegateTo(zigWindow.__zigClientInstance);
     }
 }
@@ -107,6 +107,10 @@ class Delegate<T> {
     }
 }
 
+function isLazyZigClient(client: ZigClient | undefined): client is LazyZigClient {
+    return client && (client as any).delegateTo;
+}
+
 class LazyZigClient extends Delegate<ZigClient> implements ZigClient {
     private lazyMessageClient?: LazyMessageClient;
     private lazyMessageInterface?: GameMessageInterface;
@@ -134,7 +138,7 @@ class LazyZigClient extends Delegate<ZigClient> implements ZigClient {
             // and delegate to the real client
             this.lazyMessageClient.delegateTo(delegate.Messages.messageClient);
         }
-        
+
         super.delegateTo(delegate);
     }
 
