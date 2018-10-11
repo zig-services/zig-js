@@ -5,7 +5,7 @@ import {GameStartedMessage} from '../_common/message-client';
 import {Game} from './webpage';
 
 export interface UnplayedTicketInfo {
-    type: 'BASKET' | 'BUNDLE' | 'PRICE' | 'UNFINISHED'
+    type: 'BASKET' | 'BUNDLE' | 'PRIZE' | 'UNFINISHED'
 
     // Display name of another game that has bought this ticket
     fromOtherGame?: string;
@@ -66,6 +66,10 @@ export interface UIState {
 
     // The discounted ticket price. Only set if there is a discount on the ticket.
     discountedTicketPrice?: MoneyAmount;
+
+    // Set this if the customer has a voucher for a free game. The voucher amount
+    // must cover a games ticket price.
+    voucher?: MoneyAmount;
 
     // True if the ticket price can be adjusted by switching a bet factor in the game
     ticketPriceIsVariable: boolean;

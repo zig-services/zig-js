@@ -6,6 +6,11 @@ import {ZigClient} from './zig-client';
 import {delegateToVersion} from '../_common/delegate';
 import {buildTime, clientVersion} from '../_common/vars';
 
+declare global {
+    interface Window {
+        Zig?: ZigGlobal;
+    }
+}
 
 export interface ZigGlobal {
     Client: ZigClient
@@ -27,6 +32,11 @@ export const Zig: ZigGlobal = {
 };
 
 export function main() {
+    if (!window.Zig) {
+        log.info(`Expose global 'Zig.Client' instance on 'window' object.`);
+        window.Zig = Zig;
+    }
+
     if (isLegacyGame()) {
         log.info('Enable legacy game patches');
         patchLegacyGame();

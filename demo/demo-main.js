@@ -5,6 +5,9 @@ const url = new URL(location.href);
 const gameName = url.searchParams.get("game") || "dickehose";
 const gameData = GameDataObjects[gameName] || {};
 
+// enable logging locally
+enableZigLogging();
+
 async function sleep(ms) {
   await new Promise(resolve => setTimeout(resolve, ms));
 }
@@ -74,7 +77,9 @@ class DemoConnector extends Connector {
         body = RealityCheckResponse;
 
       } else {
-        demoState.balance -= (demoState.ticketPrice - demoState.discount);
+        const discount = demoState.voucherAmount || demoState.discount;
+        demoState.balance -= (demoState.ticketPrice - discount);
+        demoState.voucherAmount = 0;
         statusCode = 200;
         body = responseTicket(gameData)
       }
@@ -128,6 +133,8 @@ window.onload = async () => {
         preserveState: true,
         autoLoadGame: true,
         allowFullscreen: false,
+
+        voucherAmount: 0,
       },
     },
 
