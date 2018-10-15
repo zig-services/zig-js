@@ -1,6 +1,5 @@
 const path = require("path");
 const webpack = require("webpack");
-const DtsBundlePlugin = require('webpack-dts-bundle').default;
 
 module.exports = {
     entry: {
@@ -33,12 +32,6 @@ module.exports = {
             VERSION: JSON.stringify(require("./package.json").version),
             BUILDTIME: JSON.stringify(Date.now()),
         }),
-
-        ...["libint", "libzig"].map(name => new DtsBundlePlugin({
-            name: `zig-js/${name}`,
-            main: path.resolve(__dirname, `./dist/typings/${name}.d.ts`),
-            out: path.resolve(__dirname, `./dist/${name}.d.ts`),
-        }))
     ],
 
     module: {

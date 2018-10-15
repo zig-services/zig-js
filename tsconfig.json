@@ -12,9 +12,7 @@
     "strict": true,
     "noImplicitAny": true,
     "declaration": true,
-    "declarationDir": "dist/typings",
-    "jsx": "preserve",
-    "jsxFactory": "h",
+    "declarationDir": "dist",
     "experimentalDecorators": true
   },
   "exclude": [
