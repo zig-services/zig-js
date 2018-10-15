@@ -50,11 +50,3 @@ export const onDOMLoad = registerEventHandler(document, 'DOMContentLoaded');
  * @type {(f: () => void) => void}
  */
 export const onLoad = registerEventHandler(window, 'load');
-
-onLoad(() => {
-    log.debug('Document load event triggered');
-});
-
-onDOMLoad(() => {
-    log.debug('Document content loaded event triggered');
-});
