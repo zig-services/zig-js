@@ -65,6 +65,7 @@ export interface Ticket {
 }
 
 export interface WinningClass {
+    number: number;
     winnings: IMoneyAmount;
 }
 

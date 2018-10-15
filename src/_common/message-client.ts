@@ -261,11 +261,6 @@ export interface GameInputMessage extends BaseMessage {
     input: any;
 }
 
-export interface UpdateNicknameMessage extends BaseMessage {
-    command: 'updateNickname';
-    nickname: string | undefined;
-}
-
 export interface UpdateGameSettingsMessage extends BaseMessage {
     command: 'updateGameSettings';
     gameSettings: GameSettings;
@@ -379,7 +374,6 @@ const commandMessageTypesObject = {
     requestStartGame: typeOf<RequestStartGameMessage>(),
     ticketPriceChanged: typeOf<TicketPriceChangedMessage>(),
     newVoucher: typeOf<NewVoucherMessage>(),
-    updateNickname: typeOf<UpdateNicknameMessage>(),
     updateGameSettings: typeOf<UpdateGameSettingsMessage>(),
     updateGameHeight: typeOf<UpdateGameHeightMessage>(),
     prepareGame: typeOf<PrepareGameMessage>(),
@@ -616,13 +610,6 @@ export class ParentMessageInterface extends MessageFactory {
             voucherValueInCents: voucherValueInMinor,
             voucherValueInMinor,
             discountInMinor,
-        });
-    }
-
-    public updateNickname(nickname: string) {
-        this.send<UpdateNicknameMessage>({
-            command: 'updateNickname', game: this.game,
-            nickname,
         });
     }
 
