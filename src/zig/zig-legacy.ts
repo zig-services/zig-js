@@ -250,13 +250,14 @@ export function isLegacyGame(): boolean {
 
 
 export function patchLegacyGame() {
+    // noinspection UnnecessaryLocalVariableJS
     const anyWindow: any = window;
 
     // Inject code to rewrite request rules and everything.
     anyWindow.XMLHttpRequest = XMLHttpRequestUsingMessageClient();
 
     onDOMLoad(() => {
-        let log = Logger.get('zig.legacy');
+        let log = Logger.get('zig.Legacy');
 
         // check if it is an instant win gaming game
         if (document.querySelector('#gamecontainer') == null)

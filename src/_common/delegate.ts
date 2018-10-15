@@ -9,7 +9,7 @@ const zigWindow: { __zig_delegated?: boolean; } = window as any;
  * property is set.
  */
 export function delegateToVersion(script: string): boolean {
-    const log = Logger.get('zig.main.delegate');
+    const log = Logger.get('zig.Delegate');
 
     // only delegate once
     if (zigWindow.__zig_delegated) {
