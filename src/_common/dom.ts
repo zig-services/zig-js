@@ -4,7 +4,7 @@
  */
 import {Logger} from './logging';
 
-const log = Logger.get('zig.dom');
+const log = Logger.get('zig.DOM');
 
 const zigWindow: { __zig_events?: { [k: string]: boolean }; } = window as any;
 
