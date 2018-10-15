@@ -8,24 +8,17 @@ import {buildTime, clientVersion} from '../_common/vars';
 
 export interface ZigGlobal {
     /**
-     * A reference to the global zig client. Only use once `ClientPromise` has been fulfilled.
+     * A reference to the global zig client. Only use once `ready()` has been fulfilled.
      * If you use this field before the promise was fulfilled, the property accessor will throw an
      * exception.
      */
     Client: ZigClient
 
     /**
-     * This promise resolves to the zig client once it is available. You should prefer calling this method
-     * as it will handle asynchronous loading of the zig client library better than using the `Client`
-     * field.
-     */
-    ClientPromise: Promise<ZigClient>
-
-    /**
      * Registers a callback that will be executed once the Zig.Client has been initialized
-     * and is ready to use.
+     * and is ready to use. You can also leave out the callback and await the resulting promise.
      */
-    ready(callback: (c: ZigClient) => void): void;
+    ready(callback?: (c: ZigClient) => void): Promise<ZigClient>;
 }
 
 const log = Logger.get('zig.Main');
@@ -38,7 +31,7 @@ const zigWindow = window as {
     Zig?: ZigGlobal;
 };
 
-export const Zig: ZigGlobal = {
+export const Zig: ZigGlobal = new (class ZigGlobalImpl implements ZigGlobal {
     get Client(): ZigClient {
         const zigClient = zigWindow.__zigClientInstance;
 
@@ -48,9 +41,17 @@ export const Zig: ZigGlobal = {
         }
 
         return zigClient;
-    },
+    }
 
-    get ClientPromise(): Promise<ZigClient> {
+    ready(callback?: (c: ZigClient) => void): Promise<ZigClient> {
+        if (callback) {
+            this.clientAsync.then(callback);
+        }
+
+        return this.clientAsync;
+    }
+
+    private get clientAsync(): Promise<ZigClient> {
         if (zigWindow.__zigClientPromise == null) {
             log.info('Creating zig client promise.');
 
@@ -66,12 +67,8 @@ export const Zig: ZigGlobal = {
         }
 
         return zigWindow.__zigClientPromise;
-    },
-
-    ready(callback: (c: ZigClient) => void) {
-        this.ClientPromise.then(callback);
-    },
-};
+    }
+});
 
 function initializeClient() {
     log.info('');
