@@ -15,9 +15,10 @@
     "webpack-dts-bundle": "0.0.2"
   },
   "dependencies": {
+    "core-js": "^2.5.7",
     "fullscreen-polyfill": "^1.0.2",
     "localstorage-browser-polyfill": "^0.1.0",
-    "core-js": "^2.5.7",
+    "ts-declaration-webpack-plugin": "^1.1.1",
     "vue": "^2.5.17",
     "vue-class-component": "^6.2.0"
   },

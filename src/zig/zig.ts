@@ -37,7 +37,7 @@ export const Zig: ZigGlobal = new (class ZigGlobalImpl implements ZigGlobal {
 
         if (zigClient == null) {
             throw new Error('Zig.Client is currently not available. ' +
-                'Please `await Zig.ClientPromise` before accessing this field.');
+                'Please `await Zig.ready();` before accessing this field.');
         }
 
         return zigClient;
