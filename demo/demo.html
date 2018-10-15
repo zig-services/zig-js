@@ -155,7 +155,7 @@
         <div v-if='error != null' class="error-dialog">
             <h3>{{ error.title }}</h3>
             <p>{{ error.details }} <em>({{ error.type }})</em></p>
-            <button @click='closeErrorDialog();'>Okay</button>
+            <button @click='closeErrorDialog()'>Okay</button>
         </div>
     </div>
 
@@ -187,6 +187,7 @@
         <label><span>Balance:</span> <input type="number" v-model.number="demoState.balance"></label>
         <label><span>Ticket Price:</span> <input type="number" v-model.number="demoState.ticketPrice"></label>
         <label><span>Discount:</span> <input type="number" v-model.number="demoState.discount"></label>
+        <label><span>Voucher:</span> <input type="number" v-model.number="demoState.voucher"></label>
     </div>
 </div>
 

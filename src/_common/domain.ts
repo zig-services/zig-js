@@ -168,4 +168,12 @@ export class MoneyAmount implements IMoneyAmount {
     static zero(currency: Currency): MoneyAmount {
         return new MoneyAmount(0, currency);
     }
+
+    static isZero(amount: IMoneyAmount | null | undefined): amount is IMoneyAmount {
+        return !amount || amount.amountInMinor === 0;
+    }
+
+    static isNotZero(amount: IMoneyAmount | null | undefined): amount is IMoneyAmount {
+        return !MoneyAmount.isZero(amount);
+    }
 }

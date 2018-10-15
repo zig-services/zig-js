@@ -44,10 +44,13 @@ class DemoConnector extends Connector {
     return {
       loggedIn: true,
       balance: ZIG.MoneyAmount.of(demoState.balance, demoState.currency),
+
+      voucher: ZIG.MoneyAmount.of(demoState.voucher, demoState.currency),
+
       personalizedTicketPrice: {
         normalTicketPrice: ZIG.MoneyAmount.of(demoState.ticketPrice, demoState.currency),
         discountedTicketPrice: ZIG.MoneyAmount.of(demoState.ticketPrice - demoState.discount, demoState.currency),
-      }
+      },
     };
   }
 
@@ -77,9 +80,9 @@ class DemoConnector extends Connector {
         body = RealityCheckResponse;
 
       } else {
-        const discount = demoState.voucherAmount || demoState.discount;
+        const discount = demoState.voucher || demoState.discount;
         demoState.balance -= (demoState.ticketPrice - discount);
-        demoState.voucherAmount = 0;
+        demoState.voucher = 0;
         statusCode = 200;
         body = responseTicket(gameData)
       }
@@ -134,7 +137,7 @@ window.onload = async () => {
         autoLoadGame: true,
         allowFullscreen: false,
 
-        voucherAmount: 0,
+        voucher: 0,
       },
     },
 

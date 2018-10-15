@@ -44,8 +44,9 @@ export interface AuthorizedCustomerState extends BaseCustomerState {
     // Current balance of the customer. This one must be specified.
     balance: MoneyAmount;
 
-    // Set this to true if the customer wont need to pay for the next game.
-    hasVoucher?: boolean;
+    // Set this if the customer has a voucher for a free game. The voucher amount
+    // must cover a games ticket price.
+    voucher?: MoneyAmount;
 
     // Specify a list of unplayed ticket infos of the customer.
     unplayedTicketInfos?: UnplayedTicketInfo[];
@@ -66,10 +67,6 @@ export interface UIState {
 
     // The discounted ticket price. Only set if there is a discount on the ticket.
     discountedTicketPrice?: MoneyAmount;
-
-    // Set this if the customer has a voucher for a free game. The voucher amount
-    // must cover a games ticket price.
-    voucher?: MoneyAmount;
 
     // True if the ticket price can be adjusted by switching a bet factor in the game
     ticketPriceIsVariable: boolean;

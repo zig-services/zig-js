@@ -166,7 +166,11 @@ export class Game {
             }
 
             const customerState = await customerState$;
-            // check if money is okay.
+
+            if (customerState.loggedIn && MoneyAmount.isNotZero(customerState.voucher)) {
+                this.logger.info('Send voucher info to game.');
+                this.interface.newVoucher(customerState.voucher.amountInMinor);
+            }
 
             this.logger.info('Game was loaded.');
             this.connector.onGameLoaded();
@@ -299,7 +303,7 @@ export class Game {
 
         const order = makeOrder(scaling, customerState, this.config.ticketPrice);
 
-        const isFreeGame = customerState.unplayedTicketInfos != null || customerState.hasVoucher;
+        const isFreeGame = customerState.unplayedTicketInfos != null || MoneyAmount.isNotZero(customerState.voucher);
         if (!isFreeGame) {
             this.logger.info('Check if the customer has enough money');
 
@@ -402,12 +406,13 @@ export class Game {
                 uiStateUpdate.unplayedTicketInfo = customerState.unplayedTicketInfos[0];
                 uiStateUpdate.buttonType = 'unplayed';
 
-            } else if (customerState.hasVoucher) {
+            } else if (MoneyAmount.isNotZero(customerState.voucher)) {
                 uiStateUpdate.allowFreeGame = false;
                 uiStateUpdate.buttonType = 'voucher';
 
             } else if (MoneyAmount.of(customerState.balance).lessThan(this.config.ticketPrice)) {
                 uiStateUpdate.buttonType = 'payin';
+
             } else {
                 uiStateUpdate.buttonType = 'buy';
             }
