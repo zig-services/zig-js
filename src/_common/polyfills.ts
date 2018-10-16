@@ -39,7 +39,7 @@ const logger = Logger.get('zig.Polyfill');
     if (!supported) {
         let data: { [key: string]: any } = {};
 
-        (window as any).localStorage = {
+        const myLocalStorage = {
             setItem: function (key: string, value: any) {
                 data[key] = value;
                 return data[key];
@@ -59,5 +59,11 @@ const logger = Logger.get('zig.Polyfill');
                 return data;
             },
         };
+
+        Object.defineProperty(window, 'localStorage', {
+            get() {
+                return myLocalStorage;
+            },
+        });
     }
 }());
