@@ -15,11 +15,11 @@ const logger = Logger.get('zig.Polyfill');
 (function () {
     let supported = false;
 
-    if (window.hasOwnProperty('localStorage') && window.localStorage !== null) {
-        supported = true;
+    try {
+        if (window.hasOwnProperty('localStorage') && window.localStorage !== null) {
+            supported = true;
 
-        // Some browsers will return true when in private browsing mode so test to make sure it's functional.
-        try {
+            // Some browsers will return true when in private browsing mode so test to make sure it's functional.
             const key = 'swxTest_' + Math.round(Math.random() * 1e7);
 
             // just so no one optimizes the catch away
@@ -30,10 +30,10 @@ const logger = Logger.get('zig.Polyfill');
 
             window.localStorage.setItem(key, 'test');
             window.localStorage.removeItem(key);
-        } catch (e) {
-            logger.warn('localStorage not functional, falling back to session Object.');
-            supported = false;
         }
+    } catch (e) {
+        logger.warn('localStorage not functional, falling back to session Object.');
+        supported = false;
     }
 
     if (!supported) {
