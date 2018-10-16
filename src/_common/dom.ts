@@ -1,14 +1,8 @@
-/**
- * Injects style into the document.
- * @param css
- */
-import {Logger} from './logging';
-
-const log = Logger.get('zig.DOM');
-
 const zigWindow: { __zig_events?: { [k: string]: boolean }; } = window as any;
 
-
+/**
+ * Inject CSS styles into the page.
+ */
 export function injectStyle(css: string): void {
     const style = document.createElement('style');
     style.textContent = css;
