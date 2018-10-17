@@ -6,6 +6,7 @@ import {injectStyle, onDOMLoad, onLoad} from '../_common/dom';
 import {GameMessageInterface, MessageClient} from '../_common/message-client';
 import {executeRequestInParent, Request, Response} from '../_common/request';
 import {parseGameConfigFromURL} from '../_common/config';
+import {LegacyStyleCSS} from './legacy.css';
 
 function XMLHttpRequestUsingMessageClient() {
     const log = Logger.get('zig.legacy.xhr');
@@ -163,7 +164,7 @@ function XMLHttpRequestUsingMessageClient() {
 function patchInstantWinGamingStyles() {
     // add script for old instant win gaming games to improve scaling
     // of the background screen
-    injectStyle(require('./legacy.css'));
+    injectStyle(LegacyStyleCSS);
 }
 
 function patchInstantWinGamingScripts() {

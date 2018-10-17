@@ -9,6 +9,7 @@ import {Options} from '../_common/options';
 import {appendGameConfigToURL, parseGameConfigFromURL} from '../_common/config';
 import {IError} from '../_common/domain';
 import {Logger} from '../_common/logging';
+import {WrapperStyleCSS} from './style.css';
 
 const log = Logger.get('zig.wrapper');
 
@@ -188,7 +189,7 @@ onDOMLoad(() => {
     }
 
     // inject the css style for the wrapper into the document
-    injectStyle(require('./style.css'));
+    injectStyle(WrapperStyleCSS);
 
     void initializeGame();
 

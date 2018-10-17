@@ -39,13 +39,6 @@ module.exports = {
       {
         test: /\.tsx?$/,
         loader: "ts-loader",
-      },
-      {
-        test: /\.css$/,
-        loader: 'css-loader',
-        options: {
-          minimize: true,
-        }
       }
     ]
   }

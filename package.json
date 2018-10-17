@@ -5,9 +5,7 @@
   "author": "",
   "license": "MIT",
   "devDependencies": {
-    "css-loader": "^1.0.0",
     "release-it": "^7.6.1",
-    "ts-deepcopy": "^0.1.4",
     "ts-loader": "^5.2.1",
     "typescript": "^3.1.1",
     "webpack": "^4.20.2",
@@ -16,10 +14,11 @@
   "dependencies": {
     "core-js": "^2.5.7",
     "fullscreen-polyfill": "^1.0.2",
-    "ts-declaration-webpack-plugin": "^1.1.1",
     "vue": "^2.5.17",
     "vue-class-component": "^6.2.0",
-    "tslib": "^1.9.3"
+    "tslib": "^1.9.3",
+    "ts-deepcopy": "^0.1.4",
+    "ts-declaration-webpack-plugin": "^1.1.1"
   },
   "scripts": {
     "watch": "webpack --mode=development --watch",
