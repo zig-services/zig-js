@@ -103,4 +103,53 @@ const Game = {
 };
 ```
 
-If you want to 
+After sending an error to the parent frame you should always reset the game.
+
+## In-game start-button and variable stakes
+
+If the game supports variable stakes and an in-game start-button, the order of operations
+slightly differs. First you need to tell the parent page that your game handles 
+this so called _in game purchase flow_. You do this by passing `true` to the
+`gameLoaded()` call.
+
+```js
+// tell parent frame, that the game finished loading,
+// and that we are running in 'in game purchase' mode.
+Zig.Client.Messages.gameLoaded(true);
+```
+
+Once the player wishes to enter the game, the parent frame will send a `prepareGame` message
+containing a parameter that tells your game, if the player wishes to play a series of demo games
+or a real game. At this point, you'll show the play button and the stake selection, if you implement
+a variable stake game.
+
+```js
+Zig.Client.Messages.registerGeneric({
+  // [...]
+  prepareGame(event) {
+    UI.showStakeSelector(event.demo);
+  }
+});
+```
+
+Once the player has selected the stake and you want the game to begin, the game needs
+to send a `buy` message containing the selected stake
+
+```js
+// request the parent to start the game with the given stake.
+Zig.Client.Messages.buy(selectedStake);
+```
+
+The parent will answer with a normal `playGame` or `playDemoGame` response like in
+the example above. You will not get the selected stake back in the message,
+so you need to hang onto the selected stake in your game while you are waiting
+for the game to start. In you `playGame` handler, you call the `Zig.Client.buyTicket`
+method with a second parameter containing the stake:
+
+```js
+Zig.Client.buyTicket(null, {betFactor: selectedStake})
+```
+
+After settling the ticket, you jump back to the stake selection screen without
+sending a `gameFinished` message. You only send a `gameFinished` message you want to
+leave your game.
