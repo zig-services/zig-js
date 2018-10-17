@@ -22,10 +22,10 @@ The library is available as an [npm package](https://www.npmjs.com/package/zig-j
 Install it and add it to your `package.json` using `npm install --save zig-js`.
 You can then import the library and access the zig clients functionality:
 ```js
-import {Zig} from "zig-js/libzig";
+import {Zig} from "zig-js/zig/zig";
 ```
 
-Once the game has finsihed loading all assets and is ready to start, you can signal
+Once the game has finished loading all assets and is ready to start, you can signal
 this by sending a `gameLoaded` message to the parent frame. To simplify things the
 ZIG client exposes a `Messages` object (of type `GameMessageInterface`).
 
@@ -64,23 +64,28 @@ const Game = {
     const ticket = await Zig.Client.buyTicket();
     
     // let the customer play the ticket
-    await play(ticket);
+    await Game.play(ticket);
     
-    // settle the ticket.
+    // settle the ticket and add he winnings to the customers account. 
     await Zig.Client.settleTicket(ticket.id);
     
     // tell the parent that the game has finish
     Zig.Client.Messages.gameFinished();
+  },
+  
+  async play(ticket) {
+    // ...
   }
 };
 ```
 
 In case of errors, you can use the `error` method on the `Messages` instance, to forward any
-value as an error object to the parent frame. You might want to wrap your `runGame` method in a try/catch
+value as an error object to the parent frame. The `Zig.Client` object will already handle errors
+for you, but you might want to wrap your `play` method in a try/catch
 block like this:
 ```js
 const Game = {
-  runGame() {
+  play() {
     try {
       // [...]
     } catch(err) {
@@ -90,41 +95,4 @@ const Game = {
 };
 ```
 
-For more information, check the source or the latest [typescript d.ts file](https://unpkg.com/zig-js/libzig.d.ts).
-
-
-
-
-
-# Integration flow for different scenarios
-
-## Loading the game
-
-If you integrate a game, a new iframe will be created for you and messages listeners will
-be set up to communicate with this iframe. The following communication will take place:
-
-* The integration may ask for the players account balance
-* The integration waits for the game to load
-* Once the game loads, it will tell the webpage to show a layer
-
-## Starting a normal game
-
-* The webpage tells the integration to start a game.
-* The integration will ask for the players account balance
-* The integration will ask the webpage to allow game play  
-* If everything is fine, the integration will tell the game to fetch a ticket
-* It will tell the webpage to hide the layer
-* The integration will wait for the game to finish.
-* It might tell the webpage to update the players account balance from time to time.
-* The integration will tell the game to show the layer again 
-
-## Start an "in game buy" game
-
-* The webpage tells the integration to start a game
-* The webpage will hide the overlay
-  * The integration will wait for the player to start a game.
-  * The integration will check balance and ask the webpage
-    if everything is fine.
-  * It will ask for permission
-  * It will tell the game to buy a ticket
-  * Once the game finishes, it will start again with this process.
+If you want to 
