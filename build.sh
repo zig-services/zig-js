@@ -15,9 +15,11 @@ fi
 
 rm -rf dist
 
-# Build the modules and put them under ./dist
+# Transpile the javascript source
+node_modules/.bin/tsc
+
+# Build the bundles and put them under ./dist
 node_modules/.bin/webpack --mode production --progress
-rm -rf dist/typings
 
 # copy files for npm to output directory
 cp package.json dist/
