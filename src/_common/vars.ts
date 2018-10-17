@@ -2,5 +2,5 @@
 declare const VERSION: string;
 declare const BUILDTIME: number;
 
-export const clientVersion: string = VERSION || 'unknown';
-export const buildTime: number = BUILDTIME || -1;
+export const clientVersion: string = typeof VERSION !== "undefined" && VERSION || 'unknown';
+export const buildTime: number = typeof BUILDTIME !== "undefined" && BUILDTIME || -1;

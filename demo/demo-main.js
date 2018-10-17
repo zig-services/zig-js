@@ -1,16 +1,32 @@
-const bootTime = Date.now();
-
-// pick config from URL
-const url = new URL(location.href);
-const gameName = url.searchParams.get("game") || "dickehose";
-const gameUrl = url.searchParams.get("url") || `https://mylotto24.frontend.zig.services/${gameName}/latest/tipp24_com/game/outer.html`;
-const gameData = GameDataObjects[gameName] || {};
-
 // enable logging locally
 enableZigLogging();
 
 async function sleep(ms) {
   await new Promise(resolve => setTimeout(resolve, ms));
+}
+
+function parseIntegrationConfiguration() {
+  // pick config from URL
+  const url = new URL(location.href);
+
+  // first check the demoConfig parameter
+  const encoded = url.searchParams.get("demoConfig");
+  if (encoded) {
+    const demoConfig = JSON.parse(encoded);
+    const gameName = demoConfig.name || "yourgame";
+    const gameUrl = demoConfig.url || `https://mylotto24.frontend.zig.services/${gameName}/latest/tipp24_com/game/outer.html`;
+
+    return {
+      gameName, gameUrl,
+      gameData: demoConfig.data,
+    }
+  }
+
+  // use game/url parameters from URL.
+  const gameName = url.searchParams.get("game") || "dickehose";
+  const gameUrl = url.searchParams.get("url") || `https://mylotto24.frontend.zig.services/${gameName}/latest/tipp24_com/game/outer.html`;
+  const gameData = GameDataObjects[gameName] || {};
+  return {gameName, gameUrl, gameData};
 }
 
 function logEvent(prefix, event, textColor) {
@@ -26,6 +42,9 @@ function logEvent(prefix, event, textColor) {
 
 // expose on window
 Object.assign(window, ZIG);
+
+const bootTime = Date.now();
+const {gameName, gameUrl, gameData} = parseIntegrationConfiguration();
 
 class DemoConnector extends Connector {
   constructor(vm) {
@@ -232,7 +251,7 @@ window.onload = async () => {
       },
 
       updateUrl(update) {
-        const copy = new URL(url.toString());
+        const copy = new URL(location.href);
 
         for (let key in update) {
           if (update.hasOwnProperty(key)) {
