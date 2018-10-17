@@ -27,16 +27,24 @@ import {Zig} from "zig-js/zig/zig";
 
 Once the game has finished loading all assets and is ready to start, you can signal
 this by sending a `gameLoaded` message to the parent frame. To simplify things the
-ZIG client exposes a `Messages` object (of type `GameMessageInterface`).
+ZIG client exposes a `Messages` object (of type `GameMessageInterface`). Only use the
+`Zig.Client` instance if `Zig.ready()`. 
 
 ```js
-// tell parent frame, that the game finished loading
-Zig.Client.Messages.gameLoaded();
+window.onload = async () => {
+  await loadGame();
+    
+  // wait for Zig.Client to initialize. Only use Client after this
+  await Zig.ready();
+    
+  // tell parent frame, that the game finished loading
+  Zig.Client.Messages.gameLoaded();
+};
 ```
 
 The parent frame now sends a `playGame` or `playDemoGame` message back to the game.
 To listen for events the `Messages` object exposes a `registerGeneric` method. Simply
-pass an object containing event handlers with the messagetypes as keys. 
+pass an object containing event handlers with the message types as keys. 
 
 ```js
 // wait for the player to start the game
