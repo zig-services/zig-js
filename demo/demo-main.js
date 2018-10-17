@@ -3,6 +3,7 @@ const bootTime = Date.now();
 // pick config from URL
 const url = new URL(location.href);
 const gameName = url.searchParams.get("game") || "dickehose";
+const gameUrl = url.searchParams.get("url") || `https://mylotto24.frontend.zig.services/${gameName}/latest/tipp24_com/game/outer.html`;
 const gameData = GameDataObjects[gameName] || {};
 
 // enable logging locally
@@ -182,7 +183,7 @@ window.onload = async () => {
 
         const game = ZIG.installGame({
           container: container,
-          url: `https://mylotto24.frontend.zig.services/${gameName}/latest/tipp24_com/game/outer.html`,
+          url: gameUrl,
           gameConfig: gameConfig,
           connector: new DemoConnector(this),
         });

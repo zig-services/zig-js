@@ -65,15 +65,18 @@ const GameDataObjects = {
 };
 
 function responseTicket(data) {
+  const scenario = data.scenario || {};
   const winningsInMinor = data.winningsInMinor || 0;
+  const betFactor = data.betFactor || 1;
+
   return {
     id: -1,
     externalId: "demogame:00000",
     ticketNumber: null,
-    scenario: btoa(JSON.stringify(data.scenario)),
-    betFactor: data.betFactor || 1,
+    scenario: btoa(JSON.stringify(scenario)),
+    betFactor: betFactor,
     winningClass: {
-      number: data.winningsInMinor || 0,
+      number: winningsInMinor,
       numberOfTickets: -1,
       winningsType: data.winningsInMinor ? "CashPrize" : "NoWinnings",
       winnings: {
