@@ -58,6 +58,11 @@ export interface ZigClient {
     buyTicket(payload?: any, options?: BuyTicketOptions): Promise<Ticket>;
 
     /**
+     * Put a basket into the webshops ticket.
+     */
+    buyBasketTickets(items: BasketItem[]): Promise<void>;
+
+    /**
      * Request a demo ticket. See buyTicket for more information about the parameters.
      * This method will also send a gameStarted message to the parent frame.
      */
@@ -123,9 +128,11 @@ export class ZigClientImpl implements ZigClient {
      *
      * @param items Items that should be added to the basket.
      */
-    public async buyBasketTickets(items: BasketItem[] = []) {
+    public async buyBasketTickets(items: BasketItem[]): Promise<void> {
         return this.propagateErrors(async () => {
-            await this.request<any>('POST', `/zig/games/${this.gameConfig.canonicalGameName}/tickets:basket`, items, {'Content-Type': 'application/json'});
+            await this.request<any>('POST',
+                `/zig/games/${this.gameConfig.canonicalGameName}/tickets:basket`,
+                items, {'Content-Type': 'application/json'});
 
             if (this.gameConfig.basketPurchaseRedirect != null) {
                 this.Messages.gotoUrl(this.gameConfig.basketPurchaseRedirect);
