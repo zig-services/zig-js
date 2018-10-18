@@ -146,6 +146,8 @@ window.onload = async () => {
       error: null,
       resolveErrorPromise: null,
 
+      small: true,
+
       demoState: {
         balance: 5000,
         ticketPrice: 150,
@@ -166,6 +168,8 @@ window.onload = async () => {
     },
 
     mounted() {
+      this.small = !/fullSize=true/.test(location.href);
+
       // restore demo state if available
       const previousState = localStorage.getItem("demoState");
       if (previousState) {

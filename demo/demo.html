@@ -22,17 +22,23 @@
 
         .game-wrapper {
             position: relative;
-            max-width: 40em;
             margin: 2em auto;
-            overflow: hidden;
         }
 
         .game-container {
             border: 2px solid red;
-            max-height: 30em;
-            overflow: auto;
             background: #fee;
             text-align: center;
+        }
+
+        .game-wrapper--small {
+            max-width: 40em;
+            overflow: hidden;
+        }
+
+        .game-container--small {
+            max-height: 30em;
+            overflow: auto;
         }
 
         .game-defer {
@@ -113,8 +119,8 @@
         <button @click="updateUrl({game: 'kenow'})">keno live</button>
     </div>
 
-    <div class="game-wrapper">
-        <div ref="gameContainer" class="game-container">
+    <div class="game-wrapper" :class='{"game-wrapper--small": small}'>
+        <div ref="gameContainer" class="game-container" :class='{"game-container--small": small}'>
             <button class="game-defer" @click="loadGame()" v-if="game == null">Load game</button>
         </div>
 
