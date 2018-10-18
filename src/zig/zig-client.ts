@@ -11,8 +11,11 @@ export interface BasketItem {
     // game name, e.g. bingo
     canonicalGameName: string
 
+    // Für must be >= 1
+    betFactor?: number
+
     // must be >= 1
-    betFactor: number
+    quantity?: number;
 
     // additional game input for sofortlotto or kenow encoded as bas64
     gameInput?: string
