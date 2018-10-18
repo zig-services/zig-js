@@ -81,8 +81,6 @@ function XMLHttpRequestUsingMessageClient() {
                     url = url.replace(/^\.\.\//, './');
                 }
 
-                url = url.replace(/de.json$/, "en.json");
-
                 const needsIntercept = new RegExp('^(?:https?://[^/]+)?(/product/iwg/|/iwg/)').test(url);
                 if (needsIntercept) {
                     log.info(`Intercepting xhr request: ${method} ${url}`);
