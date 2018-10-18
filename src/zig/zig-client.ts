@@ -11,7 +11,7 @@ export interface BasketItem {
     // game name, e.g. bingo
     canonicalGameName: string
 
-    // Für must be >= 1
+    // must be >= 1
     betFactor?: number
 
     // must be >= 1
