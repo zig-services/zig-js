@@ -62,6 +62,10 @@ export interface Ticket {
 
     // the tickets scenario coded as base64.
     scenario: string;
+
+    // the decoded scenario object or undefined if the scenario
+    // field could not be decoded.
+    decodedScenario?: any;
 }
 
 export interface WinningClass {

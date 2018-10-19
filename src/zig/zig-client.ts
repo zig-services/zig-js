@@ -122,7 +122,7 @@ export class ZigClientImpl implements ZigClient {
             const ticket = await this.request<Ticket>('POST', url, payload);
 
             this.sendGameStartedEvent(options, ticket);
-            return ticket;
+            return decodeTicket(ticket);
         });
     }
 
@@ -162,7 +162,7 @@ export class ZigClientImpl implements ZigClient {
             const ticket = await this.request<Ticket>('POST', url, payload);
 
             this.sendGameStartedEvent(options, ticket);
-            return ticket;
+            return decodeTicket(ticket);
         });
     }
 
@@ -288,4 +288,13 @@ function guessQuantity(payload: any | undefined): number {
     }
 
     return 1;
+}
+
+function decodeTicket(ticket: Ticket): Ticket {
+    if (ticket.scenario != null && ticket.scenario.length) {
+        const json = btoa(ticket.scenario);
+        ticket.decodedScenario = JSON.parse(json);
+    }
+
+    return ticket;
 }
