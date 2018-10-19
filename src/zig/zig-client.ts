@@ -292,7 +292,7 @@ function guessQuantity(payload: any | undefined): number {
 
 function decodeTicket(ticket: Ticket): Ticket {
     if (ticket.scenario != null && ticket.scenario.length) {
-        const json = btoa(ticket.scenario);
+        const json = atob(ticket.scenario);
         ticket.decodedScenario = JSON.parse(json);
     }
 
