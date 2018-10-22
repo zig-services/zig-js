@@ -143,8 +143,11 @@ function XMLHttpRequestUsingMessageClient() {
                                 const [_, betFactor] = match;
                                 log.info(`Found betFactor=${betFactor} in body, adding to URL.`);
 
-                                const sep = req.path.indexOf("?") ? "&" : "?";
+                                const sep = req.path.indexOf("?") === -1 ? "?" : "&";
                                 req.path += `${sep}betFactor=${betFactor}`;
+
+                                // clear body
+                                arg = null;
                             }
                         }
 
