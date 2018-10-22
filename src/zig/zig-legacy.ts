@@ -137,6 +137,17 @@ function XMLHttpRequestUsingMessageClient() {
                             throw new Error('request not set.');
                         }
 
+                        if (typeof arg === "string") {
+                            const match = arg.match(/^betFactor=([0-9]+)$/);
+                            if(match) {
+                                const [_, betFactor] = match;
+                                log.info(`Found betFactor=${betFactor} in body, adding to URL.`);
+
+                                const sep = req.path.indexOf("?") ? "&" : "?";
+                                req.path += `${sep}betFactor=${betFactor}`;
+                            }
+                        }
+
                         req.body = arg;
 
                         log.info('Executing intercepted xhr request: ', req);
