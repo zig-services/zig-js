@@ -84,7 +84,7 @@ export interface UIState {
 /**
  * Throw this instance to cancel the current request/response.
  */
-export const CANCELED = {'cancel': true};
+export const CANCELED = Object.freeze({'cancel': true});
 
 export abstract class Connector {
     protected readonly logger: Logger = Logger.get('zig.Connector');

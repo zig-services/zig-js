@@ -22,11 +22,16 @@ interface Scaling {
     quantity: number;
 }
 
-class Order {
+type InitGame = (scaling: Scaling) => Promise<void>
+
+/**
+ * Holds all information about the costs of a ticket.
+ */
+class TicketPrice {
     constructor(
         readonly baseNormalTicketPrice: MoneyAmount,
         readonly baseDiscountedTicketPrice: MoneyAmount,
-        readonly betFactor: number = 1, readonly quantity: number = 1) {
+        readonly betFactor: number, readonly quantity: number) {
     }
 
     /**
@@ -79,14 +84,6 @@ export class Game {
         this.updateUIState(baseUIState);
 
         this.setupMessageHandlers();
-    }
-
-    private get uiState(): UIState {
-        if (!this._uiState) {
-            throw new Error('uiState not yet set.');
-        }
-
-        return this._uiState!;
     }
 
     private get gameSettings(): GameSettings {
@@ -142,7 +139,7 @@ export class Game {
             this._gameSettings = gameSettingsEvent.gameSettings;
 
             if (this.gameSettings.chromeless) {
-                this.logger.info('gameSettings.chromeless implies gameSettings.purcahseInGame');
+                this.logger.info('gameSettings.chromeless implies gameSettings.purchaseInGame');
                 this.gameSettings.purchaseInGame = true;
             }
 
@@ -160,8 +157,13 @@ export class Game {
 
             // verify the inGamePurchase flag on the gameLoaded event.
             if (gameLoadedEvent.inGamePurchase !== undefined) {
-                if ((this.gameSettings.purchaseInGame === true) !== gameLoadedEvent.inGamePurchase) {
-                    throw new Error('purchaseInGame does not match inGamePurchase flag in gameLoaded event');
+                if (this.gameSettings.purchaseInGame !== undefined) {
+                    if (this.gameSettings.purchaseInGame != gameLoadedEvent.inGamePurchase) {
+                        throw new Error('purchaseInGame does not match inGamePurchase flag in gameLoaded event');
+                    }
+                } else {
+                    // take value from game loaded event.
+                    this.gameSettings.purchaseInGame = gameLoadedEvent.inGamePurchase;
                 }
             }
 
@@ -178,7 +180,8 @@ export class Game {
             this.resetUIState(customerState);
 
             if (this.gameSettings.chromeless) {
-                this.startChromelessGameLoop();
+                // spawn the gameloop in background
+                void this.startChromelessGameLoop();
             }
 
             return 'success';
@@ -186,8 +189,8 @@ export class Game {
     }
 
     public async playGame(): Promise<GameResult> {
-        return this.play(false, async () => {
-            await this.verifyPreConditions({quantity: 1, betFactor: 1});
+        return this.play(false, async scaling => {
+            await this.verifyPreConditions(scaling);
 
             this.logger.info('Tell the game to buy a ticket');
             this.gameWindow.interface.playGame();
@@ -201,29 +204,31 @@ export class Game {
         });
     }
 
-    private async play(demoGame: boolean, initGame: () => Promise<void>): Promise<GameResult> {
+    private async play(demoGame: boolean, initGame: InitGame): Promise<GameResult> {
         // disable the button to prevent double click issues-
         this.updateUIState({enabled: false, isFreeGame: demoGame});
 
         return this.flow(async (): Promise<GameResult> => {
             if (this.gameSettings.purchaseInGame) {
-                return this.handleInGameBuyGameFlow(demoGame, initGame);
+                return this.handlePurchaseInGameGameFlow(demoGame, initGame);
+            } else {
+                return this.handleSingleRoundGameFlow(initGame);
             }
-
-            await initGame();
-
-            // hide ui
-            this.updateUIState({buttonType: 'none'});
-
-            if (this.allowFullscreen) {
-                this.fullscreenService.enable();
-            }
-
-            return this.handleNormalGameFlow();
         });
     }
 
-    private async handleNormalGameFlow(): Promise<GameResult> {
+    private async handleSingleRoundGameFlow(initGame: InitGame): Promise<GameResult> {
+        // always run with a unity quantity
+        await initGame({quantity: 1, betFactor: 1});
+
+        // hide ui
+        this.updateUIState({buttonType: 'none'});
+
+        // goto fullscreen
+        if (this.allowFullscreen) {
+            this.fullscreenService.enable();
+        }
+
         this.logger.info('Wait for game to start...');
         const gameStartedEvent = await this.interface.waitForGameEvent('gameStarted');
         this.connector.onGameStarted(gameStartedEvent);
@@ -238,7 +243,7 @@ export class Game {
         return 'success';
     }
 
-    private async handleInGameBuyGameFlow(demoGame: boolean, initGame: () => Promise<void>): Promise<GameResult> {
+    private async handlePurchaseInGameGameFlow(demoGame: boolean, initGame: InitGame): Promise<GameResult> {
         // hide ui
         this.updateUIState({buttonType: 'none'});
 
@@ -247,33 +252,61 @@ export class Game {
             this.fullscreenService.enable();
         }
 
-        // jump directly into the game.
-        this.logger.info('Set the game into prepare mode');
-        this.gameWindow.interface.prepareGame(demoGame);
+        // check if the customer has an unplayed ticket he wants to resume
+        const state = await this.connector.fetchCustomerState();
+        let requirePrepareGame: boolean = !state.loggedIn || !state.unplayedTicketInfos
+            || state.unplayedTicketInfos.length === 0;
 
-        this.logger.info('Wait for player to start a game');
+        if (requirePrepareGame) {
+            // jump directly into the game.
+            this.logger.info('Set the game into prepare mode');
+            this.gameWindow.interface.prepareGame(demoGame);
 
+            this.logger.info('Wait for player to start a game');
+        }
+
+        // Need to keep the options around. After getting a ticketPriceChanged method with
+        // a quantity, it is possible for the game to send one or more extra ticketPriceChanged
+        // events before we need it when the game sends a requestStartGame request.
         const gameScaling: Scaling = {quantity: 1, betFactor: 1};
+
         do {
-            const event = await this.interface.waitForGameEvents('buy', 'requestStartGame', 'ticketPriceChanged', 'gameFinished');
-            if (event.gameFinished) {
-                return 'success';
+            if (requirePrepareGame) {
+                const event = await this.interface.waitForGameEvents('buy', 'requestStartGame', 'ticketPriceChanged', 'gameFinished');
+                if (event.gameFinished) {
+                    return 'success';
+                }
+
+                if (event.ticketPriceChanged) {
+                    gameScaling.quantity = event.ticketPriceChanged.rowCount;
+                    gameScaling.betFactor = 1;
+                    continue;
+                }
+
+                if (event.buy) {
+                    gameScaling.quantity = 1;
+                    gameScaling.betFactor = event.buy.betFactor || 1;
+                }
             }
 
-            if (event.ticketPriceChanged) {
-                gameScaling.quantity = event.ticketPriceChanged.rowCount;
-                gameScaling.betFactor = 1;
-                continue;
-            }
+            // even if we dont require to prepare the game in the first loop
+            // and we don't need to wait for the customer to start the game,
+            // we require it for the second loop
+            requirePrepareGame = true;
 
-            if (event.buy) {
-                gameScaling.quantity = 1;
-                gameScaling.betFactor = event.buy.betFactor || 1;
-            }
+            try {
+                this.logger.info(`Call initGame(quantity=${gameScaling.quantity}, bet-factor=${gameScaling.betFactor}) now`);
 
-            // verify if customer is allowed to play
-            // and start the game inside the frame
-            await initGame();
+                // verify if customer is allowed to play
+                // and start the game inside the frame
+                await initGame(gameScaling);
+
+            } catch (err) {
+                this.logger.info('Cancel game preparations');
+                this.interface.cancelRequestStartGame();
+
+                throw err;
+            }
 
             this.logger.info('Wait for game to start...');
             const gameStartedEvent = await this.interface.waitForGameEvent('gameStarted');
@@ -291,9 +324,10 @@ export class Game {
 
 
     /**
-     * Validate that the customer
+     * Validate that the customer. If the customer is not allowed to
+     * play or has not enought money this method will throw an exception.
      */
-    private async verifyPreConditions(scaling: Scaling): Promise<Order> {
+    private async verifyPreConditions(scaling: Scaling): Promise<void> {
         const customerState = await this.connector.fetchCustomerState();
 
         this.logger.info('Check if the customer is logged in');
@@ -301,7 +335,7 @@ export class Game {
             throw CANCELED;
         }
 
-        const order = makeOrder(scaling, customerState, this.config.ticketPrice);
+        const order = calculateTicketPrice(scaling, customerState, this.config.ticketPrice);
 
         const isFreeGame = customerState.unplayedTicketInfos != null || MoneyAmount.isNotZero(customerState.voucher);
         if (!isFreeGame) {
@@ -317,8 +351,6 @@ export class Game {
                 throw CANCELED;
             }
         }
-
-        return order;
     }
 
     /**
@@ -367,10 +399,12 @@ export class Game {
             // and publish it
             this.connector.updateUIState(TsDeepCopy(uiState), this);
         } catch (err) {
-            this.logger.warn('Ignoring error when updating iu state:', err);
+            this.logger.warn('Ignoring error when updating ui state:', err);
         }
     }
 
+    resetUIState(customerState: CustomerState): void
+    async resetUIState(): Promise<void>
     async resetUIState(customerState?: CustomerState): Promise<void> {
         if (customerState == null) {
             customerState = await this.connector.fetchCustomerState();
@@ -431,7 +465,7 @@ export class Game {
     }
 }
 
-function makeOrder(scaling: Scaling, customerState: BaseCustomerState, baseTicketPrice: IMoneyAmount): Order {
+function calculateTicketPrice(scaling: Scaling, customerState: BaseCustomerState, baseTicketPrice: IMoneyAmount): TicketPrice {
     let baseNormalTicketPrice = MoneyAmount.of(baseTicketPrice);
     let baseDiscountedTicketPrice = MoneyAmount.of(baseTicketPrice);
 
@@ -441,5 +475,5 @@ function makeOrder(scaling: Scaling, customerState: BaseCustomerState, baseTicke
         baseDiscountedTicketPrice = MoneyAmount.of(p.discountedTicketPrice);
     }
 
-    return new Order(baseNormalTicketPrice, baseDiscountedTicketPrice, scaling.betFactor, scaling.quantity);
+    return new TicketPrice(baseNormalTicketPrice, baseDiscountedTicketPrice, scaling.betFactor, scaling.quantity);
 }

@@ -8,8 +8,6 @@ export interface Request {
     path: string;
     headers: { [key: string]: string };
     body: string | null;
-
-    extraSettings?: Partial<XMLHttpRequest>;
 }
 
 export interface Response {
@@ -66,17 +64,6 @@ export async function executeRequest(req: Request): Promise<Result> {
         log.debug(`Add request header ${key}: ${value}`);
         xhr.setRequestHeader(key, value);
     });
-
-    // copy extra properties.
-    const extraSettings = req.extraSettings || {};
-    if (extraSettings != null) {
-        Object.keys(extraSettings).forEach((key: string) => {
-            const setting = extraSettings[key as keyof XMLHttpRequest];
-
-            log.debug(`Add request property ${key}: ${setting}`);
-            (xhr as any)[key] = setting;
-        });
-    }
 
     // set the x-csrf header based on the cookie value.
     const match = /X-CSRF-TOKEN=([^;]+)/.exec(document.cookie || '');
