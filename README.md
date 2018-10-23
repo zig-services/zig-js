@@ -200,7 +200,7 @@ stake selection screen again.
 ```js
 Zig.Client.Messages.registerGeneric({
   // [...]
-  cancelRequestStartGame () {
+  cancelRequestStartGame() {
     // call your game to show/enable the stake selector.
     YourGame.showStakeSelector();
   },

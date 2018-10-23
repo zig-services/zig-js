@@ -622,7 +622,11 @@ export class ParentMessageInterface extends MessageFactory {
     }
 
     public cancelRequestStartGame() {
-        this.send<CancelGameStartRequestMessage>({command: 'cancelRequestStartGame', game: this.game});
+        if (this.legacyGame) {
+            this.commandSend('cancelRequestStartGame');
+        } else {
+            this.send<CancelGameStartRequestMessage>({command: 'cancelRequestStartGame', game: this.game});
+        }
     }
 
     public xhrResult(result: WithCID<Result>) {
