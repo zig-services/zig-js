@@ -155,7 +155,7 @@ Zig.Client.Messages.registerGeneric({
   prepareGame(event) {
     // call your game to show/enable the stake selector.
     YourGame.showStakeSelector(event.demo);
-  }
+  },
 });
 ```
 
@@ -187,6 +187,25 @@ await Zig.Client.buyTicket(null, {betFactor: YourGame.selectedStake})
 After settling the ticket using `settleTicket`, you jump back to the stake selection
 screen without sending a `gameFinished` message. You only send a `gameFinished`
 message you want to leave your game using a special *homescreen* button.
+
+**Resume unplayed game** In case that the user has an unplayed ticket, the integration will
+not call `prepareGame` but call `playGame` directly. In that case you can go ahead
+with requesting a ticket by calling `Zig.Client.buyTicket` without any extra paramters.
+
+**Cancel buy request** After sending a `buy` message to the parent, the customer might choose
+to cancel the game or may not have enought money to play the game with the selected stake.
+In that case a `cancelRequestStartGame` will be send to the game. You can then show the
+stake selection screen again.
+
+```js
+Zig.Client.Messages.registerGeneric({
+  // [...]
+  cancelRequestStartGame () {
+    // call your game to show/enable the stake selector.
+    YourGame.showStakeSelector();
+  },
+});
+```
 
 
 ### Error handling
