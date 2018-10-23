@@ -57,6 +57,13 @@ window.onload = async () => {
 
 ### Single round games
 
+The flow for a single round game is described [in this diagram](https://mermaidjs.github.io/mermaid-live-editor/#/view/eyJjb2RlIjoiZ3JhcGggVERcblxuUkVBRFlbXCJhd2FpdCBaaWcucmVhZHkoKVwiXVxuUkVHSVNURVJbXCJyZWdpc3RlckdlbmVyaWMoKVwiXVxuRVhJVFtcImZpbmlzaEdhbWUoKVwiXVxuVElDS0VUW1wiYXdhaXQgYnV5VGlja2V0KClcIl1cblNFVFRMRVtcImF3YWl0IHNldHRsZVRpY2tldCgpXCJdXG5cblJFQURZIC0tPiBSRUdJU1RFUlxuVElDS0VUIC0tPiBTRVRUTEVcblJFR0lTVEVSIC0uLT4gfHBsYXlHYW1lfCBUSUNLRVRcblNFVFRMRSAtLT4gRVhJVFxuRVhJVCAtLi0-IHxwbGF5R2FtZXwgVElDS0VUIiwibWVybWFpZCI6eyJ0aGVtZSI6ImRlZmF1bHQifX0).
+<!--
+If you want to change the diagram,
+replace /view/ with /edit/ in the url above to edit the image.
+-->
+
+
 Once the customer decides between a real game for money or a free demo game
 the parent frame sends a `playGame` or `playDemoGame` message back to the game.
 To listen for those events the `Messages` object exposes a `registerGeneric` method.
@@ -133,7 +140,13 @@ For more information see [error handling](#error-handling) section.
 ### In-game start-button and variable stakes
 
 If the game supports variable stakes and an in-game start-button, the order of operations
-slightly differs. First you need to tell the parent page that your game handles
+slightly differs. You can see the complete game flow [in this diagram](https://mermaidjs.github.io/mermaid-live-editor/#/view/eyJjb2RlIjoiZ3JhcGggVERcblxuUkVBRFlbXCJhd2FpdCBaaWcucmVhZHkoKVwiXVxuUkVHSVNURVJbXCJyZWdpc3RlckdlbmVyaWMoKVwiXVxuU0VMe1wic3Rha2Ugc2VsZWN0aW9uXCJ9XG5FWElUW1wiZmluaXNoR2FtZSgpXCJdXG5CVVlbXCJidXkoKVwiXVxuVElDS0VUW1wiYXdhaXQgYnV5VGlja2V0KClcIl1cblNFVFRMRVtcImF3YWl0IHNldHRsZVRpY2tldCgpXCJdXG5cblJFQURZIC0tPiBSRUdJU1RFUlxuUkVHSVNURVIgLS4tPiB8cHJlcGFyZUdhbWV8IFNFTFxuU0VMIC0tPiB8c3RhcnQgY2xpY2tlZHwgQlVZXG5USUNLRVQgLS0-IFNFVFRMRVxuU0VUVExFIC0tPiBTRUxcblNFTCAtLT58aG9tZSBidXR0b258IEVYSVRcbkJVWSAtLi0-IHxwbGF5R2FtZXwgVElDS0VUXG5CVVkgLS4tPiB8Y2FuY2VsUmVxdWVzdFN0YXJ0R2FtZXwgU0VMXG5cblJFR0lTVEVSIC0uLT4gfHBsYXlHYW1lfCBUSUNLRVQiLCJtZXJtYWlkIjp7InRoZW1lIjoiZGVmYXVsdCJ9fQ).
+<!--
+If you want to change the diagram,
+replace /view/ with /edit/ in the url above to edit the image.
+-->
+
+First you need to tell the parent page that your game handles
 this so called _in game purchase flow_. You do this by passing `true` to the
 `gameLoaded()` call as described above.
 
