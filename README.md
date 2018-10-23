@@ -1,12 +1,10 @@
 # zig-js
 
-## Embedding ZIG into your game
-
-Embedding the ZIG client into your game is easy.
+Embedding the ZIG client into your game or integrating games into your page is easy.
 
 The library is available as an [npm package](https://www.npmjs.com/package/zig-js).
 Install it and add it to your `package.json` using `npm install --save zig-js`.
-You can then import the library and access the zig clients functionality.
+You can then import the library and access the zig functionality.
 
 The examples in this document make heavy use of `async`/`await` to handle promises.
 `await x(); y()` is similar to `x().then(() => y())`.
@@ -14,8 +12,10 @@ If you also want to use `async`/`await` in your code, you might need to relay on
 *typescript* or *babel* to transpile those new keywords to ECMAScript 5 syntax.
 More information to [async function on MDN](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/await).
 
-For a quick start on how to include the `zig-js` library using webpack, see
-our [example project](https://github.com/zig-services/example-game/blob/master/README.md)
+## Embedding ZIG into your game
+
+For a quick start on how to include the `zig-js` library in a gam eproject using webpack,
+see our [example project](https://github.com/zig-services/example-game/blob/master/README.md)
 on github. The project also includes information on how to test your game integration
 locally.
 
@@ -237,6 +237,128 @@ try {
 }
 ```
 
+## Integrating games into your platform
+
+Integrating zig games into your platform is also easy. We provide you with a simple
+javascript library that does most of the integration work for you. You only need to
+implement a `Connector` class to provide some information about the current
+customer state to the game as well as handle the customer integration. If the user is
+signed in, the customer state includes a `loggedIn: true` flag as well as the current
+customers balance.
+
+After including the libray into your frontend code, you can create a subclass of the
+`Connector` class. The only method that is required to implement is the
+`fetchCustomerState` method that returns a promise returning the customer state.
+
+```js
+import {Connector, CustomerState} from 'zig-js/integration/connector';
+import {MoneyAmount} from 'zig-js/integration/_common/domain';
+
+class YourConnector extends Connector {
+  async fetchCustomerState() {
+    // fetch the data from your backend
+    const yourCustomerState = await YourPlatform.customerState();
+    if (yourCustomerState.signedIn) {
+      // and return the state in the correct format
+      return {
+        loggedIn: true,
+        balance: MoneyAmount.of(
+          yourCustomerState.balanceInMinor,
+          yourCustomerState.balanceCurrency),
+      };
+    } else {
+      return {loggedIn: false};
+    }
+  }
+}
+```
+
+Having this class, you can now include the game into your platform. To do so, you
+need to define a target element, e.g. `<div id="zig-game"></div>` and call the
+`installGame` method with the games configuration. For the game `dickehose` it would
+look something like this:
+
+```js
+// use the frontend url that was provided to you by the zig service, e.g:
+const frontendUrl = "https://mylotto24.frontend.zig.services/dickehose/latest/tipp24_com/game/outer.html";
+
+window.onload = async () => {
+  const game = installGame({
+    connector: new YourConnector(),
+    container: document.getElementById('zig-game'),
+    url: frontendUrl,
+    gameConfig: {
+      canonicalGameName: 'dickehose',
+    },
+  });
+
+  // wait for the game to initialize and finish loading
+  await game.initialize();
+};
+```
+
+This will create the necessary markup and include the games frontend using an iframe.
+The game will now load on opening the page.
+
+To let the user interact with the game, you need to provide a control overlay.
+The overlay will include a button to start the game, show the ticket prize and might
+include another optional button to allow the customer to play a free ticket.
+
+To show this overlay, please implement the `updateUIState` method in your connector class.
+```js
+class YourConnector extends Connector {
+  updateUIState(state, game) {
+    YourOverlay.update(state, game);
+  }
+}
+```
+
+The most important type of the `state` parameter is the `buttonType` field. It contains
+a keyword describing the current state of the ui or the _main interaction_ component.
+The supported values of this field are:
+* `none` Do not show any user interface.
+* `login` The customer is not signed in. You might want to provide a button to let
+  the customer sign into your page.
+* `payin` The customer does not have enought balance to play the next round.
+* `buy` The customer can buy a ticket and play the game.
+* `play` For games supporting the in-game purchase flow clicking this button will
+  start the game and hide the ui.
+* `unplayed` The customer has an unplayed game and can resume the game now.
+* `voucher` The customer currently has a voucher and the next game will be free.
+
+The complete state looks like this:
+```ts
+export interface UIState {
+    // State of the main button that the ui shows.
+    // Use this as main indicator to decide how to render the UI.
+    // A type of 'none' should not render any UI.
+    buttonType: 'none' | 'login' | 'payin' | 'buy' | 'play' | 'unplayed' | 'voucher';
+
+    // If this is true you might offer a demo ticket to the customer.
+    allowFreeGame: boolean;
+
+    // The normal ticket price
+    normalTicketPrice: MoneyAmount;
+
+    // The discounted ticket price. Only set if there is a discount on the ticket.
+    discountedTicketPrice?: MoneyAmount;
+
+    // True if the ticket price can be adjusted by switching a bet factor in the game
+    ticketPriceIsVariable: boolean;
+
+    // Flags if the user is allowed to interact with the overlay
+    enabled: boolean;
+
+    // This field is set if the player can continue with an existing ticket.
+    unplayedTicketInfo?: UnplayedTicketInfo;
+
+    // True if the player is _currently_ playing a free demo game round.
+    isFreeGame: boolean;
+}
+```
+
+**TODO** This library will provide a basic user interface to simplify the
+integration of new games even more.
 
 ## Build and release this library
 
