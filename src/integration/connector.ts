@@ -58,7 +58,7 @@ export interface UIState {
     // State of the main button that the ui shows.
     // Use this as main indicator to decide how to render the UI.
     // A type of 'none' should not render any UI.
-    buttonType: 'none' | 'login' | 'payin' | 'buy' | 'play' | 'unplayed' | 'voucher';
+    buttonType: 'none' | 'loading' | 'login' | 'payin' | 'buy' | 'play' | 'unplayed' | 'voucher';
 
     // If this is true you might offer a demo ticket to the customer.
     allowFreeGame: boolean;

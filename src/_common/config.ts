@@ -14,6 +14,20 @@ export interface GameConfig {
     // Set this to true to enable a test stage mode. Defaults to false
     // if not set.
     isTestStage?: boolean;
+
+    // The users locale, e.g. en_GB, en_IE or de_DE.
+    locale?: string;
+
+    // The time zone that shall be used by the game. E.g. "Europe/Berlin".
+    timeZone?: string;
+
+    // The current time zone offset from UTC in millis.
+    //
+    timeZoneOffsetToUTCInMillis?: number;
+
+    // The offset between the clients time and the server time.
+    // Add this to Date.now() to get the current server time.
+    clientTimeOffsetInMillis?: number;
 }
 
 /**

@@ -124,6 +124,9 @@
             <button class="game-defer" @click="loadGame()" v-if="game == null">Load game</button>
         </div>
 
+        <div class="overlay" ref="overlayContainer"></div>
+
+        <!--
         <div class="overlay" v-if="uiState.buttonType !== 'none'">
             <div>
                 <input @click="demo()" :disabled="!uiState.enabled" v-if="uiState.allowFreeGame"
@@ -156,6 +159,7 @@
                     Actual ticket price: {{ uiState.discountedTicketPrice|money }}</div>
             </div>
         </div>
+        -->
 
         <div @click="closeErrorDialog" v-if='error != null' class="error-overlay"></div>
 
@@ -180,6 +184,11 @@
         <label>
             <input type="checkbox" v-model="demoState.allowFullscreen">
             Allow fullscreen
+        </label>
+
+        <label>
+            <input type="checkbox" v-model="demoState.loggedIn">
+            Logged in
         </label>
 
         <label>

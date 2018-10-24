@@ -95,11 +95,14 @@ export type BundleTicketStatus = 'NOT_ACTIVATED' | 'ACTIVATABLE' | 'PLAYABLE' | 
 export class MoneyAmount implements IMoneyAmount {
     public readonly amountInMajor: number;
 
-    private constructor(
+    constructor(
         public readonly amountInMinor: number,
         public readonly currency: Currency) {
 
         this.amountInMajor = amountInMinor / 100;
+
+        // this object is immutable.
+        Object.freeze(this);
     }
 
     public scaled(factor: number): MoneyAmount {

@@ -47,9 +47,10 @@ const bootTime = Date.now();
 const {gameName, gameUrl, gameData} = parseIntegrationConfiguration();
 
 class DemoConnector extends Connector {
-  constructor(vm) {
+  constructor(vm, updateUIState) {
     super();
     this.vm = vm;
+    this._updateUIState = updateUIState;
   }
 
   async fetchCustomerState() {
@@ -61,16 +62,23 @@ class DemoConnector extends Connector {
       throw new Error("http connection failed.");
     }
 
+    const personalizedTicketPrice = {
+        normalTicketPrice: ZIG.MoneyAmount.of(demoState.ticketPrice, demoState.currency),
+        discountedTicketPrice: ZIG.MoneyAmount.of(demoState.ticketPrice - demoState.discount, demoState.currency),
+      };
+
+    if(!demoState.loggedIn) {
+      return {
+        loggedIn: false,
+        personalizedTicketPrice
+      }
+    }
+
     return {
       loggedIn: true,
       balance: ZIG.MoneyAmount.of(demoState.balance, demoState.currency),
-
       voucher: ZIG.MoneyAmount.of(demoState.voucher, demoState.currency),
-
-      personalizedTicketPrice: {
-        normalTicketPrice: ZIG.MoneyAmount.of(demoState.ticketPrice, demoState.currency),
-        discountedTicketPrice: ZIG.MoneyAmount.of(demoState.ticketPrice - demoState.discount, demoState.currency),
-      },
+      personalizedTicketPrice,
     };
   }
 
@@ -120,7 +128,8 @@ class DemoConnector extends Connector {
 
   updateUIState(state, game) {
     logEvent("UIState", state, "#008");
-    this.vm.uiState = state;
+    // this.vm.uiState = state;
+    this._updateUIState(state, game);
   }
 
   get allowFullscreen() {
@@ -149,6 +158,7 @@ window.onload = async () => {
       small: true,
 
       demoState: {
+        loggedIn: true,
         balance: 5000,
         ticketPrice: 150,
         discount: 0,
@@ -195,6 +205,8 @@ window.onload = async () => {
       },
 
       async loadGame() {
+        const updateUIState = ZIG.createOverlay(this.$refs.overlayContainer);
+
         const gameConfig = {
           canonicalGameName: gameName,
           overlay: false,
@@ -204,11 +216,14 @@ window.onload = async () => {
 
         const container = this.$refs.gameContainer;
 
+        // clear the container before adding the game
+        container.innerHTML = "";
+
         const game = ZIG.installGame({
           container: container,
           url: gameUrl,
           gameConfig: gameConfig,
-          connector: new DemoConnector(this),
+          connector: new DemoConnector(this, updateUIState),
         });
 
         // log all events.

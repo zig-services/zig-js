@@ -4,11 +4,11 @@ import {IError, IMoneyAmount, MoneyAmount} from '../_common/domain';
 import {MessageClient, ParentMessageInterface, toErrorValue} from '../_common/message-client';
 import {Logger} from '../_common/logging';
 import {registerRequestListener} from '../_common/request';
-import TsDeepCopy from 'ts-deepcopy';
 import {BaseCustomerState, CANCELED, Connector, CustomerState, UIState} from './connector';
 import {GameWindow} from './game-window';
 import {GameSettings} from '../_common/common';
 import {FullscreenService} from './fullscreen';
+import * as deepFreeze from 'deep-freeze';
 
 type GameResult = 'success' | 'failure' | 'canceled';
 
@@ -50,7 +50,7 @@ export class Game {
     private readonly fullscreenService: FullscreenService;
 
     // the ui state. Should not be modified directly, always use "updateUIState"
-    private _uiState?: UIState;
+    private _uiState?: Readonly<UIState>;
 
     // the game wants to use inGamePurchase
     private _gameSettings?: GameSettings;
@@ -76,7 +76,7 @@ export class Game {
             ticketPriceIsVariable: false,
             enabled: false,
             allowFreeGame: false,
-            buttonType: 'none',
+            buttonType: 'loading',
             normalTicketPrice: MoneyAmount.of(this.config.ticketPrice).scaled(0),
             isFreeGame: false,
         };
@@ -84,46 +84,6 @@ export class Game {
         this.updateUIState(baseUIState);
 
         this.setupMessageHandlers();
-    }
-
-    private get gameSettings(): GameSettings {
-        if (!this._gameSettings) {
-            throw new Error('gameSettings not yet set.');
-        }
-
-        return this._gameSettings!;
-    }
-
-    private setupMessageHandlers(): void {
-        registerRequestListener(this.gameWindow.interface, req => {
-            return this.connector.executeHttpRequest(req);
-        });
-    }
-
-    /**
-     * Get the message client to do some raw-communication with the backend.
-     */
-    public get rawMessageClient(): MessageClient {
-        return this.gameWindow.messageClient;
-    }
-
-    /**
-     * Access to the communications interface
-     */
-    private get interface(): ParentMessageInterface {
-        return this.gameWindow.interface;
-    }
-
-    /**
-     * Returns true if the service should try to jump into fullscreen mode.
-     */
-    private get allowFullscreen(): boolean {
-        if (this.gameSettings.chromeless) {
-            // never allow fullscreen for chromeless games.
-            return false;
-        }
-
-        return this.connector.allowFullscreen;
     }
 
     /**
@@ -186,6 +146,46 @@ export class Game {
 
             return 'success';
         }, false);
+    }
+
+    private get gameSettings(): GameSettings {
+        if (!this._gameSettings) {
+            throw new Error('gameSettings not yet set.');
+        }
+
+        return this._gameSettings!;
+    }
+
+    private setupMessageHandlers(): void {
+        registerRequestListener(this.gameWindow.interface, req => {
+            return this.connector.executeHttpRequest(req);
+        });
+    }
+
+    /**
+     * Get the message client to do some raw-communication with the backend.
+     */
+    public get rawMessageClient(): MessageClient {
+        return this.gameWindow.messageClient;
+    }
+
+    /**
+     * Access to the communications interface
+     */
+    private get interface(): ParentMessageInterface {
+        return this.gameWindow.interface;
+    }
+
+    /**
+     * Returns true if the service should try to jump into fullscreen mode.
+     */
+    private get allowFullscreen(): boolean {
+        if (this.gameSettings.chromeless) {
+            // never allow fullscreen for chromeless games.
+            return false;
+        }
+
+        return this.connector.allowFullscreen;
     }
 
     public async playGame(): Promise<GameResult> {
@@ -389,15 +389,17 @@ export class Game {
     }
 
     private updateUIState(override: Partial<UIState>): void {
-        // update local ui state
-        const uiState: UIState = TsDeepCopy(this._uiState as any || {});
-        Object.assign(uiState, override);
+        // update copy of previous UI state
+        const uiState: UIState = {...(this._uiState || {}), ...override} as UIState;
+
+        // freeze the UI state object recursively before publishing
+        deepFreeze(uiState);
 
         this._uiState = uiState;
 
         try {
             // and publish it
-            this.connector.updateUIState(TsDeepCopy(uiState), this);
+            this.connector.updateUIState(uiState, this);
         } catch (err) {
             this.logger.warn('Ignoring error when updating ui state:', err);
         }
