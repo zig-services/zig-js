@@ -329,36 +329,112 @@ The supported values of this field are:
 The complete state looks like this:
 ```ts
 export interface UIState {
-    // State of the main button that the ui shows.
-    // Use this as main indicator to decide how to render the UI.
-    // A type of 'none' should not render any UI.
-    buttonType: 'none' | 'login' | 'payin' | 'buy' | 'play' | 'unplayed' | 'voucher';
+  // State of the main button that the ui shows.
+  // Use this as main indicator to decide how to render the UI.
+  // A type of 'none' should not render any UI.
+  buttonType: 'none' | 'login' | 'payin' | 'buy' | 'play' | 'unplayed' | 'voucher';
 
-    // If this is true you might offer a demo ticket to the customer.
-    allowFreeGame: boolean;
+  // If this is true you might offer a demo ticket to the customer.
+  allowFreeGame: boolean;
 
-    // The normal ticket price
-    normalTicketPrice: MoneyAmount;
+  // The normal ticket price
+  normalTicketPrice: MoneyAmount;
 
-    // The discounted ticket price. Only set if there is a discount on the ticket.
-    discountedTicketPrice?: MoneyAmount;
+  // The discounted ticket price. Only set if there is a discount on the ticket.
+  discountedTicketPrice?: MoneyAmount;
 
-    // True if the ticket price can be adjusted by switching a bet factor in the game
-    ticketPriceIsVariable: boolean;
+  // True if the ticket price can be adjusted by switching a bet factor in the game
+  ticketPriceIsVariable: boolean;
 
-    // Flags if the user is allowed to interact with the overlay
-    enabled: boolean;
+  // Flags if the user is allowed to interact with the overlay
+  enabled: boolean;
 
-    // This field is set if the player can continue with an existing ticket.
-    unplayedTicketInfo?: UnplayedTicketInfo;
+  // This field is set if the player can continue with an existing ticket.
+  unplayedTicketInfo?: UnplayedTicketInfo;
 
-    // True if the player is _currently_ playing a free demo game round.
-    isFreeGame: boolean;
+  // True if the player is _currently_ playing a free demo game round.
+  isFreeGame: boolean;
 }
 ```
 
-**TODO** This library will provide a basic user interface to simplify the
-integration of new games even more.
+This library will provide a basic user interface to simplify the
+integration of new games even more. **TODO customization**
+
+A complete example on how to start a game looks like this:
+```html
+<!DOCTYPE>
+<html>
+<body>
+
+<style>
+  #zigContainer {
+    position: relative;
+    min-height: 10em;
+    background: #eee;
+  }
+
+  #overlayContainer {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+  }
+</style>
+
+<div id="zigContainer">
+  <div id="gameContainer"></div>
+  <div id="overlayContainer"></div>
+</div>
+
+<script src="https://lib.zig.services/zig/1-dev/libint.js"></script>
+
+<script defer>
+  class DemoConnector extends ZIG.Connector {
+    constructor(updateUIState) {
+      super();
+      this._updateUIState = updateUIState;
+    }
+
+    async fetchCustomerState() {
+      return {
+        loggedIn: true,
+        balance: ZIG.MoneyAmount.of(1000, "EUR"),
+      };
+    }
+
+    async showErrorDialog(error) {
+      alert(JSON.stringify(error, null, 2));
+    }
+
+    updateUIState(uiState, game) {
+      this._updateUIState(uiState, game);
+    }
+  }
+
+  window.onload = () => {
+    const updateUIState = ZIG.installOverlay(document.querySelector("#overlayContainer"));
+
+    const gameConfig = {
+      canonicalGameName: "dickehose",
+      isTestStage: true,
+    };
+
+    const game = ZIG.installGame({
+      container: document.querySelector("#gameContainer"),
+      url: "https://mylotto24.frontend.zig.services/dickehose/latest/tipp24_com/game/outer.html",
+      gameConfig: gameConfig,
+      connector: new DemoConnector(updateUIState),
+    });
+
+    game.initialize();
+  };
+</script>
+
+</body>
+</html>
+```
+
+
 
 ## Build and release this library
 
