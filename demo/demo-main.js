@@ -132,6 +132,11 @@ class DemoConnector extends Connector {
     this._updateUIState(state, game);
   }
 
+  async loginCustomer() {
+    this.vm.demoState.loggedIn = true;
+    return true;
+  }
+
   get allowFullscreen() {
     return !!this.vm.demoState.allowFullscreen;
   }
@@ -205,8 +210,6 @@ window.onload = async () => {
       },
 
       async loadGame() {
-        const updateUIState = ZIG.createOverlay(this.$refs.overlayContainer);
-
         const gameConfig = {
           canonicalGameName: gameName,
           overlay: false,
@@ -214,13 +217,11 @@ window.onload = async () => {
           remoteAccessToken: "dummy token",
         };
 
-        const container = this.$refs.gameContainer;
-
-        // clear the container before adding the game
-        container.innerHTML = "";
+        // add the overlay
+        const updateUIState = ZIG.installOverlay(this.$refs.overlayContainer);
 
         const game = ZIG.installGame({
-          container: container,
+          container: this.$refs.gameContainer,
           url: gameUrl,
           gameConfig: gameConfig,
           connector: new DemoConnector(this, updateUIState),

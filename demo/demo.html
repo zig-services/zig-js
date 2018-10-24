@@ -58,10 +58,10 @@
         }
 
         .overlay {
-            padding: 0.5em;
-            border: 1px solid #888;
-            background: rgba(200, 200, 200, 0.8);
-            width: 100%;
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
         }
 
         .error-overlay {
@@ -120,46 +120,12 @@
     </div>
 
     <div class="game-wrapper" :class='{"game-wrapper--small": small}'>
-        <div ref="gameContainer" class="game-container" :class='{"game-container--small": small}'>
+        <div class="game-container" :class='{"game-container--small": small}'>
             <button class="game-defer" @click="loadGame()" v-if="game == null">Load game</button>
+
+            <div ref="gameContainer"></div>
+            <div ref="overlayContainer" class="overlay"></div>
         </div>
-
-        <div class="overlay" ref="overlayContainer"></div>
-
-        <!--
-        <div class="overlay" v-if="uiState.buttonType !== 'none'">
-            <div>
-                <input @click="demo()" :disabled="!uiState.enabled" v-if="uiState.allowFreeGame"
-                       type="button" value="demo">
-
-                <input @click="login()" :disabled="!uiState.enabled" v-if="uiState.buttonType === 'login'"
-                       type="button" value="login">
-
-                <input @click="payin()" :disabled="!uiState.enabled" v-if="uiState.buttonType === 'payin'"
-                       type="button" value="pay in">
-
-                <input @click="play()" :disabled="!uiState.enabled" v-if="uiState.buttonType === 'buy'"
-                       type="button" value="buy ticket">
-
-                <input @click="play()" :disabled="!uiState.enabled" v-if="uiState.buttonType === 'play'"
-                       type="button" value="play">
-
-                <input @click="play()" :disabled="!uiState.enabled" v-if="uiState.buttonType === 'unplayed'"
-                       type="button" value="play unplayed">
-
-                <input @click="play()" :disabled="!uiState.enabled" v-if="uiState.buttonType === 'voucher'"
-                       type="button" value="voucher">
-            </div>
-
-            <div>
-                <div v-if="uiState.normalTicketPrice">
-                    Normal ticket price: {{ uiState.normalTicketPrice|money }}</div>
-
-                <div v-if="uiState.discountedTicketPrice">
-                    Actual ticket price: {{ uiState.discountedTicketPrice|money }}</div>
-            </div>
-        </div>
-        -->
 
         <div @click="closeErrorDialog" v-if='error != null' class="error-overlay"></div>
 

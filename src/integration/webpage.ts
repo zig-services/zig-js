@@ -324,14 +324,15 @@ export class Game {
 
 
     /**
-     * Validate that the customer. If the customer is not allowed to
-     * play or has not enought money this method will throw an exception.
+     * Validate that the customer can play a ticket. If the customer is not allowed
+     * to play or has not enought money this method will throw an exception.
      */
     private async verifyPreConditions(scaling: Scaling): Promise<void> {
         const customerState = await this.connector.fetchCustomerState();
 
         this.logger.info('Check if the customer is logged in');
         if (!customerState.loggedIn) {
+            await this.connector.loginCustomer();
             throw CANCELED;
         }
 

@@ -22,7 +22,6 @@ export interface GameConfig {
     timeZone?: string;
 
     // The current time zone offset from UTC in millis.
-    //
     timeZoneOffsetToUTCInMillis?: number;
 
     // The offset between the clients time and the server time.

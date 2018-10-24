@@ -54,12 +54,14 @@ const Price = Vue.component('ZigPrice', {
 
 const ZigAction = Vue.component('ZigAction', {
     template: `
-        <button @click="buttonClicked()" :classes="{'zig-action': true, 'zig-action--primary': primary}">{{ text }}</button>
+        <div class="zig-action-wrapper">
+            <button @click="buttonClicked()" :class="{'zig-action': true, 'zig-action--primary': primary}" v-html="text"></button>
+        </div>
     `,
 
     props: {
         primary: {
-            type: propertyType<boolean>(),
+            type: Boolean,
             required: false,
         },
 
@@ -80,15 +82,44 @@ const css: string = `
 .zig-overlay {
     display: flex;
     flex-direction: row;
+    flex-wrap: wrap;
+    
+    text-align: left;
+    
+    background: #eee;
 }
 
 .zig-overlay > * {
     display: block;
+    box-sizing: border-box;
 }
 
 .zig-overlay__demo-title {
     order: 0;
     flex-basis: 35%;
+}
+
+.zig-overlay__title {
+    padding-top: 1rem;
+    padding-left: 1rem;
+    padding-right: 1rem;
+    
+    font-size: 1.25rem;
+    line-height: 1.5rem;
+    font-weight: 700;
+}
+
+.zig-overlay__subtitle {
+    padding-top: 0.5rem;
+    padding-left: 1rem;
+    padding-right: 1rem;
+    
+    line-height: 1.25rem;
+}
+
+.zig-overlay__action {
+    padding-top: 1rem;
+    padding-bottom: 1rem;
 }
 
 .zig-overlay__demo-subtitle {
@@ -103,43 +134,102 @@ const css: string = `
 
 .zig-overlay__main-title {
     order: 1;
-    flex-grow: 1;
+    flex-basis: 65%;
+    border-left: 1px solid white;
 }
 
 .zig-overlay__main-subtitle {
     order: 3;
-    flex-grow: 1;
+    flex-basis: 65%;
+    border-left: 1px solid white;
 }
 
 .zig-overlay__main-action {
     order: 5;
-    flex-grow: 1;
+    flex-basis: 65%;
+    border-left: 1px solid white;
 }
 
+.zig-overlay__description {
+    order: 6;
+    flex-grow: 1;
+    padding: 1rem;
+    border-top: 1px solid white;
+}
+
+.zig-overlay .zig-action {
+    display: inline-block;
+    border: 1px solid #888;
+    border-radius: 0.5rem;
+    padding: 0.5rem;
+    background: #ddd;
+    line-height: 1.25rem;
+}
+
+.zig-overlay .zig-action--primary {
+    background: #8dde7a;
+    color: #555;
+}
+
+.zig-overlay .zig-action-wrapper {
+    display: inline-block;
+    padding-left: 1rem;
+    padding-right: 1rem; 
+}
+
+.zig-overlay .zig-hint {
+    display: inline-block;
+    color: white;
+    background: #555;
+    border-top: 1px solid #555;
+    border-bottom: 1px solid #555;
+    padding: 0.5rem 1rem;
+}
 `;
 
 Vue.component('ZigDemoTitle', {
-    template: `<div class="zig-overlay__demo-title"><slot>&nbsp;</slot></div>`,
+    template: `<div class="zig-overlay__title zig-overlay__demo-title"><slot>&nbsp;</slot></div>`,
 });
 
 Vue.component('ZigDemoSubtitle', {
-    template: `<div class="zig-overlay__demo-subtitle"><slot>&nbsp;</slot></div>`,
+    template: `<div class="zig-overlay__subtitle zig-overlay__demo-subtitle"><slot>&nbsp;</slot></div>`,
 });
 
 Vue.component('ZigDemoAction', {
-    template: `<div class="zig-overlay__demo-action"><slot>&nbsp;</slot></div>`,
+    template: `<div class="zig-overlay__action zig-overlay__demo-action"><slot>&nbsp;</slot></div>`,
 });
 
 Vue.component('ZigMainTitle', {
-    template: `<div class="zig-overlay__main-title"><slot>&nbsp;</slot></div>`,
+    template: `<div class="zig-overlay__title zig-overlay__main-title"><slot>&nbsp;</slot></div>`,
 });
 
 Vue.component('ZigMainSubtitle', {
-    template: `<div class="zig-overlay__main-subtitle"><slot>&nbsp;</slot></div>`,
+    template: `<div class="zig-overlay__subtitle zig-overlay__main-subtitle"><slot>&nbsp;</slot></div>`,
 });
 
 Vue.component('ZigMainAction', {
-    template: `<div class="zig-overlay__main-action"><slot>&nbsp;</slot></div>`,
+    template: `<div class="zig-overlay__action zig-overlay__main-action"><slot>&nbsp;</slot></div>`,
+});
+
+Vue.component('ZigDescription', {
+    template: `<div class="zig-overlay__description"><slot>&nbsp;</slot></div>`,
+});
+
+Vue.component('ZigTicketPrice', {
+    template: `
+        <ZigMainTitle>
+            Preis pro Spiel:
+            <ZigPrice
+                :amount="uiState.normalTicketPrice"
+                :discounted="uiState.discountedTicketPrice"/>
+        </ZigMainTitle>`,
+
+    props: {
+        uiState: {
+            type: propertyType<UIState>(),
+            required: true,
+        },
+    },
 });
 
 const Overlay = Vue.component('Overlay', {
@@ -149,49 +239,33 @@ const Overlay = Vue.component('Overlay', {
         </div>
         
         <div class="zig-overlay" v-else-if="isVisible" :class="cssClasses">
-            <template v-if="uiState.allowFreeGame">
-                <template slot="title">Gratis testen</template>
-                <template slot="subtitle">keine Gewinnmöglichkeit</template>
-                <template slot="action">
-                    <ZigAction @action="demoClicked()" primary="false" text="Spiel gratis testen"/>
+            <template>
+                <template v-if="uiState.allowFreeGame">
+                    <ZigDemoTitle>Gratis testen</ZigDemoTitle>
+                    <ZigDemoSubtitle>keine Gewinnmöglichkeit</ZigDemoSubtitle>
+                    <ZigDemoAction>
+                        <ZigAction @action="demoClicked()" :primary="false" text="Spiel gratis testen"/>
+                    </ZigDemoAction>
+                </template>
+                <template v-else>
+                    <ZigDemoTitle>Hat es Spaß gemacht?</ZigDemoTitle>
+                    <ZigDemoSubtitle/>
+                    <ZigDemoAction>
+                        <div class="zig-hint">Spielen Sie noch eine Runde!</div>
+                    </ZigDemoAction>
                 </template>
             </template>
-            <template v-else>
-                <template slot="title">Hat es Spaß gemacht?</template>
-                <template slot="subtitle">&nbsp;</template>
-                <template slot="action">
-                    <div class="zig-hint">Spielen Sie noch eine Runde!</div>
-                </template>
+            
+            <template>
+                <ZigTicketPrice :uiState="uiState"/>
+                <ZigMainSubtitle v-html="mainSubtitle"></ZigMainSubtitle>
+                <ZigMainAction>
+                    <div class="zig-hint" v-html="mainHint" v-if="mainHint"/>
+                    <ZigAction @action="handleMainAction" :primary="true" :text="mainAction"/>
+                </ZigMainAction>    
             </template>
-        
-            <ZigMainAction v-if="mainAction.login" type="main">
-                <template slot="title">
-                    Preis pro Spiel:
-                    <ZigPrice
-                        :amount="uiState.normalTicketPrice"
-                        :discounted="uiState.discountedTicketPrice"/>
-                </template>
-        
-                <ZigAction slot="action"
-                    @action="loginClicked()" primary="true" text="Anmelden"/>
-            </ZigMainAction>
-        
-            <ZigMainAction v-else type="main">
-                <template slot="title">
-                    Preis pro Spiel:
-                    <ZigPrice
-                        :amount="uiState.normalTicketPrice"
-                        :discounted="uiState.discountedTicketPrice"/>
-                </template>
-        
-                <ZigAction slot="action"
-                    v-if="mainAction.payin"
-                    @action="playClicked()" primary="true" text="Einzahlen"/>
-        
-                <ZigAction slot="action"
-                    v-else-if="mainAction.buy"
-                    @action="playClicked()" primary="true" text="Kaufen &amp; spielen"/>
-            </ZigMainAction>
+            
+            <ZigDescription>Here we have some text.</ZigDescription>
         </div>`,
 
     data() {
@@ -215,8 +289,31 @@ const Overlay = Vue.component('Overlay', {
             return {};
         },
 
-        mainAction(): any {
-            return {[this.uiState!.buttonType]: true};
+        mainSubtitle(): string {
+            return '&nbsp;';
+        },
+
+        mainHint(): string {
+            switch (this.uiState!.buttonType) {
+                case 'login':
+                    return 'Melden sie sich zun&auml;chst an';
+
+                default:
+                    return '';
+            }
+        },
+
+        mainAction(): string {
+            switch (this.uiState!.buttonType) {
+                case 'buy':
+                    return 'Bezahlen &amp; spielen';
+
+                case 'login':
+                    return 'Anmelden &amp; spielen';
+
+                default:
+                    return '';
+            }
         },
     },
 
@@ -236,12 +333,16 @@ const Overlay = Vue.component('Overlay', {
 
         loginClicked(): void {
         },
+
+        handleMainAction(): void {
+            this.playClicked();
+        },
     },
 });
 
 let zigStylesInjected = false;
 
-export function createOverlay(target: Element): (uiState: UIState, game: Game) => void {
+export function installOverlay(target: Element): (uiState: UIState, game: Game) => void {
     let overlay: any;
 
     let latestGame: Game;
@@ -252,8 +353,11 @@ export function createOverlay(target: Element): (uiState: UIState, game: Game) =
         zigStylesInjected = true;
     }
 
+    const container = document.createElement("div");
+    target.append(container);
+
     new Vue({
-        el: target,
+        el: container,
         template: `<Overlay ref='overlay'/>`,
 
         mounted(): void {

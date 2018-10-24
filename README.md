@@ -14,7 +14,7 @@ More information to [async function on MDN](https://developer.mozilla.org/en-US/
 
 ## Embedding ZIG into your game
 
-For a quick start on how to include the `zig-js` library in a gam eproject using webpack,
+For a quick start on how to include the `zig-js` library in a game project using webpack,
 see our [example project](https://github.com/zig-services/example-game/blob/master/README.md)
 on github. The project also includes information on how to test your game integration
 locally.
@@ -276,7 +276,7 @@ class YourConnector extends Connector {
 Having this class, you can now include the game into your platform. To do so, you
 need to define a target element, e.g. `<div id="zig-game"></div>` and call the
 `installGame` method with the games configuration. For the game `dickehose` it would
-look something like this:
+look like this:
 
 ```js
 // use the frontend url that was provided to you by the zig service, e.g:

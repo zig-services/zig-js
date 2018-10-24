@@ -100,7 +100,7 @@ export abstract class Connector {
      * implementation will always return 'true'.
      */
     public async verifyTicketPurchase(): Promise<boolean> {
-        return Promise.resolve(true);
+        return true;
     }
 
     /**
@@ -109,7 +109,15 @@ export abstract class Connector {
      * just return 'true' without doing any extra checking.
      */
     public async ensureCustomerBalance(amount: IMoneyAmount): Promise<true> {
-        return Promise.resolve<true>(true);
+        return true;
+    }
+
+    /**
+     * Ensures that the customer is logged in. If you dont want to sign in the customer
+     * just return false. The default will return false.
+     */
+    public async loginCustomer(): Promise<boolean> {
+        return false;
     }
 
     /**
@@ -118,7 +126,6 @@ export abstract class Connector {
      */
     public async showErrorDialog(error: IError): Promise<void> {
         this.logger.error('An error occurred:', error);
-        return Promise.resolve(void 0);
     }
 
     /**
