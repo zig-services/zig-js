@@ -1,4 +1,4 @@
-import {KV} from './ipc/kv';
+import {KV} from './kv';
 
 export interface WinningClassOverride {
     winningClass: number;

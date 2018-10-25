@@ -1,14 +1,14 @@
-import '../_common/polyfills';
+import '../common/polyfills';
 
-import {GameSettings, sleep} from '../_common/common';
-import {GameMessageInterface, MessageClient, ParentMessageInterface} from '../_common/message-client';
-import {injectStyle, onDOMLoad} from '../_common/dom';
-import {buildTime, clientVersion} from '../_common/vars';
-import {delegateToVersion} from '../_common/delegate';
-import {Options} from '../_common/options';
-import {appendGameConfigToURL, parseGameConfigFromURL} from '../_common/config';
-import {IError} from '../_common/domain';
-import {Logger} from '../_common/logging';
+import {sleep} from '../common/common';
+import {GameMessageInterface, MessageClient, ParentMessageInterface} from '../common/message-client';
+import {injectStyle, onDOMLoad} from '../common/dom';
+import {buildTime, clientVersion} from '../common/vars';
+import {delegateToVersion} from '../common/delegate';
+import {Options} from '../common/options';
+import {appendGameConfigToURL, GameSettings, parseGameConfigFromURL} from '../common/config';
+import {IError} from '../common/domain';
+import {Logger} from '../common/logging';
 import {WrapperStyleCSS} from './style.css';
 
 const log = Logger.get('zig.wrapper');

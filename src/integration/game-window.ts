@@ -1,8 +1,8 @@
-import {appendGameConfigToURL, GameConfig} from '../_common/config';
+import {appendGameConfigToURL, GameConfig} from '../common/config';
 import {Connector} from './connector';
-import {Logger} from '../_common/logging';
-import {MessageClient, ParentMessageInterface} from '../_common/message-client';
-import {GameSettings} from '../_common/common';
+import {Logger} from '../common/logging';
+import {MessageClient, ParentMessageInterface} from '../common/message-client';
+import {GameSettings} from '../common/config';
 import {Game} from './webpage';
 
 export interface InstallGameOptions {

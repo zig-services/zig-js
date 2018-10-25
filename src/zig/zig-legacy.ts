@@ -1,11 +1,11 @@
 /**
  * Test if we want do enable legacy game patching.
  */
-import {Logger} from '../_common/logging';
-import {injectStyle, onDOMLoad, onLoad} from '../_common/dom';
-import {GameMessageInterface, MessageClient} from '../_common/message-client';
-import {executeRequestInParent, Request, Response} from '../_common/request';
-import {parseGameConfigFromURL} from '../_common/config';
+import {Logger} from '../common/logging';
+import {injectStyle, onDOMLoad, onLoad} from '../common/dom';
+import {GameMessageInterface, MessageClient} from '../common/message-client';
+import {executeRequestInParent, Request, Response} from '../common/request';
+import {parseGameConfigFromURL} from '../common/config';
 import {LegacyStyleCSS} from './legacy.css';
 
 function XMLHttpRequestUsingMessageClient() {

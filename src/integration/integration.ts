@@ -1,8 +1,8 @@
-import {GameSettings} from '../_common/common';
-import {MessageClient, ParentMessageInterface} from '../_common/message-client';
-import {registerRequestListener, Request, Result} from '../_common/request';
-import {appendGameConfigToURL, GameConfig} from '../_common/config';
-import {Logger} from '../_common/logging';
+import {GameSettings} from '../common/config';
+import {MessageClient, ParentMessageInterface} from '../common/message-client';
+import {registerRequestListener, Request, Result} from '../common/request';
+import {appendGameConfigToURL, GameConfig} from '../common/config';
+import {Logger} from '../common/logging';
 
 const log = Logger.get('zig.integration');
 

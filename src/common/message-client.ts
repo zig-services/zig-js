@@ -1,4 +1,4 @@
-import {GameSettings} from './common';
+import {GameSettings} from './config';
 import {Request, Result, WithCID} from './request';
 import {IError, TicketId, TicketNumber} from './domain';
 import {Logger} from './logging';
@@ -280,7 +280,13 @@ export interface NewVoucherMessage extends BaseMessage {
 export interface TicketPriceChangedMessage extends BaseMessage {
     command: 'ticketPriceChanged';
     priceInMinor: number;
-    rowCount: number;
+
+    quantity: number;
+
+    /**
+     * @deprecated use quantity now.
+     */
+    rowCount?: number;
 
     /**
      * @deprecated use priceInMinor now.
@@ -310,7 +316,8 @@ export interface CancelGameStartRequestMessage extends BaseMessage {
 
 export interface BuyMessage extends BaseMessage {
     command: 'buy';
-    betFactor?: number;
+    betFactor: number;
+    quantity: number;
 }
 
 export interface GotoGameMessage extends BaseMessage {
@@ -323,19 +330,8 @@ export interface GotoUrlMessage extends BaseMessage {
     destination: string;
 }
 
-export interface GotoLeagueTableMessage extends BaseMessage {
-    command: 'gotoLeagueTable';
-}
-
 export interface TicketActivatedEvent extends BaseMessage {
     command: 'ticketActivated';
-}
-
-export interface UpdateLeagueTableMessage extends BaseMessage {
-    command: 'updateTable';
-    response: {
-        leagueTable: any;
-    }
 }
 
 export interface FetchRequestMessage extends BaseMessage {
@@ -449,7 +445,7 @@ export class MessageDispatcher {
     }
 
     public dispatch(msg: Message): void {
-        const message: BaseMessage = this.convertToMessage(msg);
+        const message: BaseMessage = normalizeMessage(this.game, msg);
 
         // get the handlers for this message type.
         const handlers = this.handlers[message.command] || [];
@@ -508,38 +504,49 @@ export class MessageDispatcher {
             }
         });
     }
+}
+
+
+/**
+ * Convert the given message object into the a valid BaseMessage representation.
+ *
+ * This also patches renamed/missing fields and convert legacy fields..
+ */
+function normalizeMessage(game: string, message: Message): BaseMessage {
+    const converted = typeof message === 'string'
+        ? {command: message as string, game}
+        : {game, ...message};
 
     /**
-     * Convert the given message object that was received from another frame
-     * into the a BaseMessage representation.
-     * This also patches renamed/missing fields.
+     * If 'missing' is set to undefined, but 'fallback' is defined in the object,
+     * then 'missing' will be set to the result of 'conv(fallback)'.
      */
-    private convertToMessage(message: Message): BaseMessage {
-        const converted = typeof message === 'string'
-            ? {command: message as string, game: this.game}
-            : {game: this.game, ...message};
+    function fallback<T extends BaseMessage, K1 extends keyof T, K2 extends keyof T>(
+        e: T, missing: K1, fallback: K2, conv?: (value: T[K2]) => T[K1]) {
 
-
-        /**
-         * If 'missing' is set to undefined, but 'fallback' is defined in the object,
-         * then 'missing' will be set to the result of 'conv(fallback)'.
-         */
-        function fallback<T extends BaseMessage, K1 extends keyof T, K2 extends keyof T>(
-            e: T, missing: K1, fallback: K2, conv: (value: T[K2]) => T[K1]) {
-
-            if (typeof e[missing] === 'undefined' && typeof e[fallback] !== 'undefined') {
-                e[missing] = conv(e[fallback]);
-            }
+        if (typeof e[missing] === 'undefined' && typeof e[fallback] !== 'undefined') {
+            e[missing] = conv ? conv(e[fallback]) : (e[fallback] as any);
         }
-
-        fallback(converted as TicketPriceChangedMessage, `priceInMinor`, 'price', price => 100 * price);
-        fallback(converted as TicketPriceChangedMessage, `price`, 'priceInMinor', priceInMinor => 0.01 * priceInMinor);
-
-        fallback(converted as NewVoucherMessage, 'voucherValueInCents', 'voucherValueInMinor', v => v);
-        fallback(converted as NewVoucherMessage, 'voucherValueInMinor', 'voucherValueInCents', v => v);
-
-        return converted;
     }
+
+    fallback(converted as TicketPriceChangedMessage, `priceInMinor`, 'price', price => 100 * price);
+    fallback(converted as TicketPriceChangedMessage, `price`, 'priceInMinor', priceInMinor => 0.01 * priceInMinor);
+
+    fallback(converted as TicketPriceChangedMessage, `rowCount`, 'quantity');
+    fallback(converted as TicketPriceChangedMessage, `quantity`, 'rowCount');
+
+    fallback(converted as NewVoucherMessage, 'voucherValueInCents', 'voucherValueInMinor');
+    fallback(converted as NewVoucherMessage, 'voucherValueInMinor', 'voucherValueInCents');
+
+    // add missing default value to buy message event.
+    const m = converted as any;
+    if (converted.command === 'buy') {
+        const buy = converted as BuyMessage;
+        buy.quantity = buy.quantity || 1;
+        buy.betFactor = buy.betFactor || 1;
+    }
+
+    return converted;
 }
 
 export class MessageFactory extends MessageDispatcher {
@@ -563,7 +570,7 @@ export class MessageFactory extends MessageDispatcher {
     }
 
     protected send<T extends BaseMessage>(msg: T): void {
-        this.messageClient.send(msg);
+        this.messageClient.send(normalizeMessage(this.game, msg));
     }
 
     protected commandSend<T extends Command>(msg: T): void {
@@ -665,13 +672,13 @@ export class GameMessageInterface extends MessageFactory {
         this.send<RequestStartGameMessage>({command: 'requestStartGame', game: this.game});
     }
 
-    public ticketPriceChanged(rowCount: number, ticketPriceInMinor: number) {
+    public ticketPriceChanged(quantity: number, ticketPriceInMinor: number) {
         this.send<TicketPriceChangedMessage>({
             command: 'ticketPriceChanged',
             game: this.game,
             price: 0.01 * ticketPriceInMinor,
             priceInMinor: ticketPriceInMinor,
-            rowCount,
+            quantity,
         });
     }
 
@@ -679,8 +686,8 @@ export class GameMessageInterface extends MessageFactory {
         this.send<UpdateGameHeightMessage>({command: 'updateGameHeight', game: this.game, height});
     }
 
-    public buy(betFactor?: number) {
-        this.send<BuyMessage>({command: 'buy', game: this.game, betFactor});
+    public buy(betFactor: number = 1, quantity: number = 1) {
+        this.send<BuyMessage>({command: 'buy', game: this.game, betFactor, quantity});
     }
 
     public gotoGame(destinationGame: string) {
@@ -689,15 +696,6 @@ export class GameMessageInterface extends MessageFactory {
 
     public gotoUrl(destination: string) {
         this.send<GotoUrlMessage>({command: 'gotoUrl', game: this.game, destination});
-    }
-
-    public gotoLeagueTable() {
-        this.send<GotoLeagueTableMessage>({command: 'gotoLeagueTable', game: this.game});
-    }
-
-    public updateTable(leagueTable: any) {
-        const response = {leagueTable};
-        this.send<UpdateLeagueTableMessage>({command: 'updateTable', game: this.game, response});
     }
 
     public ticketActivated() {

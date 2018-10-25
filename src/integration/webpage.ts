@@ -1,12 +1,12 @@
-import '../_common/polyfills';
+import '../common/polyfills';
 
-import {IError, IMoneyAmount, MoneyAmount} from '../_common/domain';
-import {MessageClient, ParentMessageInterface, toErrorValue} from '../_common/message-client';
-import {Logger} from '../_common/logging';
-import {registerRequestListener} from '../_common/request';
+import {IError, IMoneyAmount, MoneyAmount} from '../common/domain';
+import {MessageClient, ParentMessageInterface, toErrorValue} from '../common/message-client';
+import {Logger} from '../common/logging';
+import {registerRequestListener} from '../common/request';
 import {BaseCustomerState, CANCELED, Connector, CustomerState, UIState} from './connector';
 import {GameWindow} from './game-window';
-import {GameSettings} from '../_common/common';
+import {GameSettings} from '../common/config';
 import {FullscreenService} from './fullscreen';
 import * as deepFreeze from 'deep-freeze';
 
@@ -278,14 +278,14 @@ export class Game {
                 }
 
                 if (event.ticketPriceChanged) {
-                    gameScaling.quantity = event.ticketPriceChanged.rowCount;
+                    gameScaling.quantity = event.ticketPriceChanged.quantity;
                     gameScaling.betFactor = 1;
                     continue;
                 }
 
                 if (event.buy) {
-                    gameScaling.quantity = 1;
-                    gameScaling.betFactor = event.buy.betFactor || 1;
+                    gameScaling.quantity = event.buy.quantity;
+                    gameScaling.betFactor = event.buy.betFactor;
                 }
             }
 

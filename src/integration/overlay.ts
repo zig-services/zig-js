@@ -1,9 +1,9 @@
-import {IMoneyAmount} from '../_common/domain';
+import {IMoneyAmount} from '../common/domain';
 import {UIState} from './connector';
 import {Game} from './webpage';
 import Vue, {ComputedOptions} from 'vue';
-import {Logger} from '../_common/logging';
-import {injectStyle} from '../_common/dom';
+import {Logger} from '../common/logging';
+import {injectStyle} from '../common/dom';
 
 const logger = Logger.get('zig.Overlay');
 

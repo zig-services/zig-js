@@ -1,9 +1,9 @@
-import {GameConfig, parseGameConfigFromURL} from '../_common/config';
-import {Options} from '../_common/options';
-import {GameMessageInterface, MessageClient} from '../_common/message-client';
-import {executeRequestInParent} from '../_common/request';
-import {Bundle, Ticket} from '../_common/domain';
-import {Logger} from '../_common/logging';
+import {GameConfig, parseGameConfigFromURL} from '../common/config';
+import {Options} from '../common/options';
+import {GameMessageInterface, MessageClient} from '../common/message-client';
+import {executeRequestInParent} from '../common/request';
+import {Bundle, Ticket} from '../common/domain';
+import {Logger} from '../common/logging';
 
 const log = Logger.get('zig.client');
 

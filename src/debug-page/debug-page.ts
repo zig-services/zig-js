@@ -1,5 +1,5 @@
 import Vue from 'vue';
-import {Options} from '../_common/options';
+import {Options} from '../common/options';
 
 Vue.component('DebugPage', {
     template: `

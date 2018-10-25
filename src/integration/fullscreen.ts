@@ -1,5 +1,5 @@
-import {Logger} from '../_common/logging';
-import {Unregister} from '../_common/message-client';
+import {Logger} from '../common/logging';
+import {Unregister} from '../common/message-client';
 
 type Style = { [key: string]: string | null; };
 

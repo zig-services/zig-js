@@ -1,7 +1,7 @@
 import {FetchRequestMessage, FetchResultMessage, GameMessageInterface, ParentMessageInterface} from './message-client';
 import {Logger} from './logging';
 
-const log = Logger.get('zig.xhr');
+const log = Logger.get('zig.Request');
 
 export interface Request {
     method: string;
@@ -18,10 +18,12 @@ export interface Response {
     xhr?: XMLHttpRequest;
 }
 
-export interface Result {
-    response?: Response;
-    error?: string;
-}
+export type ResponseResult = { response: Response; }
+
+/**
+ * A 'Result' is either a 'Response' or an error string.
+ */
+export type Result = ResponseResult | { error: string }
 
 /**
  * Adds a unique id to an object. This is used to correlate
@@ -32,17 +34,21 @@ export interface WithCID<T> {
     cid: string;
 }
 
+function hasResponse(r: Result): r is ResponseResult {
+    return 'response' in r && typeof r.response !== 'undefined';
+}
+
 /**
  * Executes/Performs the given requests locally by converting it into a XMLHttpRequest.
- * In case of an error, the error will be thrown as an exception.
+ * In case of an error (like failed a connection), the error will be thrown as an exception.
  */
 export async function executeRequestLocally(req: Request): Promise<Response> {
     const result = await executeRequest(req);
-    if (result.error) {
+    if (hasResponse(result)) {
+        return result.response;
+    } else {
         throw result.error;
     }
-
-    return result.response!;
 }
 
 // Need to keep a reference to the original XMLHttpRequest class before
@@ -121,7 +127,7 @@ export function registerRequestListener(iface: ParentMessageInterface,
         const req: WithCID<Request> = message.request;
         const result = await h(req.data);
 
-        if (result.response) {
+        if (hasResponse(result)) {
             // remove xhr instance before sending it via post message.
             delete result.response['xhr'];
         }
@@ -153,13 +159,14 @@ export async function executeRequestInParent(iface: GameMessageInterface, req: R
             // remove the listener, we got the message we are interested in.
             unregister();
 
-            // handle rejection on connection errors or similar
-            if (result.data.error != null) {
+            if (!hasResponse(result.data)) {
+                // handle rejection on connection errors or similar
                 reject(result.data.error);
-            }
 
-            // we got a good result.
-            resolve(result.data.response);
+            } else {
+                // we got a good result.
+                resolve(result.data.response);
+            }
         });
 
         if (req.body === null) {

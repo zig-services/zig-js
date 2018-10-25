@@ -252,9 +252,9 @@ After including the libray into your frontend code, you can create a subclass of
 
 ```js
 import {Connector, CustomerState} from 'zig-js/integration/connector';
-import {MoneyAmount} from 'zig-js/integration/_common/domain';
+import {MoneyAmount} from common;
 
-class YourConnector extends Connector {
+class YourCcommonr extends Connector {
   async fetchCustomerState() {
     // fetch the data from your backend
     const yourCustomerState = await YourPlatform.customerState();

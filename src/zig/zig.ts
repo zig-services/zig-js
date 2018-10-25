@@ -1,10 +1,10 @@
-import '../_common/polyfills';
+import '../common/polyfills';
 
 import {isLegacyGame, patchLegacyGame} from './zig-legacy';
-import {Logger} from '../_common/logging';
+import {Logger} from '../common/logging';
 import {ZigClient, ZigClientImpl} from './zig-client';
-import {delegateToVersion} from '../_common/delegate';
-import {buildTime, clientVersion} from '../_common/vars';
+import {delegateToVersion} from '../common/delegate';
+import {buildTime, clientVersion} from '../common/vars';
 
 export interface ZigGlobal {
     /**

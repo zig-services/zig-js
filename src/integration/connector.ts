@@ -1,7 +1,7 @@
-import {IError, IMoneyAmount, MoneyAmount} from '../_common/domain';
-import {Logger} from '../_common/logging';
-import {executeRequest, Request, Result} from '../_common/request';
-import {GameStartedMessage} from '../_common/message-client';
+import {IError, IMoneyAmount, MoneyAmount} from '../common/domain';
+import {Logger} from '../common/logging';
+import {executeRequest, Request, Result} from '../common/request';
+import {GameStartedMessage} from '../common/message-client';
 import {Game} from './webpage';
 
 export interface UnplayedTicketInfo {
