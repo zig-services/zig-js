@@ -28,6 +28,18 @@ export const Options = {
     },
 
 
+    /**
+     * disable AudioContext in selected browsers, defaults to 'true'.
+     */
+    get disableAudioContext(): boolean {
+        return KV.get('disableAudioContext') !== false;
+    },
+
+    set disableAudioContext(value: boolean) {
+        KV.set('disableAudioContext', value);
+    },
+
+
     get winningClassOverride(): WinningClassOverride | null {
         return KV.get('winning-class-override');
     },

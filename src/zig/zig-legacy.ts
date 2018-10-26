@@ -137,13 +137,13 @@ function XMLHttpRequestUsingMessageClient() {
                             throw new Error('request not set.');
                         }
 
-                        if (typeof arg === "string") {
+                        if (typeof arg === 'string') {
                             const match = arg.match(/^betFactor=([0-9]+)$/);
-                            if(match) {
+                            if (match) {
                                 const [_, betFactor] = match;
                                 log.info(`Found betFactor=${betFactor} in body, adding to URL.`);
 
-                                const sep = req.path.indexOf("?") === -1 ? "?" : "&";
+                                const sep = req.path.indexOf('?') === -1 ? '?' : '&';
                                 req.path += `${sep}betFactor=${betFactor}`;
 
                                 // clear body
@@ -265,6 +265,8 @@ export function isLegacyGame(): boolean {
 
 
 export function patchLegacyGame() {
+    let log = Logger.get('zig.Legacy');
+
     // noinspection UnnecessaryLocalVariableJS
     const anyWindow: any = window;
 
@@ -272,8 +274,6 @@ export function patchLegacyGame() {
     anyWindow.XMLHttpRequest = XMLHttpRequestUsingMessageClient();
 
     onDOMLoad(() => {
-        let log = Logger.get('zig.Legacy');
-
         // check if it is an instant win gaming game
         if (document.querySelector('#gamecontainer') == null)
             return;

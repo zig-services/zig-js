@@ -15,78 +15,91 @@ export type CustomerNumber = string;
  */
 export interface IError {
     // Error type, should be an urn: prefixed type name.
-    type: string;
+    readonly type: string;
 
     // The title string.
-    title: string;
+    readonly title: string;
 
     // Status code if available
-    status?: number;
+    readonly status?: number;
 
     // A detailed description of the error. Could be taken from a caught exception.
-    details?: string;
-}
-
-export interface GameInfo {
-    displayName: string;
-    canonicalName: string;
-
-    // True if the game supports resume.
-    supportsResume: boolean;
+    readonly details?: string;
 }
 
 export interface IMoneyAmount {
-    amountInMinor: number;
-    amountInMajor: number;
-    currency: Currency;
+    readonly amountInMinor: number;
+    readonly amountInMajor: number;
+    readonly currency: Currency;
 }
 
+/**
+ * A ticket that the games gets from the backend.
+ */
 export interface Ticket {
-    // id of the ticket. This id needs to be send back with a `settle` call.
-    id: TicketId;
-    externalId: ExternalTicketId;
-    ticketNumber: TicketNumber;
+    // Local id of the ticket
+    // This id needs to be send back with a `settle` call.
+    readonly id: TicketId;
 
-    customerNumber: CustomerNumber;
+    // The ticket id as given by the zig service.
+    // readonly externalId: ExternalTicketId;
 
-    price: IMoneyAmount;
-    winningClass: WinningClass;
+    // Some identifying alphanumeric string that does not need to be
+    // unique but should identify the ticket given other information like an
+    // approximate time or customer number
+    readonly ticketNumber: TicketNumber;
 
-    // A bundle key. If this ticket is part of a bundle, the bundleKey will be
-    // the id of the parent ticket, otherwise the bundleKey has the same value
-    // as the id field.
-    bundleKey: TicketId;
+    // The amount of money the customer payed for this ticket.
+    readonly price: IMoneyAmount;
 
-    // information about the game
-    game: GameInfo;
+    // The winning class of the ticket. Use this to extract the winnings
+    // of this ticket. If the winnings are zero this was a loosing bet.
+    readonly winningClass: WinningClass;
 
-    // the tickets scenario coded as base64.
-    scenario: string;
+    // the tickets scenario coded as base64 json. You should not need
+    // to use this field directly. A decoded version of it will be put into
+    // the `decodedScenario` field.
+    readonly scenario: string;
 
     // the decoded scenario object or undefined if the scenario
-    // field could not be decoded.
-    decodedScenario?: any;
+    // field could not be decoded. Basically `JSON.parse(atob(scenario))`
+    readonly decodedScenario?: any;
 }
 
 export interface WinningClass {
-    number: number;
-    winnings: IMoneyAmount;
+    /**
+     * The internal number of the winning class. This is an implementation detail
+     * and normally this does not need to be used by a game frontend.
+     * @private
+     */
+    readonly number: number;
+
+    // The amount of money the customer won.
+    readonly winnings: IMoneyAmount;
 }
 
+/**
+ * A bundle of tickets BundleTickets.
+ */
 export interface Bundle {
-    tickets: BundleTicket[];
+    readonly tickets: BundleTicket[];
 }
 
 export interface BundleTicket {
-    activatable: boolean;
-    activated: boolean;
-    game: GameInfo;
-    id: TicketId;
-    playable: boolean;
-    playableFrom: Timestamp;
-    played: boolean;
-    prize: IMoneyAmount;
-    status: BundleTicketStatus;
+    readonly activatable: boolean;
+    readonly activated: boolean;
+    readonly game: GameInfo;
+    readonly id: TicketId;
+    readonly playable: boolean;
+    readonly playableFrom: Timestamp;
+    readonly played: boolean;
+    readonly prize: IMoneyAmount;
+    readonly status: BundleTicketStatus;
+}
+
+export interface GameInfo {
+    readonly displayName: string;
+    readonly canonicalName: string;
 }
 
 // Different statuses of a bundle ticket.

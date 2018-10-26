@@ -5,6 +5,7 @@ import {Logger} from '../common/logging';
 import {ZigClient, ZigClientImpl} from './zig-client';
 import {delegateToVersion} from '../common/delegate';
 import {buildTime, clientVersion} from '../common/vars';
+import {Options} from '../common/options';
 
 export interface ZigGlobal {
     /**
@@ -76,6 +77,16 @@ function initializeClient() {
     log.info(`compiled ${(Date.now() - buildTime) / 1000.0}sec ago`);
     log.info('');
 
+    if (Options.disableAudioContext) {
+        if (/Mozilla.+rv:6[345].+Firefox/.test(window.navigator.userAgent)) {
+            log.info('Removing audio context from window object');
+
+            if ('AudioContext' in window) {
+                delete (window as any)['AudioContext'];
+            }
+        }
+    }
+
     if (isLegacyGame()) {
         log.warn('Enable legacy game patches.');
         patchLegacyGame();
@@ -94,7 +105,8 @@ function initializeClient() {
 }
 
 // Need to expose the Zig object on the `window` object, even if we are reloading
-// the script later.
+// the script later, so that a client can already access Zig.ready() to wait for
+// the library to finish initializing.
 if (!zigWindow.Zig) {
     log.info(`Expose global 'Zig' instance on 'window' object.`);
     zigWindow.Zig = Zig;

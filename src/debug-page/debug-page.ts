@@ -1,5 +1,5 @@
 import Vue from 'vue';
-import {Options} from '../common/options';
+import {Options, WinningClassOverride} from '../common/options';
 
 Vue.component('DebugPage', {
     template: `
@@ -9,6 +9,9 @@ Vue.component('DebugPage', {
             
             <div><label><input type="checkbox" v-model="logging"/>
                 Enable logging to console</label></div>
+            
+            <div><label><input type="checkbox" v-model="disableAudioContext"/>
+                Disable AudioContext in Firefox 63+</label></div>
             
             <div><label><input type="checkbox" v-model="hasWinningClassOverride"/>
                 Enable winning class override</label></div>
@@ -26,28 +29,32 @@ Vue.component('DebugPage', {
             devVersion: Options.version === '1-dev',
             hasWinningClassOverride: Options.winningClassOverride != null,
             winningClassOverride: Options.winningClassOverride,
+            disableAudioContext: Options.disableAudioContext,
         };
     },
 
     watch: {
-        logging(newValue) {
+        logging(newValue: boolean) {
             Options.logging = newValue;
         },
 
-        devVersion(newValue) {
+        devVersion(newValue: boolean) {
             Options.version = newValue ? '1-dev' : null;
+        },
+
+        disableAudioContext(newValue: boolean) {
+            Options.disableAudioContext = newValue;
+        },
+
+        hasWinningClassOverride(newValue: boolean) {
+            this.winningClassOverride = newValue ? {scenarioId: 0, winningClass: 0} : null;
         },
 
         winningClassOverride: {
             deep: true,
-            handler(newValue) {
+            handler(newValue: WinningClassOverride) {
                 Options.winningClassOverride = newValue;
             },
-
-        },
-
-        hasWinningClassOverride(newValue) {
-            this.winningClassOverride = newValue ? {scenarioId: 0, winningClass: 0} : null;
         },
     },
 });

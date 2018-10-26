@@ -1,9 +1,10 @@
 import {GameConfig, parseGameConfigFromURL} from '../common/config';
 import {Options} from '../common/options';
-import {GameMessageInterface, MessageClient} from '../common/message-client';
+import {GameMessageInterface, MessageClient, toErrorValue} from '../common/message-client';
 import {executeRequestInParent} from '../common/request';
-import {Bundle, Ticket} from '../common/domain';
+import {Bundle, IError, Ticket} from '../common/domain';
 import {Logger} from '../common/logging';
+import * as deepFreeze from 'deep-freeze';
 
 const log = Logger.get('zig.client');
 
@@ -94,6 +95,12 @@ export interface ZigClient {
     trackGameHeight(markerOrSelector: HTMLElement | string): void
 }
 
+export class ZigError extends Error {
+    constructor(public readonly err: IError) {
+        super(`${err.type} (${err.status}): ${err.title} ${err.details}`);
+    }
+}
+
 export class ZigClientImpl implements ZigClient {
     readonly Messages: GameMessageInterface;
 
@@ -101,10 +108,8 @@ export class ZigClientImpl implements ZigClient {
         const messageClient = new MessageClient(window.parent);
 
         // start communication
-        this.Messages = new GameMessageInterface(messageClient,
-            gameConfig.canonicalGameName);
+        this.Messages = new GameMessageInterface(messageClient, gameConfig.canonicalGameName);
     }
-
 
     public async buyTicket(payload: any = {}, options: BuyTicketOptions = {}): Promise<Ticket> {
         if (Options.winningClassOverride) {
@@ -112,7 +117,7 @@ export class ZigClientImpl implements ZigClient {
             return this.demoTicket(payload, options);
         }
 
-        return this.propagateErrors(async () => {
+        return this._run(async () => {
             const quantity: number = options.quantity || guessQuantity(payload);
 
             let url = `/zig/games/${this.gameConfig.canonicalGameName}/tickets:buy?quantity=${quantity}`;
@@ -121,7 +126,7 @@ export class ZigClientImpl implements ZigClient {
             }
             const ticket = await this.request<Ticket>('POST', url, payload);
 
-            this.sendGameStartedEvent(options, ticket);
+            this.Messages.gameStarted(ticket.id, ticket.ticketNumber);
             return decodeTicket(ticket);
         });
     }
@@ -132,10 +137,9 @@ export class ZigClientImpl implements ZigClient {
      * @param items Items that should be added to the basket.
      */
     public async buyBasketTickets(items: BasketItem[]): Promise<void> {
-        return this.propagateErrors(async () => {
-            await this.request<any>('POST',
-                `/zig/games/${this.gameConfig.canonicalGameName}/tickets:basket`,
-                items, {'Content-Type': 'application/json'});
+        return this._run(async () => {
+            const path = `/zig/games/${this.gameConfig.canonicalGameName}/tickets:basket`;
+            await this.request<any>('POST', path, items);
 
             if (this.gameConfig.basketPurchaseRedirect != null) {
                 this.Messages.gotoUrl(this.gameConfig.basketPurchaseRedirect);
@@ -144,7 +148,7 @@ export class ZigClientImpl implements ZigClient {
     }
 
     public async demoTicket(payload: any = {}, options: BuyTicketOptions = {}): Promise<Ticket> {
-        return this.propagateErrors(async () => {
+        return this._run(async () => {
             const quantity: number = options.quantity || guessQuantity(payload);
 
             let url = `/zig/games/${this.gameConfig.canonicalGameName}/tickets:demo?quantity=${quantity}`;
@@ -161,7 +165,7 @@ export class ZigClientImpl implements ZigClient {
 
             const ticket = await this.request<Ticket>('POST', url, payload);
 
-            this.sendGameStartedEvent(options, ticket);
+            this.Messages.gameStarted(ticket.id, ticket.ticketNumber);
             return decodeTicket(ticket);
         });
     }
@@ -171,9 +175,9 @@ export class ZigClientImpl implements ZigClient {
      * was returned buy buyTicket or demoTicket.
      */
     public async settleTicket(id: string): Promise<void> {
-        return await this.propagateErrors(async () => {
+        return await this._run(async () => {
             const url = `/zig/games/${this.gameConfig.canonicalGameName}/tickets:settle/${encodeURIComponent(id)}`;
-            await this.request<any>('POST', url);
+            await this.request('POST', url);
 
             this.Messages.ticketSettled();
 
@@ -182,39 +186,31 @@ export class ZigClientImpl implements ZigClient {
     }
 
     public async bundle(bundleKey: number): Promise<Bundle> {
-        return await this.propagateErrors(async () => {
-            return await this.request<Bundle>('GET', `/zig/bundles/${bundleKey}`);
+        return await this._run(async () => {
+            const bundle = await this.request<Bundle>('GET', `/zig/bundles/${bundleKey}`);
+            return deepFreeze(bundle);
         });
     }
 
-    private sendGameStartedEvent(options: BuyTicketOptions, ticket: Ticket) {
-        let alreadySettled = options.alreadySettled;
-        if (alreadySettled === undefined) {
-            alreadySettled = !(ticket.game || {supportsResume: true}).supportsResume;
-        }
-
-        this.Messages.gameStarted(ticket.id, ticket.id, alreadySettled === true);
-    }
-
-    private async propagateErrors<T>(fn: () => Promise<T>): Promise<T> {
+    private async _run<T>(fn: () => Promise<T>): Promise<T> {
         try {
             return await fn();
         } catch (err) {
-            this.Messages.error(err);
-            throw err;
+            const errorValue = toErrorValue(err)!;
+            this.Messages.error(errorValue);
+            throw new ZigError(errorValue);
         }
     }
 
-    private async request<T>(method: string, url: string, body: any = null, headers: { [key: string]: string } = {}): Promise<T> {
+    private async request<T>(method: string, path: string, body: any = null): Promise<T> {
         const result = await executeRequestInParent(this.Messages, {
-            method,
-            path: url,
+            method, path,
             body: body === null ? null : JSON.stringify(body),
-            headers: headers,
+            headers: body === null ? {} : {'Content-Type': 'application/json'},
         });
 
-        if (Math.floor(result.statusCode / 100) === 2) {
-            return JSON.parse(result.body || 'null');
+        if ((result.statusCode / 100 | 0) === 2) {
+            return result.body == null ? null : JSON.parse(result.body);
         } else {
             throw result;
         }
@@ -293,7 +289,7 @@ function guessQuantity(payload: any | undefined): number {
 function decodeTicket(ticket: Ticket): Ticket {
     if (ticket.scenario != null && ticket.scenario.length) {
         const json = atob(ticket.scenario);
-        ticket.decodedScenario = JSON.parse(json);
+        ticket = {...ticket, decodedScenario: JSON.parse(json)};
     }
 
     return ticket;

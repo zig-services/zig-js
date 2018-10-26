@@ -2,6 +2,7 @@ import {GameSettings} from './config';
 import {Request, Result, WithCID} from './request';
 import {IError, TicketId, TicketNumber} from './domain';
 import {Logger} from './logging';
+import * as deepFreeze from 'deep-freeze';
 
 export type CommandType = string
 
@@ -135,7 +136,7 @@ export function toErrorValue(inputValue: any): IError | null {
         err = tryParseJSON(responseText) || responseText;
     }
 
-    return {
+    return deepFreeze({
         // expand all properties into the target object and overwrite them later with
         // the error objects.
         ...(typeof err === 'object' ? err : {}),
@@ -151,7 +152,7 @@ export function toErrorValue(inputValue: any): IError | null {
 
         // And try to get the details from some common places.
         details: convertToString(err.details, err.message, err.error, err, inputValue),
-    };
+    });
 }
 
 /**
@@ -212,136 +213,135 @@ function tryParseJSON(input: string): object | null {
 }
 
 export interface BaseMessage {
-    command: CommandType;
-    game: string;
+    readonly command: CommandType;
+    readonly game: string;
 }
 
 export interface ErrorMessage extends BaseMessage, IError {
-    command: 'error';
+    readonly command: 'error';
 }
 
 export interface GameLoadedMessage extends BaseMessage {
-    command: 'gameLoaded';
-    inGamePurchase?: boolean;
+    readonly command: 'gameLoaded';
+    readonly inGamePurchase?: boolean;
 }
 
 export interface PlayGameMessage extends BaseMessage {
-    command: 'playGame';
+    readonly command: 'playGame';
 }
 
 export interface PlayDemoGameMessage extends BaseMessage {
-    command: 'playDemoGame';
+    readonly command: 'playDemoGame';
 }
 
 export interface GameStartedMessage extends BaseMessage {
-    command: 'gameStarted';
-    ticketId: TicketId;
-    ticketNumber: TicketNumber;
-    alreadySettled: boolean;
+    readonly command: 'gameStarted';
+    readonly ticketId: TicketId;
+    readonly ticketNumber: TicketNumber;
 }
 
 export interface GameFinishedMessage extends BaseMessage {
-    command: 'gameFinished';
+    readonly command: 'gameFinished';
 }
 
 export interface TicketSettledMessage extends BaseMessage {
-    command: 'ticketSettled';
+    readonly command: 'ticketSettled';
 }
 
 export interface RequestGameInputMessage extends BaseMessage {
-    command: 'requestGameInput';
+    readonly command: 'requestGameInput';
 }
 
 export interface RequestStartGameMessage extends BaseMessage {
-    command: 'requestStartGame';
+    readonly command: 'requestStartGame';
 }
 
 export interface GameInputMessage extends BaseMessage {
-    command: 'gameInput';
-    input: any;
+    readonly command: 'gameInput';
+    readonly input: any;
 }
 
 export interface UpdateGameSettingsMessage extends BaseMessage {
-    command: 'updateGameSettings';
-    gameSettings: GameSettings;
+    readonly command: 'updateGameSettings';
+    readonly gameSettings: GameSettings;
 }
 
 export interface NewVoucherMessage extends BaseMessage {
-    command: 'newVoucher';
-    voucherValueInMinor: number;
-    discountInMinor?: number;
+    readonly command: 'newVoucher';
+    readonly voucherValueInMinor: number;
+    readonly discountInMinor?: number;
 
     /**
      * @deprecated Use voucherValueInMinor now.
      */
-    voucherValueInCents: number;
+    readonly voucherValueInCents: number;
 }
 
 export interface TicketPriceChangedMessage extends BaseMessage {
-    command: 'ticketPriceChanged';
-    priceInMinor: number;
+    readonly command: 'ticketPriceChanged';
+    readonly priceInMinor: number;
 
-    quantity: number;
+    readonly quantity: number;
 
     /**
      * @deprecated use quantity now.
      */
-    rowCount?: number;
+    readonly rowCount?: number;
 
     /**
      * @deprecated use priceInMinor now.
      */
-    price: number;
+    readonly price: number;
 }
 
 export interface UpdateGameHeightMessage extends BaseMessage {
-    command: 'updateGameHeight';
-    height: number;
+    readonly command: 'updateGameHeight';
+    readonly height: number;
 }
 
 
 export interface PrepareGameMessage extends BaseMessage {
-    command: 'prepareGame';
-    demo: boolean;
+    readonly command: 'prepareGame';
+    readonly demo: boolean;
 }
 
 export interface ResumeGameMessage extends BaseMessage {
-    command: 'resumeGame';
-    resume: boolean;
+    readonly command: 'resumeGame';
+    readonly resume: boolean;
 }
 
 export interface CancelGameStartRequestMessage extends BaseMessage {
-    command: 'cancelRequestStartGame';
+    readonly command: 'cancelRequestStartGame';
 }
 
 export interface BuyMessage extends BaseMessage {
-    command: 'buy';
-    betFactor: number;
-    quantity: number;
+    readonly command: 'buy';
+    readonly betFactor: number;
+    readonly quantity: number;
 }
 
 export interface GotoGameMessage extends BaseMessage {
-    command: 'gotoGame';
-    destinationGame: string;
+    readonly command: 'gotoGame';
+    readonly destinationGame: string;
 }
 
 export interface GotoUrlMessage extends BaseMessage {
-    command: 'gotoUrl';
-    destination: string;
+    readonly command: 'gotoUrl';
+    readonly destination: string;
 }
 
 export interface TicketActivatedEvent extends BaseMessage {
-    command: 'ticketActivated';
+    readonly command: 'ticketActivated';
 }
 
 export interface FetchRequestMessage extends BaseMessage {
-    command: 'zig.XMLHttpRequest.request';
-    request: WithCID<Request>;
+    readonly command: 'zig.XMLHttpRequest.request';
+    readonly request: WithCID<Request>;
 }
 
 export interface FetchResultMessage extends BaseMessage {
-    command: 'zig.XMLHttpRequest.result';
-    result: WithCID<Result>;
+    readonly command: 'zig.XMLHttpRequest.result';
+    readonly result: WithCID<Result>;
 }
 
 /**
@@ -513,8 +513,8 @@ export class MessageDispatcher {
  * This also patches renamed/missing fields and convert legacy fields..
  */
 function normalizeMessage(game: string, message: Message): BaseMessage {
-    const converted = typeof message === 'string'
-        ? {command: message as string, game}
+    let converted: BaseMessage = typeof message === 'string'
+        ? {command: message, game}
         : {game, ...message};
 
     /**
@@ -522,31 +522,38 @@ function normalizeMessage(game: string, message: Message): BaseMessage {
      * then 'missing' will be set to the result of 'conv(fallback)'.
      */
     function fallback<T extends BaseMessage, K1 extends keyof T, K2 extends keyof T>(
-        e: T, missing: K1, fallback: K2, conv?: (value: T[K2]) => T[K1]) {
+        e: T, missing: K1, fallback: K2, conv?: (value: T[K2]) => T[K1]): T {
 
         if (typeof e[missing] === 'undefined' && typeof e[fallback] !== 'undefined') {
-            e[missing] = conv ? conv(e[fallback]) : (e[fallback] as any);
+            return {
+                ...(e as any),
+                [missing]: conv ? conv(e[fallback]) : (e[fallback] as any),
+            };
+        } else {
+            return e;
         }
     }
 
-    fallback(converted as TicketPriceChangedMessage, `priceInMinor`, 'price', price => 100 * price);
-    fallback(converted as TicketPriceChangedMessage, `price`, 'priceInMinor', priceInMinor => 0.01 * priceInMinor);
+    converted = fallback(converted as TicketPriceChangedMessage, `priceInMinor`, 'price', price => 100 * price);
+    converted = fallback(converted as TicketPriceChangedMessage, `price`, 'priceInMinor', priceInMinor => 0.01 * priceInMinor);
 
-    fallback(converted as TicketPriceChangedMessage, `rowCount`, 'quantity');
-    fallback(converted as TicketPriceChangedMessage, `quantity`, 'rowCount');
+    converted = fallback(converted as TicketPriceChangedMessage, `rowCount`, 'quantity');
+    converted = fallback(converted as TicketPriceChangedMessage, `quantity`, 'rowCount');
 
-    fallback(converted as NewVoucherMessage, 'voucherValueInCents', 'voucherValueInMinor');
-    fallback(converted as NewVoucherMessage, 'voucherValueInMinor', 'voucherValueInCents');
+    converted = fallback(converted as NewVoucherMessage, 'voucherValueInCents', 'voucherValueInMinor');
+    converted = fallback(converted as NewVoucherMessage, 'voucherValueInMinor', 'voucherValueInCents');
 
-    // add missing default value to buy message event.
-    const m = converted as any;
     if (converted.command === 'buy') {
+        // add missing default value to buy message event.
         const buy = converted as BuyMessage;
-        buy.quantity = buy.quantity || 1;
-        buy.betFactor = buy.betFactor || 1;
+        converted = <BuyMessage> {
+            ...buy,
+            quantity: buy.quantity || 1,
+            betFactor: buy.betFactor || 1,
+        };
     }
 
-    return converted;
+    return deepFreeze(converted);
 }
 
 export class MessageFactory extends MessageDispatcher {
@@ -646,13 +653,12 @@ export class GameMessageInterface extends MessageFactory {
         this.send<GameLoadedMessage>({command: 'gameLoaded', game: this.game, inGamePurchase: inGamePurchase});
     }
 
-    public gameStarted(ticketId: TicketId, ticketNumber: TicketNumber, alreadySettled: boolean = false) {
+    public gameStarted(ticketId: TicketId, ticketNumber: TicketNumber) {
         this.send<GameStartedMessage>({
             command: 'gameStarted',
             game: this.game,
             ticketId,
-            ticketNumber,
-            alreadySettled,
+            ticketNumber
         });
     }
 
