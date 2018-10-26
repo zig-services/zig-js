@@ -8,6 +8,35 @@ import {executeRequestInParent, Request, Response} from '../common/request';
 import {parseGameConfigFromURL} from '../common/config';
 import {LegacyStyleCSS} from './legacy.css';
 
+function rewriteLegacyEndpoint(path: string): string {
+    {
+        const match = new RegExp('^/product/iwg/([a-z]+)/demoticket(|\\?.*)$').exec(path);
+        if (match) {
+            const [, game, rest] = match;
+            return `/zig/games/${game}/tickets:demo${rest}`;
+        }
+    }
+
+    {
+        const match = new RegExp('^/product/iwg/([a-z]+)/tickets(|\\?.*)$').exec(path);
+        if (match) {
+            const [, game, rest] = match;
+            return `/zig/games/${game}/tickets:buy${rest}`;
+        }
+    }
+
+    {
+        const match = new RegExp('^/product/iwg/([a-z]+)/tickets/([^/]+)/settle(|\\?.*)$').exec(path);
+        if (match) {
+            const [, game, id, rest] = match;
+            return `/zig/games/${game}/tickets:settle/${id}${rest}`;
+        }
+    }
+
+    // no change
+    return path;
+}
+
 function XMLHttpRequestUsingMessageClient() {
     const log = Logger.get('zig.legacy.xhr');
 
@@ -108,9 +137,11 @@ function XMLHttpRequestUsingMessageClient() {
                         }
                     }
 
+                    const path = rewriteLegacyEndpoint(url.replace('https://mylotto24.frontend.zig.services', ''));
+
                     req = {
                         method: method,
-                        path: url.replace('https://mylotto24.frontend.zig.services', ''),
+                        path: path,
                         body: null,
                         headers: {},
                     };
@@ -153,7 +184,12 @@ function XMLHttpRequestUsingMessageClient() {
 
                         req.body = arg;
 
-                        log.info('Executing intercepted xhr request: ', req);
+                        if (url === req.path) {
+                            log.info('Executing intercepted xhr request: ', req);
+                        } else {
+                            log.info(`Executing intercepted xhr request with rewritten path: ${req.path}`, req);
+                        }
+
                         void executeInParent();
                     });
 
