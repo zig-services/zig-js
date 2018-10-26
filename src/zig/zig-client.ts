@@ -20,7 +20,6 @@ export interface BasketItem {
 
     // additional game input for sofortlotto or kenow encoded as bas64
     gameInput?: string
-
 }
 
 export interface BuyTicketOptions {
