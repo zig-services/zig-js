@@ -6,7 +6,7 @@ import {Bundle, IError, Ticket} from '../common/domain';
 import {Logger} from '../common/logging';
 import * as deepFreeze from 'deep-freeze';
 
-const log = Logger.get('zig.client');
+const log = Logger.get('zig.Client');
 
 export interface BasketItem {
     // game name, e.g. bingo
