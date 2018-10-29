@@ -113,7 +113,7 @@ function defaultsToGameConfig(config: SimpleGameConfig): GameConfig {
         basketPurchaseRedirect: config.basketPurchaseRedirect || '/basket',
 
         overlay: config.overlay || false,
-        isTestStage: config.overlay || false,
+        isTestStage: config.isTestStage || false,
 
         locale: config.locale || i18n.locale,
         timeZone: config.timeZone || i18n.timeZone,
