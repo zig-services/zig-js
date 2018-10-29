@@ -131,7 +131,7 @@ interface I18N {
 
 function defaultInternationalization(): I18N {
     return {
-        locale: 'en_EN',
+        locale: 'en_GB',
         timeZone: 'Europe/London',
         timeZoneOffsetToUTCInMillis: 0,
     };
