@@ -12,12 +12,9 @@ class Clock {
         }, 1000);
     }
 
-    static getTime(): string {
-        const now = new Date();
-        const hour = now.getHours();
-        return `${hour >= 10 ? hour : '0' + hour}:${now.getMinutes()}`
-    }
-    
+    static
+
+
     public stop() {
         clearInterval(this.clockHandler);
     }

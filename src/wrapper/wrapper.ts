@@ -95,11 +95,20 @@ async function initializeGame(): Promise<HTMLIFrameElement> {
 }
 
 function showClock() {
-  const div = document.createElement('div');
-  div.innerHTML = `
+    const div = document.createElement('div');
+    div.innerHTML = `
     <div id="clock"></div>`;
-  document.body.appendChild(div);
-  const clock = new Clock(div)
+    document.body.appendChild(div);
+
+    setInterval(function () {
+        div.innerHTML = getTime();
+    }, 1000);
+}
+
+function getTime(): string {
+    const now = new Date();
+    const hour = now.getHours();
+    return `${hour >= 10 ? hour : '0' + hour}:${now.getMinutes()}`
 }
 
 /**
