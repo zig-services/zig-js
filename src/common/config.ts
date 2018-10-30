@@ -56,6 +56,9 @@ export interface GameConfig {
     // The offset between the clients time and the server time.
     // Add this to Date.now() to get the current server time.
     clientTimeOffsetInMillis: number;
+
+    // can be used to style the clock
+    clockStyle: string;
 }
 
 type SimpleGameConfig = Partial<GameConfig> & {
@@ -120,6 +123,8 @@ function defaultsToGameConfig(config: SimpleGameConfig): GameConfig {
         timeZoneOffsetToUTCInMillis: config.timeZoneOffsetToUTCInMillis || i18n.timeZoneOffsetToUTCInMillis,
 
         clientTimeOffsetInMillis: config.clientTimeOffsetInMillis || 0,
+
+        clockStyle: config.clockStyle || "",
     };
 }
 

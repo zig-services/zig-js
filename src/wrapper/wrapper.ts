@@ -42,7 +42,7 @@ async function initializeGame(): Promise<HTMLIFrameElement> {
     iframe.allowFullscreen = true;
     iframe.scrolling = 'no';
     iframe.onerror = err => log.error('Error in iframe:', err);
-    showClock();
+    showClock(config.clockStyle);
 
     const parentMessageClient = new MessageClient(window.parent);
 
@@ -94,13 +94,18 @@ async function initializeGame(): Promise<HTMLIFrameElement> {
     return iframe;
 }
 
-function showClock() {
+function showClock(style : string) {
+    function setTime(div: HTMLElement) {
+        div.innerHTML = `<div id="clock" class="zig-clock" style="${style}">${getTime()}</div>`;
+    }
+
     const div = document.createElement('div');
+    setTime(div);
     document.body.appendChild(div);
 
     setInterval(function () {
-        div.innerHTML = `<div id="clock" class="zig-clock">${getTime()}</div>`;
-    }, 1000);
+        setTime(div);
+    }, 60000);
 }
 
 function getTime(): string {
