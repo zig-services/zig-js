@@ -472,11 +472,13 @@ method in your `Connector`. If your backend cannot handle path parameters, you m
 pass the game name as a parameter. To do so, implement the method as such:
 
 ```js
-buildRequestPath(request) {
-  if (r.type === "buy" || r.type === "settle") {
-    return `/api/buy-tickets?game=${r.gameName}&demo=${r.type === 'demo'}&quantity=${r.quantity}&betFactor=${r.betFactor}`;
-  } else if (r.type === "settle") {
-    return `/api/settle?game=${r.gameName}&id=${r.ticketId}`;
+class YourConnector extends Connector {
+  buildRequestPath(request) {
+    if (r.type === "buy" || r.type === "settle") {
+      return `/api/buy-tickets?game=${r.gameName}&demo=${r.type === 'demo'}&quantity=${r.quantity}&betFactor=${r.betFactor}`;
+    } else if (r.type === "settle") {
+      return `/api/settle?game=${r.gameName}&id=${r.ticketId}`;
+    }
   }
 }
 ```
