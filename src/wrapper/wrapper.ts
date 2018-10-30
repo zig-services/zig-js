@@ -97,7 +97,7 @@ async function initializeGame(): Promise<HTMLIFrameElement> {
 function showClock() {
     const div = document.createElement('div');
     div.innerHTML = `
-    <div id="clock"></div>`;
+    <div class='zig-overlay'><div id="clock" class='zig-alert__title'></div></div>`;
     document.body.appendChild(div);
 
     setInterval(function () {
