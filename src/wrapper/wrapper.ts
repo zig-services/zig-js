@@ -100,7 +100,7 @@ function showClock() {
 
     setInterval(function () {
         div.innerHTML = `<div id="clock" class="zig-clock">${getTime()}</div>`;
-    }, 60000);
+    }, 1000);
 }
 
 function getTime(): string {
