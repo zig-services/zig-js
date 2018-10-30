@@ -42,6 +42,7 @@ async function initializeGame(): Promise<HTMLIFrameElement> {
     iframe.allowFullscreen = true;
     iframe.scrolling = 'no';
     iframe.onerror = err => log.error('Error in iframe:', err);
+    showClock();
 
     const parentMessageClient = new MessageClient(window.parent);
 
@@ -91,6 +92,13 @@ async function initializeGame(): Promise<HTMLIFrameElement> {
     await trySetupMessageClient();
 
     return iframe;
+}
+
+function showClock() {
+  const div = document.createElement('div');
+  div.innerHTML = `
+    <div id="clock"></div>`;
+  document.body.appendChild(div);
 }
 
 /**
@@ -201,7 +209,7 @@ onDOMLoad(() => {
             <div style='position: absolute; top: 0; left: 0; font-size: 0.6em; padding: 0.25em; background: rgba(0, 0, 0, 128); color: white; z-index: 100;'>
                 <strong>ZIG</strong>
                 &nbsp;&nbsp;
-                
+
                 version: ${Options.version} (=${clientVersion}),
                 logging: ${Options.logging},
                 wc override: ${JSON.stringify(Options.winningClassOverride)},
