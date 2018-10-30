@@ -99,6 +99,7 @@ function showClock() {
   div.innerHTML = `
     <div id="clock"></div>`;
   document.body.appendChild(div);
+  const clock = new Clock(div)
 }
 
 /**

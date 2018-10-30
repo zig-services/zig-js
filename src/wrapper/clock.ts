@@ -17,12 +17,7 @@ class Clock {
         const hour = now.getHours();
         return `${hour >= 10 ? hour : '0' + hour}:${now.getMinutes()}`
     }
-
-    public start() {
-        const that = this;
-
-    }
-
+    
     public stop() {
         clearInterval(this.clockHandler);
     }
