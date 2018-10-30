@@ -1,4 +1,4 @@
-import {IMoneyAmount} from '../common/domain';
+import {Currency, IMoneyAmount} from '../common/domain';
 import {UIState} from './connector';
 import {Game} from './webpage';
 import Vue, {ComputedOptions} from 'vue';
@@ -7,85 +7,67 @@ import {injectStyle} from '../common/dom';
 
 const logger = Logger.get('zig.Overlay');
 
-Vue.filter('moneyAmount', (amount: IMoneyAmount) => {
-    const major = amount.amountInMajor.toFixed(2);
+function currencySymbol(currency: Currency): string {
+    return ({EUR: '€'} as any)[currency] || currency;
+}
 
-    switch (amount.currency) {
-        case 'EUR':
-            return `${major.replace('.', ',')} €`;
+export class Translations {
+    readonly action_Play: string = 'Play';
+    readonly action_Buy: string = 'Buy & Play';
+    readonly action_Resume: string = 'Resume';
+    readonly action_Login: string = 'Login';
+    readonly action_Payin: string = 'Payin';
+    readonly action_Voucher: string = 'Play for free';
 
-        case 'GBP':
-            return `£${major}`;
+    readonly main_TicketPrice: string = 'Price per game: ';
 
-        default:
-            return `${major} ${amount.currency}`;
+    readonly hint_Login: string = 'Login first';
+
+    readonly demo_FreePlay: string = 'Free try';
+    readonly demo_NoPayout: string = 'No payout!';
+    readonly demo_Action: string = 'Play for free';
+    readonly demo_HintNoFree: string = 'That was fun!';
+    readonly demo_HintPlayAgain: string = 'Play a real game';
+
+    public formatMoneyAmount(amount: IMoneyAmount): string {
+        const formatted = amount.amountInMajor.toFixed(2).replace(/,/, '.');
+        return `${formatted} ${currencySymbol(amount.currency)}`;
     }
-});
+}
 
-const Price = Vue.component('ZigPrice', {
-    template: `
-        <span v-if="hasDiscount">
-            <span class="zig-price zig-price--strike">{{ amount|moneyAmount }}</span>
-            <span class="zig-price zig-price--discounted">{{ discounted|moneyAmount}}</span>
-        </span>
-        <span v-else>
-            <span class="zig-price">{{ amount|moneyAmount }}</span>
-        </span>
-    `,
+export class Translations_en_GB extends Translations {
+}
 
-    props: {
-        amount: {
-            type: propertyType<IMoneyAmount>(),
-            required: true,
-        },
+export class Translations_de_DE extends Translations {
+    readonly action_Play: string = 'Spielen';
+    readonly action_Buy: string = 'Kaufen & Spielen';
+    readonly action_Resume: string = 'Fortsetzen';
+    readonly action_Login: string = 'Anmelden';
+    readonly action_Payin: string = 'Einzahlen';
+    readonly action_Voucher: string = 'Gutschein einlösen';
 
-        discounted: {
-            type: propertyType<IMoneyAmount>(),
-            required: false,
-        },
-    },
+    readonly main_TicketPrice: string = 'Preis pro Spiel: ';
 
-    computed: {
-        hasDiscount(): boolean {
-            return this.discounted != null && this.discounted.amountInMinor != this.amount.amountInMinor;
-        },
-    },
-});
+    readonly hint_Login: string = 'Bitte melden Sie sich zuerst an';
 
-const ZigAction = Vue.component('ZigAction', {
-    template: `
-        <div class="zig-action-wrapper">
-            <button @click="buttonClicked()" :class="{'zig-action': true, 'zig-action--primary': primary}" v-html="text"></button>
-        </div>
-    `,
+    readonly demo_FreePlay: string = 'Gratis testen';
+    readonly demo_NoPayout: string = 'Keine Gewinnchance';
+    readonly demo_Action: string = 'Gratis testen';
+    readonly demo_HintNoFree: string = 'Hat es Spaß gemacht?';
+    readonly demo_HintPlayAgain: string = 'Um echtes Geld spielen';
 
-    props: {
-        primary: {
-            type: Boolean,
-            required: false,
-        },
-
-        text: {
-            type: String,
-            required: true,
-        },
-    },
-
-    methods: {
-        buttonClicked() {
-            this.$emit('action');
-        },
-    },
-});
+    public formatMoneyAmount(amount: IMoneyAmount): string {
+        const formatted = amount.amountInMajor.toFixed(2).replace('.', ',');
+        return `${formatted} ${currencySymbol(amount.currency)}`;
+    }
+}
 
 const css: string = `
 .zig-overlay {
     display: flex;
     flex-direction: row;
     flex-wrap: wrap;
-    
     text-align: left;
-    
     background: #eee;
 }
 
@@ -94,10 +76,6 @@ const css: string = `
     box-sizing: border-box;
 }
 
-.zig-overlay__demo-title {
-    order: 0;
-    flex-basis: 35%;
-}
 
 .zig-overlay__title {
     padding-top: 1rem;
@@ -113,7 +91,6 @@ const css: string = `
     padding-top: 0.5rem;
     padding-left: 1rem;
     padding-right: 1rem;
-    
     line-height: 1.25rem;
 }
 
@@ -122,33 +99,40 @@ const css: string = `
     padding-bottom: 1rem;
 }
 
-.zig-overlay__demo-subtitle {
+
+.zig-overlay__title--demo {
+    order: 0;
+    flex-basis: 35%;
+}
+.zig-overlay__subtitle--demo {
     order: 2;
     flex-basis: 35%;
 }
 
-.zig-overlay__demo-action {
+.zig-overlay__action--demo {
     order: 4;
     flex-basis: 35%;
 }
 
-.zig-overlay__main-title {
+
+.zig-overlay__title--main {
     order: 1;
     flex-basis: 65%;
     border-left: 1px solid white;
 }
 
-.zig-overlay__main-subtitle {
+.zig-overlay__subtitle--main {
     order: 3;
     flex-basis: 65%;
     border-left: 1px solid white;
 }
 
-.zig-overlay__main-action {
+.zig-overlay__action--main {
     order: 5;
     flex-basis: 65%;
     border-left: 1px solid white;
 }
+
 
 .zig-overlay__description {
     order: 6;
@@ -187,82 +171,106 @@ const css: string = `
 }
 `;
 
-Vue.component('ZigDemoTitle', {
-    template: `<div class="zig-overlay__title zig-overlay__demo-title"><slot>&nbsp;</slot></div>`,
+Vue.component('ZigTitle', {
+    props: ['type'],
+    template: `<div :class="['zig-overlay__title', 'zig-overlay__title--'+type]"><slot>&nbsp;</slot></div>`,
 });
 
-Vue.component('ZigDemoSubtitle', {
-    template: `<div class="zig-overlay__subtitle zig-overlay__demo-subtitle"><slot>&nbsp;</slot></div>`,
+Vue.component('ZigSubtitle', {
+    props: ['type'],
+    template: `<div :class="['zig-overlay__subtitle', 'zig-overlay__subtitle--'+type]"><slot>&nbsp;</slot></div>`,
 });
 
-Vue.component('ZigDemoAction', {
-    template: `<div class="zig-overlay__action zig-overlay__demo-action"><slot>&nbsp;</slot></div>`,
-});
-
-Vue.component('ZigMainTitle', {
-    template: `<div class="zig-overlay__title zig-overlay__main-title"><slot>&nbsp;</slot></div>`,
-});
-
-Vue.component('ZigMainSubtitle', {
-    template: `<div class="zig-overlay__subtitle zig-overlay__main-subtitle"><slot>&nbsp;</slot></div>`,
-});
-
-Vue.component('ZigMainAction', {
-    template: `<div class="zig-overlay__action zig-overlay__main-action"><slot>&nbsp;</slot></div>`,
+Vue.component('ZigActionContainer', {
+    props: ['type'],
+    template: `<div :class="['zig-overlay__action', 'zig-overlay__action--'+type]"><slot>&nbsp;</slot></div>`,
 });
 
 Vue.component('ZigDescription', {
     template: `<div class="zig-overlay__description"><slot>&nbsp;</slot></div>`,
 });
 
-Vue.component('ZigTicketPrice', {
+Vue.component('ZigPrice', {
     template: `
-        <ZigMainTitle>
-            Preis pro Spiel:
-            <ZigPrice
-                :amount="uiState.normalTicketPrice"
-                :discounted="uiState.discountedTicketPrice"/>
-        </ZigMainTitle>`,
+        <span v-if="discounted != null">
+            <span class="zig-price zig-price--strike">{{ amount }}</span>
+            <span class="zig-price zig-price--discounted">{{ discounted}}</span>
+        </span>
+        <span v-else>
+            <span class="zig-price">{{ amount }}</span>
+        </span>
+    `,
+
+    props: ['amount', 'discounted'],
+});
+
+Vue.component('ZigAction', {
+    template: `
+        <div class="zig-action-wrapper">
+            <button @click="buttonClicked()" :class="{'zig-action': true, 'zig-action--primary': primary}" v-html="text"></button>
+        </div>
+    `,
 
     props: {
-        uiState: {
-            type: propertyType<UIState>(),
+        primary: {
+            type: Boolean,
+            required: false,
+        },
+
+        text: {
+            type: String,
             required: true,
+        },
+    },
+
+    methods: {
+        buttonClicked() {
+            this.$emit('action');
         },
     },
 });
 
-const Overlay = Vue.component('Overlay', {
+Vue.component('Overlay', {
+    props: {
+        translations: {
+            type: Translations,
+            required: true,
+        },
+    },
     template: `
-        <div class="zig-overlay" v-if="isLoading">
-            Loading&hellip;
-        </div>
-        
-        <div class="zig-overlay" v-else-if="isVisible" :class="cssClasses">
+        <div class="zig-overlay" v-if="isVisible">
             <template>
                 <template v-if="uiState.allowFreeGame">
-                    <ZigDemoTitle>Gratis testen</ZigDemoTitle>
-                    <ZigDemoSubtitle>keine Gewinnmöglichkeit</ZigDemoSubtitle>
-                    <ZigDemoAction>
-                        <ZigAction @action="demoClicked()" :primary="false" text="Spiel gratis testen"/>
-                    </ZigDemoAction>
+                    <ZigTitle type="demo">{{ translations.demo_FreePlay }}</ZigTitle>
+                    <ZigSubtitle type="demo">{{ translations.demo_NoPayout }}</ZigSubtitle>
+                    <ZigActionContainer type="demo">
+                        <ZigAction type="demo" @action="demoClicked()" :primary="false" :text="translations.demo_Action"/>
+                    </ZigActionContainer>
                 </template>
+                
                 <template v-else>
-                    <ZigDemoTitle>Hat es Spaß gemacht?</ZigDemoTitle>
-                    <ZigDemoSubtitle/>
-                    <ZigDemoAction>
-                        <div class="zig-hint">Spielen Sie noch eine Runde!</div>
-                    </ZigDemoAction>
+                    <ZigTitle type="demo">{{ translations.demo_HintNoFree }}</ZigTitle>
+                    <ZigSubtitle type="demo"/>
+                    <ZigActionContainer type="demo">
+                        <div class="zig-hint">{{ translations.demo_HintPlayAgain }}</div>
+                    </ZigActionContainer>
                 </template>
             </template>
             
             <template>
-                <ZigTicketPrice :uiState="uiState"/>
-                <ZigMainSubtitle v-html="mainSubtitle"></ZigMainSubtitle>
-                <ZigMainAction>
+                <ZigTitle type="main">
+                    {{ translations.main_TicketPrice }}
+                    <ZigPrice
+                        :amount="ticketPriceFormatted"
+                        :discounted="nonZeroDiscountedPriceFormatted"/>
+                </ZigTitle>
+                
+                <ZigSubtitle type="main" v-html="mainSubtitle"></ZigSubtitle>
+                
+                <ZigActionContainer type="main">
                     <div class="zig-hint" v-html="mainHint" v-if="mainHint"/>
                     <ZigAction @action="handleMainAction" :primary="true" :text="mainAction"/>
-                </ZigMainAction>    
+                </ZigActionContainer>    
             </template>
             
             <ZigDescription>Here we have some text.</ZigDescription>
@@ -278,15 +286,7 @@ const Overlay = Vue.component('Overlay', {
         game: localValue<Game | null>(null),
 
         isVisible(): boolean {
-            return !!this.uiState && this.uiState.buttonType !== 'none';
-        },
-
-        isLoading(): boolean {
-            return !this.uiState || this.uiState.buttonType === 'loading';
-        },
-
-        cssClasses(): any {
-            return {};
+            return !!this.uiState && this.uiState.buttonType !== 'loading' && this.uiState.buttonType !== 'none';
         },
 
         mainSubtitle(): string {
@@ -294,26 +294,41 @@ const Overlay = Vue.component('Overlay', {
         },
 
         mainHint(): string {
-            switch (this.uiState!.buttonType) {
-                case 'login':
-                    return 'Melden sie sich zun&auml;chst an';
+            const actions: { [key: string]: string } = {
+                'login': this.translations.hint_Login,
+            };
 
-                default:
-                    return '';
-            }
+            return actions[this.uiState!.buttonType] || '';
         },
 
         mainAction(): string {
-            switch (this.uiState!.buttonType) {
-                case 'buy':
-                    return 'Bezahlen &amp; spielen';
+            const actions: { [key: string]: string } = {
+                'buy': this.translations.action_Buy,
+                'play': this.translations.action_Play,
+                'payin': this.translations.action_Payin,
+                'login': this.translations.action_Login,
+                'resume': this.translations.action_Resume,
+                'voucher': this.translations.action_Voucher,
+            };
 
-                case 'login':
-                    return 'Anmelden &amp; spielen';
+            return actions[this.uiState!.buttonType] || this.translations.action_Buy;
+        },
 
-                default:
-                    return '';
+        ticketPriceFormatted(): string | null {
+            return this.uiState
+                ? this.translations.formatMoneyAmount(this.uiState.normalTicketPrice)
+                : null;
+        },
+
+        nonZeroDiscountedPriceFormatted(): string | null {
+            if (!this.uiState
+                || !this.uiState.discountedTicketPrice
+                || this.uiState.discountedTicketPrice.equalTo(this.uiState.normalTicketPrice)) {
+
+                return null;
             }
+
+            return this.translations.formatMoneyAmount(this.uiState.discountedTicketPrice);
         },
     },
 
@@ -342,7 +357,11 @@ const Overlay = Vue.component('Overlay', {
 
 let zigStylesInjected = false;
 
-export function installOverlay(target: Element): (uiState: UIState, game: Game) => void {
+interface OverlayConfig {
+    translations: Translations;
+}
+
+export function installOverlay(target: Element, config: Partial<OverlayConfig> = {}): (uiState: UIState, game: Game) => void {
     let overlay: any;
 
     let latestGame: Game;
@@ -353,12 +372,16 @@ export function installOverlay(target: Element): (uiState: UIState, game: Game) 
         zigStylesInjected = true;
     }
 
-    const container = document.createElement("div");
+    const container = document.createElement('div');
     target.append(container);
 
     new Vue({
         el: container,
-        template: `<Overlay ref='overlay'/>`,
+        template: `<Overlay ref='overlay' :translations="translations"/>`,
+
+        data: {
+            translations: Object.freeze(config.translations || new Translations()),
+        },
 
         mounted(): void {
             logger.info('Overlay vue instance mounted.');
