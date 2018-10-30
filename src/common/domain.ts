@@ -41,9 +41,6 @@ export interface Ticket {
     // This id needs to be send back with a `settle` call.
     readonly id: TicketId;
 
-    // The ticket id as given by the zig service.
-    // readonly externalId: ExternalTicketId;
-
     // Some identifying alphanumeric string that does not need to be
     // unique but should identify the ticket given other information like an
     // approximate time or customer number

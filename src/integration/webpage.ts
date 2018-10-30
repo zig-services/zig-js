@@ -1,10 +1,10 @@
 import '../common/polyfills';
 
 import {IError, IMoneyAmount, MoneyAmount} from '../common/domain';
-import {MessageClient, ParentMessageInterface, toErrorValue} from '../common/message-client';
+import {GameLoadedMessage, MessageClient, ParentMessageInterface, toErrorValue} from '../common/message-client';
 import {Logger} from '../common/logging';
 import {registerRequestListener} from '../common/request';
-import {BaseCustomerState, CANCELED, Connector, CustomerState, UIState} from './connector';
+import {BaseCustomerState, CANCELED, Connector, CustomerState, GameRequest, UIState} from './connector';
 import {GameWindow} from './game-window';
 import {GameSettings} from '../common/config';
 import {FullscreenService} from './fullscreen';
@@ -98,9 +98,9 @@ export class Game {
 
             this._gameSettings = gameSettingsEvent.gameSettings;
 
-            if (this.gameSettings.chromeless) {
-                this.logger.info('gameSettings.chromeless implies gameSettings.purchaseInGame');
-                this.gameSettings.purchaseInGame = true;
+            // We can only do purchaseInGame if we requesting chromeless mode.
+            if (this.gameSettings.chromeless && !this.gameSettings.purchaseInGame) {
+                throw new Error('gameSettings.chromeless implies gameSettings.purchaseInGame');
             }
 
             if (gameInput !== undefined) {
@@ -113,19 +113,9 @@ export class Game {
 
             // wait for the game-frame to load
             this.logger.info('Wait for game to load...');
-            const gameLoadedEvent = await this.interface.waitForGameEvent('gameLoaded');
 
-            // verify the inGamePurchase flag on the gameLoaded event.
-            if (gameLoadedEvent.inGamePurchase !== undefined) {
-                if (this.gameSettings.purchaseInGame !== undefined) {
-                    if (this.gameSettings.purchaseInGame != gameLoadedEvent.inGamePurchase) {
-                        throw new Error('purchaseInGame does not match inGamePurchase flag in gameLoaded event');
-                    }
-                } else {
-                    // take value from game loaded event.
-                    this.gameSettings.purchaseInGame = gameLoadedEvent.inGamePurchase;
-                }
-            }
+            const gameLoadedEvent = await this.interface.waitForGameEvent('gameLoaded');
+            verifyInGamePurchaseFlag(this.gameSettings, gameLoadedEvent);
 
             const customerState = await customerState$;
 
@@ -158,7 +148,20 @@ export class Game {
 
     private setupMessageHandlers(): void {
         registerRequestListener(this.gameWindow.interface, req => {
-            return this.connector.executeHttpRequest(req);
+            let request = req;
+            try {
+                const parsedGameRequest = parseGameRequestFromInternalPath(req.path);
+                const requestPath = this.connector.buildRequestPath(parsedGameRequest);
+                if (requestPath) {
+                    request = {...request, path: requestPath};
+                    this.logger.info(`Rewritten request path to: ${request.path}`);
+                }
+
+            } catch (err) {
+                this.logger.warn(`Could not parse path: ${req.path}`);
+            }
+
+            return this.connector.executeHttpRequest(request);
         });
     }
 
@@ -413,7 +416,9 @@ export class Game {
             customerState = await this.connector.fetchCustomerState();
         }
 
-        const uiStateUpdate: UIState = {
+        type Modifyable<T> = { -readonly [P in keyof T]: T[P]; };
+
+        const uiStateUpdate: Modifyable<UIState> = {
             enabled: true,
             unplayedTicketInfo: undefined,
             allowFreeGame: !this.disallowFreeGames,
@@ -479,4 +484,62 @@ function calculateTicketPrice(scaling: Scaling, customerState: BaseCustomerState
     }
 
     return new TicketPrice(baseNormalTicketPrice, baseDiscountedTicketPrice, scaling.betFactor, scaling.quantity);
+}
+
+function verifyInGamePurchaseFlag(gameSettings: GameSettings, gameLoadedEvent: GameLoadedMessage) {
+    // If there is an inGamePurchase field on the gameLoadedEvent, we'll verify that
+    // it matches the configured game settings.
+    if (gameLoadedEvent.inGamePurchase !== undefined) {
+        const fromEvent: boolean = gameLoadedEvent.inGamePurchase;
+
+        // noinspection PointlessBooleanExpressionJS
+        const fromSettings: boolean = !!gameSettings.purchaseInGame;
+
+        if (fromSettings != fromEvent) {
+            throw new Error('purchaseInGame does not match inGamePurchase flag in gameLoaded event!');
+        }
+    }
+}
+
+function parseGameRequestFromInternalPath(path: string): GameRequest {
+    const match = new RegExp('^/+zig/+games/+([^/]+)/+tickets:(settle|buy|demo)').exec(path);
+    if (!match) {
+        throw new Error(`Can not parse url: ${path}`);
+    }
+
+    const [, gameName, op] = match;
+
+    switch (op) {
+        case 'settle': {
+            const match = new RegExp('tickets:settle/+([^/?]+)').exec(path);
+            if (!match) {
+                throw new Error(`Can not extract ticket id from url: ${path}`);
+            }
+
+            const [, ticketId] = match;
+            return {type: 'settle', gameName, ticketId};
+        }
+
+        case 'buy':
+        case 'demo':
+            const rex = new RegExp('(bet-factor|betFactor|quantitiy)=([0-9]+)');
+
+            const query: { [key: string]: number } = {};
+
+            let match: RegExpMatchArray | null;
+            while ((match = rex.exec(path)) != null) {
+                const [, name, value] = match;
+                query[name] = parseInt(value);
+            }
+
+            return {
+                type: op, gameName,
+                quantity: query.quantity || 1,
+                betFactor: query.betFactor || query['bet-factor'] || 1,
+            };
+
+        default:
+            // unreachable
+            throw new Error(`Invalid op: ${op}`);
+    }
 }

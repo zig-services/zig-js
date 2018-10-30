@@ -87,13 +87,37 @@ Zig.Client.Messages.registerGeneric({
 To buy a ticket, use the `Zig.Client.buyTicket` method. The method returns a
 `Promise` instance resolving to the ticket that was supplied by the backend system. This ticket
 includes all the information about the game you need to show to the customer.
+```typescript
+interface Ticket {
+    // Local id of the ticket
+    // This id needs to be send back with a `settle` call.
+    id: string;
 
-* `ticket.id` An id that you need to hold on to to later finish the game using `settleTicket`.
-* `ticket.winningClass.winnings.amountInMinor` This field holds the customers winnings.
-* `ticket.decodedScenario` The game specific scenario object. This includes all the information
-  that is needed to display the progression and outcome of the game to the customer. The
-  winning prize is normally not included. E.g. for a scratchcard, this object contains the
-  values behind the scratch fields.
+    // Some identifying alphanumeric string that does not need to be
+    // unique but should identify the ticket given other information like an
+    // approximate time or customer number
+    ticketNumber: string;
+
+    // The amount of money the customer payed for this ticket.
+    price: MoneyAmount;
+
+    // The winning class of the ticket. Use this to extract the winnings
+    // of this ticket. If the winnings are zero this was a loosing bet.
+    winningClass: {
+        winnings: MoneyAmount
+    };
+
+    // the decoded scenario object or undefined if the scenario
+    // field could not be decoded. Basically `JSON.parse(atob(ticket.scenario))`
+    decodedScenario?: any;
+}
+
+interface MoneyAmount {
+    amountInMinor: number;
+    amountInMajor: number;
+    currency: string;
+}
+```
 
 After the customer plays the game, you might want to show a dialog containing the
 winnings for the purchased ticket. Once that dialog is closed by the user, you signal
@@ -112,7 +136,7 @@ const YourGame = {
     await Zig.Client.settleTicket(ticket.id);
 
     // Show a dialog to the customers displaying the winnings
-    await YourGame.showTicketWinnings(ticket)
+    await YourGame.showTicketWinnings(ticket);
 
     // tell the parent that the game has finish
     Zig.Client.Messages.gameFinished();
@@ -246,15 +270,16 @@ customer state to the game as well as handle the customer integration. If the us
 signed in, the customer state includes a `loggedIn: true` flag as well as the current
 customers balance.
 
-After including the libray into your frontend code, you can create a subclass of the
+### Writing a Connector
+
+After including the library into your frontend code, you can create a subclass of the
 `Connector` class. The only method that is required to implement is the
 `fetchCustomerState` method that returns a promise returning the customer state.
 
 ```js
-import {Connector, CustomerState} from 'zig-js/integration/connector';
-import {MoneyAmount} from common;
+import {Connector} from 'zig-js/integration/connector';
 
-class YourCcommonr extends Connector {
+class YourConnector extends Connector {
   async fetchCustomerState() {
     // fetch the data from your backend
     const yourCustomerState = await YourPlatform.customerState();
@@ -299,6 +324,8 @@ window.onload = async () => {
 
 This will create the necessary markup and include the games frontend using an iframe.
 The game will now load on opening the page.
+
+### Overlay
 
 To let the user interact with the game, you need to provide a control overlay.
 The overlay will include a button to start the game, show the ticket prize and might
@@ -356,6 +383,8 @@ export interface UIState {
   isFreeGame: boolean;
 }
 ```
+
+#### Using the default overlay
 
 This library will provide a basic user interface to simplify the
 integration of new games even more. **TODO customization**
@@ -434,6 +463,23 @@ A complete example on how to start a game looks like this:
 </html>
 ```
 
+### Further customization
+
+The integration defines three default routes to access your backend. Those are described in the
+backend integration documentation and default to `/zig/games/${gameName}/ticket:${op}`.
+You are able to rewrite those default endpoints by implementing the `buildRequestPath`
+method in your `Connector`. If your backend cannot handle path parameters, you might want to
+pass the game name as a parameter. To do so, implement the method as such:
+
+```js
+buildRequestPath(request) {
+  if (r.type === "buy" || r.type === "settle") {
+    return `/api/buy-tickets?game=${r.gameName}&demo=${r.type === 'demo'}&quantity=${r.quantity}&betFactor=${r.betFactor}`;
+  } else if (r.type === "settle") {
+    return `/api/settle?game=${r.gameName}&id=${r.ticketId}`;
+  }
+}
+```
 
 
 ## Build and release this library

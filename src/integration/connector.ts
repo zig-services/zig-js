@@ -5,51 +5,51 @@ import {GameStartedMessage} from '../common/message-client';
 import {Game} from './webpage';
 
 export interface UnplayedTicketInfo {
-    type: 'BASKET' | 'BUNDLE' | 'PRIZE' | 'UNFINISHED'
+    readonly type: 'BASKET' | 'BUNDLE' | 'PRIZE' | 'UNFINISHED'
 
     // Display name of another game that has bought this ticket
-    fromOtherGame?: string;
+    readonly fromOtherGame?: string;
 
     // True if this ticket was bought using a basket process and can now be played
-    fromBasket?: boolean;
+    readonly fromBasket?: boolean;
 }
 
 export interface TicketPricing {
-    normalTicketPrice: MoneyAmount;
+    readonly normalTicketPrice: MoneyAmount;
 
     // Provide a discounted ticket price that is less than the normal ticket price if
     // the customer gets the ticket cheaper. Set it to the same value as
     // the normal ticket price if the customer gets no discount on the ticket.
-    discountedTicketPrice: MoneyAmount;
+    readonly discountedTicketPrice: MoneyAmount;
 }
 
 export interface BaseCustomerState {
-    loggedIn: boolean;
+    readonly loggedIn: boolean;
 
     // The personalized ticket price for this customer.
     // You can use this to apply a discount for the customer. Leave it out if
     // the standard pricing should apply.
-    personalizedTicketPrice?: TicketPricing;
+    readonly personalizedTicketPrice?: TicketPricing;
 }
 
 export interface AnonymousCustomerState extends BaseCustomerState {
     // Customer is not logged in.
-    loggedIn: false;
+    readonly loggedIn: false;
 }
 
 export interface AuthorizedCustomerState extends BaseCustomerState {
     // Customer is logged in.
-    loggedIn: true;
+    readonly loggedIn: true;
 
     // Current balance of the customer. This one must be specified.
-    balance: MoneyAmount;
+    readonly balance: MoneyAmount;
 
     // Set this if the customer has a voucher for a free game. The voucher amount
     // must cover a games ticket price.
-    voucher?: MoneyAmount;
+    readonly voucher?: MoneyAmount;
 
     // Specify a list of unplayed ticket infos of the customer.
-    unplayedTicketInfos?: UnplayedTicketInfo[];
+    readonly unplayedTicketInfos?: UnplayedTicketInfo[];
 }
 
 export type CustomerState = AuthorizedCustomerState | AnonymousCustomerState
@@ -58,29 +58,44 @@ export interface UIState {
     // State of the main button that the ui shows.
     // Use this as main indicator to decide how to render the UI.
     // A type of 'none' should not render any UI.
-    buttonType: 'none' | 'loading' | 'login' | 'payin' | 'buy' | 'play' | 'unplayed' | 'voucher';
+    readonly buttonType: 'none' | 'loading' | 'login' | 'payin' | 'buy' | 'play' | 'unplayed' | 'voucher';
 
     // If this is true you might offer a demo ticket to the customer.
-    allowFreeGame: boolean;
+    readonly allowFreeGame: boolean;
 
     // The normal ticket price
-    normalTicketPrice: MoneyAmount;
+    readonly normalTicketPrice: MoneyAmount;
 
     // The discounted ticket price. Only set if there is a discount on the ticket.
-    discountedTicketPrice?: MoneyAmount;
+    readonly discountedTicketPrice?: MoneyAmount;
 
     // True if the ticket price can be adjusted by switching a bet factor in the game
-    ticketPriceIsVariable: boolean;
+    readonly ticketPriceIsVariable: boolean;
 
     // Flags if the user is allowed to interact with the overlay
-    enabled: boolean;
+    readonly enabled: boolean;
 
     // This field is set if the player can continue with an existing ticket.
-    unplayedTicketInfo?: UnplayedTicketInfo;
+    readonly unplayedTicketInfo?: UnplayedTicketInfo;
 
     // True if the player is _currently_ playing a free demo game round.
-    isFreeGame: boolean;
+    readonly isFreeGame: boolean;
 }
+
+export interface SettleGameRequest {
+    readonly type: 'settle';
+    readonly gameName: string;
+    readonly ticketId: string;
+}
+
+export interface PurchaseGameRequest {
+    readonly type: 'demo' | 'buy';
+    readonly gameName: string;
+    readonly quantity: number;
+    readonly betFactor: number;
+}
+
+export type GameRequest = PurchaseGameRequest | SettleGameRequest;
 
 /**
  * Throw this instance to cancel the current request/response.
@@ -126,6 +141,24 @@ export abstract class Connector {
      */
     public async showErrorDialog(error: IError): Promise<void> {
         this.logger.error('An error occurred:', error);
+    }
+
+    /**
+     * Build a url suitable for your backend by implementing this method
+     * and transforming the given `request` object into a url path.
+     */
+    public buildRequestPath(r: GameRequest): string {
+        switch (r.type) {
+            case 'buy':
+            case 'demo':
+                return `/zig/games/${r.gameName}/tickets:${r.type}?quantity=${r.quantity}&bet-factor=${r.betFactor}`;
+
+            case 'settle':
+                return `/zig/games/${r.gameName}/tickets:settle/${r.ticketId}`;
+
+            default:
+                throw new Error(`invalid type in ${JSON.stringify(r)}`);
+        }
     }
 
     /**

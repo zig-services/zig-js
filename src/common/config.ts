@@ -4,23 +4,23 @@
  */
 export interface GameSettings {
     // Filename or URL of the inner frame. If not set, this defaults to "inner.html"
-    index?: string;
+    readonly index?: string;
 
     // The aspect ratio of the game frame. Set this to -1 if the aspect is unknown
     // and the game's height could change during the game.
-    aspect: number;
+    readonly aspect: number;
 
     // Set to true if this is a legacy game. This should only be set if the
     // game was not developed with the zig-js library. I hope it is not a legacy game.
-    legacyGame?: boolean;
+    readonly legacyGame?: boolean;
 
     // Set to true if the game should not have any overlay displayed.
     // This also implies purchaseInGame=true.e
-    chromeless?: boolean;
+    readonly chromeless?: boolean;
 
     // Set this to signal that the game will handle the purchase flow itself.
     // This might be because it will handle bet factors or quantity selection.
-    purchaseInGame?: boolean;
+    readonly purchaseInGame?: boolean;
 }
 
 /**
@@ -29,39 +29,39 @@ export interface GameSettings {
  */
 export interface GameConfig {
     // the name of the game for use in api requests to buy a ticket
-    canonicalGameName: string;
+    readonly canonicalGameName: string;
 
     // set to true to enable overlay in the outer.html
-    overlay: boolean;
+    readonly overlay: boolean;
 
     // access token for remote game services.
-    remoteAccessToken?: string;
+    readonly remoteAccessToken?: string;
 
     // can be used as a redirect after purchasing a game via basket
-    basketPurchaseRedirect: string;
+    readonly basketPurchaseRedirect: string;
 
     // Set this to true to enable a test stage mode. Defaults to false
     // if not set.
-    isTestStage: boolean;
+    readonly isTestStage: boolean;
 
     // The users locale, e.g. en_GB, en_IE or de_DE.
-    locale: string;
+    readonly locale: string;
 
     // The time zone that shall be used by the game. E.g. "Europe/Berlin".
-    timeZone: string;
+    readonly timeZone: string;
 
     // The current time zone offset from UTC in millis.
-    timeZoneOffsetToUTCInMillis: number;
+    readonly timeZoneOffsetToUTCInMillis: number;
 
     // The offset between the clients time and the server time.
     // Add this to Date.now() to get the current server time.
-    clientTimeOffsetInMillis: number;
+    readonly clientTimeOffsetInMillis: number;
 }
 
 type SimpleGameConfig = Partial<GameConfig> & {
     // This is the only required field in a game config.
     // All other values will be filled with default values if not set.
-    canonicalGameName: string
+    readonly canonicalGameName: string
 };
 
 
