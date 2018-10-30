@@ -23,6 +23,13 @@ export interface GameSettings {
     purchaseInGame?: boolean;
 }
 
+export interface ClockStyle {
+    verticalAlignment: 'top' | 'bottom';
+    horizontalAlignment: 'left' | 'right';
+    fontColor: string;
+    backgroundColor: string;
+}
+
 /**
  * The game config is send from the integration to the games outer.html
  * and proxied by the outer.html to the inner.html.
@@ -58,7 +65,7 @@ export interface GameConfig {
     clientTimeOffsetInMillis: number;
 
     // can be used to style the clock
-    clockStyle: string;
+    clockStyle: ClockStyle;
 }
 
 type SimpleGameConfig = Partial<GameConfig> & {
@@ -124,7 +131,12 @@ function defaultsToGameConfig(config: SimpleGameConfig): GameConfig {
 
         clientTimeOffsetInMillis: config.clientTimeOffsetInMillis || 0,
 
-        clockStyle: config.clockStyle || "",
+        clockStyle: config.clockStyle || {
+            horizontalAlignment: 'right',
+            verticalAlignment: 'top',
+            backgroundColor: 'black',
+            fontColor: 'white',
+        },
     };
 }
 

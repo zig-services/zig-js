@@ -11,13 +11,9 @@ export const WrapperStyleCSS = `
     }
     
     .zig-clock {
-        position: absolute; 
-        top: 0; 
-        right: 0; 
+        position: absolute;
         font-size: 0.8em; 
-        padding: 0.25em; 
-        background: rgba(0, 0, 0, 128); 
-        color: white; 
+        padding: 0.25em;  
         z-index: 100;
     }
     

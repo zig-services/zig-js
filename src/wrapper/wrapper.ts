@@ -6,7 +6,7 @@ import {injectStyle, onDOMLoad} from '../common/dom';
 import {buildTime, clientVersion} from '../common/vars';
 import {delegateToVersion} from '../common/delegate';
 import {Options} from '../common/options';
-import {appendGameConfigToURL, GameSettings, parseGameConfigFromURL} from '../common/config';
+import {appendGameConfigToURL, ClockStyle, GameSettings, parseGameConfigFromURL} from '../common/config';
 import {IError} from '../common/domain';
 import {Logger} from '../common/logging';
 import {WrapperStyleCSS} from './style.css';
@@ -94,9 +94,11 @@ async function initializeGame(): Promise<HTMLIFrameElement> {
     return iframe;
 }
 
-function showClock(style : string) {
+function showClock(style : ClockStyle) {
     function setTime(div: HTMLElement) {
-        div.innerHTML = `<div id="clock" class="zig-clock" style="${style}">${getTime()}</div>`;
+        let alignment = style.verticalAlignment == 'top' ? "top:0;" : "bottom:0;";
+        alignment += style.horizontalAlignment == 'right' ? "right:0;" : "left:0;";
+        div.innerHTML = `<div id="clock" class="zig-clock" style="${alignment} color:${style.fontColor} background:${style.backgroundColor}">${getTime()}</div>`;
     }
 
     const div = document.createElement('div');
