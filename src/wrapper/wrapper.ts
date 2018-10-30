@@ -96,12 +96,10 @@ async function initializeGame(): Promise<HTMLIFrameElement> {
 
 function showClock() {
     const div = document.createElement('div');
-    div.innerHTML = `
-    <div style="position: absolute; top: 0; right: 0; font-size: 0.6em; padding: 0.25em; background: rgba(0, 0, 0, 128); color: white; z-index: 100;"><div id="clock" class='zig-alert__title'></div></div>`;
     document.body.appendChild(div);
 
     setInterval(function () {
-        div.innerHTML = getTime();
+        div.innerHTML = `<div id="clock" class="zig-clock">${getTime()}</div>`;
     }, 60000);
 }
 

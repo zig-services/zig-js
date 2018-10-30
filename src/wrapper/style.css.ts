@@ -10,6 +10,17 @@ export const WrapperStyleCSS = `
         font-family: sans-serif;
     }
     
+    .zig-clock {
+        position: absolute; 
+        top: 0; 
+        right: 0; 
+        font-size: 0.8em; 
+        padding: 0.25em; 
+        background: rgba(0, 0, 0, 128); 
+        color: white; 
+        z-index: 100;
+    }
+    
     .zig-overlay {
         position: absolute;
         top: 0;
