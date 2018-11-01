@@ -15,18 +15,19 @@ function parseIntegrationConfiguration() {
     const demoConfig = JSON.parse(encoded);
     const gameName = demoConfig.name || "yourgame";
     const gameUrl = demoConfig.url || `https://mylotto24.frontend.zig.services/${gameName}/latest/tipp24_com/game/outer.html`;
+    const extraGameConfig = demoConfig.gameConfig || {};
 
     return {
-      gameName, gameUrl,
+      gameName, gameUrl, extraGameConfig,
       gameData: demoConfig.data,
     }
+  } else {
+    // use game/url parameters from URL.
+    const gameName = url.searchParams.get("game") || "dickehose";
+    const gameUrl = url.searchParams.get("url") || `https://mylotto24.frontend.zig.services/${gameName}/latest/tipp24_com/game/outer.html`;
+    const gameData = GameDataObjects[gameName] || {};
+    return {gameName, gameUrl, gameData, extraGameConfig: {}};
   }
-
-  // use game/url parameters from URL.
-  const gameName = url.searchParams.get("game") || "dickehose";
-  const gameUrl = url.searchParams.get("url") || `https://mylotto24.frontend.zig.services/${gameName}/latest/tipp24_com/game/outer.html`;
-  const gameData = GameDataObjects[gameName] || {};
-  return {gameName, gameUrl, gameData};
 }
 
 function logEvent(prefix, event, textColor) {
@@ -44,7 +45,7 @@ function logEvent(prefix, event, textColor) {
 Object.assign(window, ZIG);
 
 const bootTime = Date.now();
-const {gameName, gameUrl, gameData} = parseIntegrationConfiguration();
+const demoConfig = parseIntegrationConfiguration();
 
 class DemoConnector extends Connector {
   constructor(vm, updateUIState) {
@@ -63,11 +64,11 @@ class DemoConnector extends Connector {
     }
 
     const personalizedTicketPrice = {
-        normalTicketPrice: ZIG.MoneyAmount.of(demoState.ticketPrice, demoState.currency),
-        discountedTicketPrice: ZIG.MoneyAmount.of(demoState.ticketPrice - demoState.discount, demoState.currency),
-      };
+      normalTicketPrice: ZIG.MoneyAmount.of(demoState.ticketPrice, demoState.currency),
+      discountedTicketPrice: ZIG.MoneyAmount.of(demoState.ticketPrice - demoState.discount, demoState.currency),
+    };
 
-    if(!demoState.loggedIn) {
+    if (!demoState.loggedIn) {
       return {
         loggedIn: false,
         personalizedTicketPrice
@@ -112,13 +113,13 @@ class DemoConnector extends Connector {
         demoState.balance -= (demoState.ticketPrice - discount);
         demoState.voucher = 0;
         statusCode = 200;
-        body = responseTicket(gameData)
+        body = responseTicket(demoConfig.gameData)
       }
     }
 
     if (req.path.indexOf("/demo") !== -1 || req.path.indexOf("/tickets:demo") !== -1) {
       statusCode = 200;
-      body = responseTicket(gameData)
+      body = responseTicket(demoConfig.gameData)
     }
 
     logEvent("XMLHttpRequest.response " + statusCode, body, "#a0a");
@@ -160,7 +161,7 @@ window.onload = async () => {
       error: null,
       resolveErrorPromise: null,
 
-      small: true,
+      small: !/fullSize=true/.test(location.href),
 
       demoState: {
         loggedIn: true,
@@ -183,8 +184,6 @@ window.onload = async () => {
     },
 
     mounted() {
-      this.small = !/fullSize=true/.test(location.href);
-
       // restore demo state if available
       const previousState = localStorage.getItem("demoState");
       if (previousState) {
@@ -211,10 +210,11 @@ window.onload = async () => {
 
       async loadGame() {
         const gameConfig = {
-          canonicalGameName: gameName,
+          canonicalGameName: demoConfig.gameName,
           overlay: false,
           isTestStage: true,
           remoteAccessToken: "dummy token",
+          ...demoConfig.extraGameConfig,
         };
 
         // add the overlay
@@ -222,7 +222,7 @@ window.onload = async () => {
 
         const game = ZIG.installGame({
           container: this.$refs.gameContainer,
-          url: gameUrl,
+          url: demoConfig.gameUrl,
           gameConfig: gameConfig,
           connector: new DemoConnector(this, updateUIState),
         });
@@ -241,7 +241,7 @@ window.onload = async () => {
 
         this.game = game;
 
-        await game.initialize(gameData.gameInput || undefined);
+        await game.initialize(demoConfig.gameData.gameInput || undefined);
       },
 
       payin() {
