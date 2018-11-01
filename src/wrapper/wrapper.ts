@@ -135,7 +135,7 @@ function showClock(style: Required<ClockStyle>, clientTimeOffsetInMillis: number
     div.className = 'zig-clock';
     div.style.color = style.fontColor;
     div.style[style.verticalAlignment] = '0';
-    div.style[style.horizontalAlignment] = '0';
+    div.style[style.horizontalAlignment] = '0.5em';
     div.style.backgroundColor = style.backgroundColor;
     setTime(div);
 
