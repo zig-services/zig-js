@@ -23,7 +23,7 @@ export interface GameSettings {
     purchaseInGame?: boolean;
 
     // Set this to configure the in game clock.
-    clockStyle?: ClockStyle;
+    clockStyle?: ClockStyle | false;
 }
 
 export interface ClockStyle {

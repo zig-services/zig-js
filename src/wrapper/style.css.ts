@@ -12,7 +12,7 @@ export const WrapperStyleCSS = `
     
     .zig-clock {
         position: absolute;
-        font-size: 0.8em; 
+        font-size: 0.7em; 
         padding: 0.5em;
         margin: -0.25em;
         border-radius: 0.25em;  

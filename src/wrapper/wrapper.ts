@@ -6,7 +6,7 @@ import {injectStyle, onDOMLoad} from '../common/dom';
 import {buildTime, clientVersion} from '../common/vars';
 import {delegateToVersion} from '../common/delegate';
 import {Options} from '../common/options';
-import {appendGameConfigToURL, ClockStyle, GameSettings, parseGameConfigFromURL} from '../common/config';
+import {appendGameConfigToURL, ClockStyle, GameConfig, GameSettings, parseGameConfigFromURL} from '../common/config';
 import {IError} from '../common/domain';
 import {Logger} from '../common/logging';
 import {WrapperStyleCSS} from './style.css';
@@ -21,12 +21,7 @@ if (GameSettings == null) {
     throw new Error('window.GameConfig must be initialized.');
 }
 
-/**
- * Create and load the real game inside the iframe.
- * This method will add the iframe to the body of the page.
- */
-async function initializeGame(): Promise<HTMLIFrameElement> {
-    const config = parseGameConfigFromURL();
+function setupGameClock(config: GameConfig, messageInterface: GameMessageInterface) {
     const clockStyle: Required<ClockStyle> = {
         horizontalAlignment: 'right',
         verticalAlignment: 'top',
@@ -34,6 +29,28 @@ async function initializeGame(): Promise<HTMLIFrameElement> {
         fontColor: 'white',
         ...(GameSettings.clockStyle || {}),
     };
+
+    let unregister: Unregister;
+
+    function _showClock() {
+        showClock(clockStyle, config.clientTimeOffsetInMillis);
+        unregister();
+    }
+
+    unregister = messageInterface.registerGeneric({
+        prepareGame: _showClock,
+        playGame: _showClock,
+        playDemoGame: _showClock,
+        requestStartGame: _showClock,
+    });
+}
+
+/**
+ * Create and load the real game inside the iframe.
+ * This method will add the iframe to the body of the page.
+ */
+async function initializeGame(): Promise<HTMLIFrameElement> {
+    const config = parseGameConfigFromURL();
 
     let url = appendGameConfigToURL(GameSettings.index || 'inner.html', config);
 
@@ -56,22 +73,12 @@ async function initializeGame(): Promise<HTMLIFrameElement> {
 
 
     // send the new config to the parent so it can update the frame size
-    const parentMessageInterface = new GameMessageInterface(parentMessageClient, config.canonicalGameName);
-    parentMessageInterface.updateGameSettings(GameSettings);
+    const messageInterface = new GameMessageInterface(parentMessageClient, config.canonicalGameName);
+    messageInterface.updateGameSettings(GameSettings);
 
-
-    let unregister: Unregister;
-
-    function _showClock() {
-        showClock(clockStyle, config.clientTimeOffsetInMillis);
-        unregister();
+    if(GameSettings.clockStyle !== false) {
+        setupGameClock(config, messageInterface);
     }
-
-    unregister = parentMessageInterface.registerGeneric({
-        prepareGame: _showClock,
-        playGame: _showClock,
-        playDemoGame: _showClock,
-    });
 
     // add game to window
     document.body.appendChild(iframe);
