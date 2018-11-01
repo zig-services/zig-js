@@ -1,7 +1,7 @@
 import '../common/polyfills';
 
 import {sleep} from '../common/common';
-import {GameMessageInterface, MessageClient, ParentMessageInterface} from '../common/message-client';
+import {GameMessageInterface, MessageClient, ParentMessageInterface, Unregister} from '../common/message-client';
 import {injectStyle, onDOMLoad} from '../common/dom';
 import {buildTime, clientVersion} from '../common/vars';
 import {delegateToVersion} from '../common/delegate';
@@ -27,7 +27,16 @@ if (GameSettings == null) {
  */
 async function initializeGame(): Promise<HTMLIFrameElement> {
     const config = parseGameConfigFromURL();
+    const clockStyle: Required<ClockStyle> = {
+        horizontalAlignment: 'right',
+        verticalAlignment: 'top',
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        fontColor: 'white',
+        ...(GameSettings.clockStyle || {}),
+    };
+
     let url = appendGameConfigToURL(GameSettings.index || 'inner.html', config);
+
 
     // legacy games need extra patching. We'll need to inform the inner.html about that.
     if (GameSettings.legacyGame === true) {
@@ -42,13 +51,27 @@ async function initializeGame(): Promise<HTMLIFrameElement> {
     iframe.allowFullscreen = true;
     iframe.scrolling = 'no';
     iframe.onerror = err => log.error('Error in iframe:', err);
-    showClock(config.clockStyle);
 
     const parentMessageClient = new MessageClient(window.parent);
 
+
     // send the new config to the parent so it can update the frame size
-    new GameMessageInterface(parentMessageClient, config.canonicalGameName)
-        .updateGameSettings(GameSettings);
+    const parentMessageInterface = new GameMessageInterface(parentMessageClient, config.canonicalGameName);
+    parentMessageInterface.updateGameSettings(GameSettings);
+
+
+    let unregister: Unregister;
+
+    function _showClock() {
+        showClock(clockStyle, config.clientTimeOffsetInMillis);
+        unregister();
+    }
+
+    unregister = parentMessageInterface.registerGeneric({
+        prepareGame: _showClock,
+        playGame: _showClock,
+        playDemoGame: _showClock,
+    });
 
     // add game to window
     document.body.appendChild(iframe);
@@ -94,26 +117,33 @@ async function initializeGame(): Promise<HTMLIFrameElement> {
     return iframe;
 }
 
-function showClock(style : ClockStyle) {
+function showClock(style: Required<ClockStyle>, clientTimeOffsetInMillis: number) {
     function setTime(div: HTMLElement) {
-        let alignment = style.verticalAlignment == 'top' ? "top:0;" : "bottom:0;";
-        alignment += style.horizontalAlignment == 'right' ? "right:0;" : "left:0;";
-        div.innerHTML = `<div id="clock" class="zig-clock" style="${alignment} color:${style.fontColor} background:${style.backgroundColor}">${getTime()}</div>`;
+        let alignment = style.verticalAlignment == 'top' ? 'top:0;' : 'bottom:0;';
+        alignment += style.horizontalAlignment == 'right' ? 'right:0;' : 'left:0;';
+        div.innerHTML = `<div id="clock">${getTime(clientTimeOffsetInMillis)}</div>`;
     }
 
     const div = document.createElement('div');
+    div.className = 'zig-clock';
+    div.style.color = style.fontColor;
+    div.style[style.verticalAlignment] = '0';
+    div.style[style.horizontalAlignment] = '0';
+    div.style.backgroundColor = style.backgroundColor;
     setTime(div);
+
     document.body.appendChild(div);
 
     setInterval(function () {
         setTime(div);
-    }, 60000);
+    }, 1000);
 }
 
-function getTime(): string {
-    const now = new Date();
+function getTime(clientTimeOffsetInMillis: number): string {
+    const now = new Date(Date.now() + clientTimeOffsetInMillis);
     const hour = now.getHours();
-    return `${hour >= 10 ? hour : '0' + hour}:${now.getMinutes()}`
+    const minutes = now.getMinutes();
+    return `${hour >= 10 ? hour : '0' + hour}:${minutes >= 10 ? minutes : '0' + minutes}`
 }
 
 /**
@@ -169,6 +199,7 @@ function showControls(iface: ParentMessageInterface) {
     div.innerText = 'Start game';
     div.href = '#';
     document.body.appendChild(div);
+
 
     div.onclick = ev => {
         ev.preventDefault();

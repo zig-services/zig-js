@@ -21,13 +21,16 @@ export interface GameSettings {
     // Set this to signal that the game will handle the purchase flow itself.
     // This might be because it will handle bet factors or quantity selection.
     purchaseInGame?: boolean;
+
+    // Set this to configure the in game clock.
+    clockStyle?: ClockStyle;
 }
 
 export interface ClockStyle {
     verticalAlignment: 'top' | 'bottom';
     horizontalAlignment: 'left' | 'right';
-    fontColor: string;
-    backgroundColor: string;
+    fontColor?: string;
+    backgroundColor?: string;
 }
 
 /**
@@ -35,6 +38,7 @@ export interface ClockStyle {
  * and proxied by the outer.html to the inner.html.
  */
 export interface GameConfig {
+    [x: string]: any;
     // the name of the game for use in api requests to buy a ticket
     canonicalGameName: string;
 
@@ -63,9 +67,6 @@ export interface GameConfig {
     // The offset between the clients time and the server time.
     // Add this to Date.now() to get the current server time.
     clientTimeOffsetInMillis: number;
-
-    // can be used to style the clock
-    clockStyle: ClockStyle;
 }
 
 type SimpleGameConfig = Partial<GameConfig> & {
@@ -130,13 +131,6 @@ function defaultsToGameConfig(config: SimpleGameConfig): GameConfig {
         timeZoneOffsetToUTCInMillis: config.timeZoneOffsetToUTCInMillis || i18n.timeZoneOffsetToUTCInMillis,
 
         clientTimeOffsetInMillis: config.clientTimeOffsetInMillis || 0,
-
-        clockStyle: config.clockStyle || {
-            horizontalAlignment: 'right',
-            verticalAlignment: 'top',
-            backgroundColor: 'black',
-            fontColor: 'white',
-        },
     };
 }
 
