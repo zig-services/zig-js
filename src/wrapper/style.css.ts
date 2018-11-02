@@ -10,6 +10,15 @@ export const WrapperStyleCSS = `
         font-family: sans-serif;
     }
     
+    .zig-clock {
+        position: absolute;
+        font-size: 0.7em; 
+        padding: 0.5em;
+        margin: -0.25em;
+        border-radius: 0.25em;  
+        z-index: 100;
+    }
+    
     .zig-overlay {
         position: absolute;
         top: 0;

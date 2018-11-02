@@ -21,6 +21,16 @@ export interface GameSettings {
     // Set this to signal that the game will handle the purchase flow itself.
     // This might be because it will handle bet factors or quantity selection.
     readonly purchaseInGame?: boolean;
+
+    // Set this to configure the in game clock.
+    readonly clockStyle?: ClockStyle | false;
+}
+
+export interface ClockStyle {
+    verticalAlignment: 'top' | 'bottom';
+    horizontalAlignment: 'left' | 'right';
+    fontColor?: string;
+    backgroundColor?: string;
 }
 
 /**
@@ -131,7 +141,7 @@ interface I18N {
 
 function defaultInternationalization(): I18N {
     return {
-        locale: 'en_EN',
+        locale: 'en_GB',
         timeZone: 'Europe/London',
         timeZoneOffsetToUTCInMillis: 0,
     };

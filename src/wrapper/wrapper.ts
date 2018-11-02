@@ -1,12 +1,12 @@
 import '../common/polyfills';
 
 import {sleep} from '../common/common';
-import {GameMessageInterface, MessageClient, ParentMessageInterface} from '../common/message-client';
+import {GameMessageInterface, MessageClient, ParentMessageInterface, Unregister} from '../common/message-client';
 import {injectStyle, onDOMLoad} from '../common/dom';
 import {buildTime, clientVersion} from '../common/vars';
 import {delegateToVersion} from '../common/delegate';
 import {Options} from '../common/options';
-import {appendGameConfigToURL, GameSettings, parseGameConfigFromURL} from '../common/config';
+import {appendGameConfigToURL, ClockStyle, GameConfig, GameSettings, parseGameConfigFromURL} from '../common/config';
 import {IError} from '../common/domain';
 import {Logger} from '../common/logging';
 import {WrapperStyleCSS} from './style.css';
@@ -21,13 +21,39 @@ if (GameSettings == null) {
     throw new Error('window.GameConfig must be initialized.');
 }
 
+function setupGameClock(config: GameConfig, messageInterface: GameMessageInterface) {
+    const clockStyle: Required<ClockStyle> = {
+        horizontalAlignment: 'right',
+        verticalAlignment: 'top',
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        fontColor: 'white',
+        ...(GameSettings.clockStyle || {}),
+    };
+
+    let unregister: Unregister;
+
+    function _showClock() {
+        showClock(clockStyle, config.clientTimeOffsetInMillis);
+        unregister();
+    }
+
+    unregister = messageInterface.registerGeneric({
+        prepareGame: _showClock,
+        playGame: _showClock,
+        playDemoGame: _showClock,
+        requestStartGame: _showClock,
+    });
+}
+
 /**
  * Create and load the real game inside the iframe.
  * This method will add the iframe to the body of the page.
  */
 async function initializeGame(): Promise<HTMLIFrameElement> {
     const config = parseGameConfigFromURL();
+
     let url = appendGameConfigToURL(GameSettings.index || 'inner.html', config);
+
 
     // legacy games need extra patching. We'll need to inform the inner.html about that.
     if (GameSettings.legacyGame === true) {
@@ -45,9 +71,14 @@ async function initializeGame(): Promise<HTMLIFrameElement> {
 
     const parentMessageClient = new MessageClient(window.parent);
 
+
     // send the new config to the parent so it can update the frame size
-    new GameMessageInterface(parentMessageClient, config.canonicalGameName)
-        .updateGameSettings(GameSettings);
+    const messageInterface = new GameMessageInterface(parentMessageClient, config.canonicalGameName);
+    messageInterface.updateGameSettings(GameSettings);
+
+    if(GameSettings.clockStyle !== false) {
+        setupGameClock(config, messageInterface);
+    }
 
     // add game to window
     document.body.appendChild(iframe);
@@ -91,6 +122,35 @@ async function initializeGame(): Promise<HTMLIFrameElement> {
     await trySetupMessageClient();
 
     return iframe;
+}
+
+function showClock(style: Required<ClockStyle>, clientTimeOffsetInMillis: number) {
+    function setTime(div: HTMLElement) {
+        let alignment = style.verticalAlignment == 'top' ? 'top:0;' : 'bottom:0;';
+        alignment += style.horizontalAlignment == 'right' ? 'right:0;' : 'left:0;';
+        div.innerHTML = `<div id="clock">${getTime(clientTimeOffsetInMillis)}</div>`;
+    }
+
+    const div = document.createElement('div');
+    div.className = 'zig-clock';
+    div.style.color = style.fontColor;
+    div.style[style.verticalAlignment] = '0';
+    div.style[style.horizontalAlignment] = '0.5em';
+    div.style.backgroundColor = style.backgroundColor;
+    setTime(div);
+
+    document.body.appendChild(div);
+
+    setInterval(function () {
+        setTime(div);
+    }, 1000);
+}
+
+function getTime(clientTimeOffsetInMillis: number): string {
+    const now = new Date(Date.now() + clientTimeOffsetInMillis);
+    const hour = now.getHours();
+    const minutes = now.getMinutes();
+    return `${hour >= 10 ? hour : '0' + hour}:${minutes >= 10 ? minutes : '0' + minutes}`
 }
 
 /**
@@ -147,6 +207,7 @@ function showControls(iface: ParentMessageInterface) {
     div.href = '#';
     document.body.appendChild(div);
 
+
     div.onclick = ev => {
         ev.preventDefault();
 
@@ -201,7 +262,7 @@ onDOMLoad(() => {
             <div style='position: absolute; top: 0; left: 0; font-size: 0.6em; padding: 0.25em; background: rgba(0, 0, 0, 128); color: white; z-index: 100;'>
                 <strong>ZIG</strong>
                 &nbsp;&nbsp;
-                
+
                 version: ${Options.version} (=${clientVersion}),
                 logging: ${Options.logging},
                 wc override: ${JSON.stringify(Options.winningClassOverride)},
