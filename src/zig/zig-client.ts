@@ -209,7 +209,7 @@ export class ZigClientImpl implements ZigClient {
         });
 
         if ((result.statusCode / 100 | 0) === 2) {
-            return result.body == null ? null : JSON.parse(result.body);
+            return result.body ? JSON.parse(result.body) : null;
         } else {
             throw result;
         }
