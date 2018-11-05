@@ -270,6 +270,7 @@ export interface NewVoucherMessage extends BaseMessage {
     readonly command: 'newVoucher';
     readonly voucherValueInMinor: number;
     readonly discountInMinor?: number;
+    readonly hasUnplayedTicket?: boolean;
 
     /**
      * @deprecated Use voucherValueInMinor now.
@@ -618,12 +619,13 @@ export class ParentMessageInterface extends MessageFactory {
         this.send<GameInputMessage>({command: 'gameInput', game: this.game, input});
     }
 
-    public newVoucher(voucherValueInMinor: number, discountInMinor?: number) {
+    public newVoucher(voucherValueInMinor: number, discountInMinor?: number, hasUnplayedTicket: boolean = false) {
         this.send<NewVoucherMessage>({
             command: 'newVoucher', game: this.game,
             voucherValueInCents: voucherValueInMinor,
             voucherValueInMinor,
             discountInMinor,
+            hasUnplayedTicket,
         });
     }
 
@@ -658,7 +660,7 @@ export class GameMessageInterface extends MessageFactory {
             command: 'gameStarted',
             game: this.game,
             ticketId,
-            ticketNumber
+            ticketNumber,
         });
     }
 
