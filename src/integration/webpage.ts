@@ -298,7 +298,7 @@ export class Game {
             requirePrepareGame = true;
 
             try {
-                this.logger.info(`Call initGame(quantity=${gameScaling.quantity}, bet-factor=${gameScaling.betFactor}) now`);
+                this.logger.info(`Call initGame(quantity=${gameScaling.quantity}, bet factor=${gameScaling.betFactor}) now`);
 
                 // verify if customer is allowed to play
                 // and start the game inside the frame

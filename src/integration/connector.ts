@@ -151,7 +151,7 @@ export abstract class Connector {
         switch (r.type) {
             case 'buy':
             case 'demo':
-                return `/zig/games/${r.gameName}/tickets:${r.type}?quantity=${r.quantity}&bet-factor=${r.betFactor}`;
+                return `/zig/games/${r.gameName}/tickets:${r.type}?quantity=${r.quantity}&betFactor=${r.betFactor}`;
 
             case 'settle':
                 return `/zig/games/${r.gameName}/tickets:settle/${r.ticketId}`;
