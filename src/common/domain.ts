@@ -49,6 +49,9 @@ export interface Ticket {
     // The amount of money the customer payed for this ticket.
     readonly price: IMoneyAmount;
 
+    // The bet factor that was used when purchasing this ticket.
+    readonly betFactor: number;
+
     // The winning class of the ticket. Use this to extract the winnings
     // of this ticket. If the winnings are zero this was a loosing bet.
     readonly winningClass: WinningClass;
