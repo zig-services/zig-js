@@ -8,7 +8,7 @@ import {BaseCustomerState, CANCELED, Connector, CustomerState, GameRequest, UISt
 import {GameWindow} from './game-window';
 import {GameSettings} from '../common/config';
 import {FullscreenService} from './fullscreen';
-import * as deepFreeze from 'deep-freeze';
+import {deepFreezeClone} from '../common/common';
 
 type GameResult = 'success' | 'failure' | 'canceled';
 
@@ -394,10 +394,7 @@ export class Game {
 
     private updateUIState(override: Partial<UIState>): void {
         // update copy of previous UI state
-        const uiState: UIState = {...(this._uiState || {}), ...override} as UIState;
-
-        // freeze the UI state object recursively before publishing
-        deepFreeze(uiState);
+        const uiState: UIState = deepFreezeClone({...(this._uiState || {}), ...override}) as UIState;
 
         this._uiState = uiState;
 

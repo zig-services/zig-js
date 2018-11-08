@@ -4,6 +4,7 @@ import {Game} from './webpage';
 import Vue, {ComputedOptions} from 'vue';
 import {Logger} from '../common/logging';
 import {injectStyle} from '../common/dom';
+import {deepFreezeClone} from '../common/common';
 
 const logger = Logger.get('zig.Overlay');
 
@@ -380,7 +381,7 @@ export function installOverlay(target: Element, config: Partial<OverlayConfig> =
         template: `<Overlay ref='overlay' :translations="translations"/>`,
 
         data: {
-            translations: Object.freeze(config.translations || new Translations()),
+            translations: deepFreezeClone(config.translations || new Translations()),
         },
 
         mounted(): void {

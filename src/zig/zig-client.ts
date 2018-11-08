@@ -4,7 +4,7 @@ import {GameMessageInterface, MessageClient, toErrorValue} from '../common/messa
 import {executeRequestInParent} from '../common/request';
 import {Bundle, IError, Ticket} from '../common/domain';
 import {Logger} from '../common/logging';
-import * as deepFreeze from 'deep-freeze';
+import {deepFreezeClone} from '../common/common';
 
 const log = Logger.get('zig.Client');
 
@@ -187,7 +187,7 @@ export class ZigClientImpl implements ZigClient {
     public async bundle(bundleKey: number): Promise<Bundle> {
         return await this._run(async () => {
             const bundle = await this.request<Bundle>('GET', `/zig/bundles/${bundleKey}`);
-            return deepFreeze(bundle);
+            return deepFreezeClone(bundle);
         });
     }
 

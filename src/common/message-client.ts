@@ -2,7 +2,7 @@ import {GameSettings} from './config';
 import {Request, Result, WithCID} from './request';
 import {IError, TicketId, TicketNumber} from './domain';
 import {Logger} from './logging';
-import * as deepFreeze from 'deep-freeze';
+import {deepFreezeClone} from './common';
 
 export type CommandType = string
 
@@ -136,7 +136,7 @@ export function toErrorValue(inputValue: any): IError | null {
         err = tryParseJSON(responseText) || responseText;
     }
 
-    return deepFreeze({
+    return deepFreezeClone<IError>({
         // expand all properties into the target object and overwrite them later with
         // the error objects.
         ...(typeof err === 'object' ? err : {}),
@@ -554,7 +554,7 @@ function normalizeMessage(game: string, message: Message): BaseMessage {
         };
     }
 
-    return converted;
+    return deepFreezeClone(converted);
 }
 
 export class MessageFactory extends MessageDispatcher {

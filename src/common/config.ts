@@ -2,6 +2,8 @@
  * Game settings as sent to the zig integration by the
  * integration wrapper frame (outer.html).
  */
+import {deepFreezeClone} from './common';
+
 export interface GameSettings {
     // Filename or URL of the inner frame. If not set, this defaults to "inner.html"
     readonly index?: string;
@@ -92,7 +94,7 @@ export function parseGameConfigFromURL(url: string = location.href): GameConfig 
         throw new Error('canonicalGameName not set in config.');
     }
 
-    return Object.freeze(defaultsToGameConfig(config));
+    return deepFreezeClone(defaultsToGameConfig(config));
 }
 
 /**
