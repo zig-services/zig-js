@@ -554,7 +554,7 @@ function normalizeMessage(game: string, message: Message): BaseMessage {
         };
     }
 
-    return deepFreeze(converted);
+    return converted;
 }
 
 export class MessageFactory extends MessageDispatcher {
