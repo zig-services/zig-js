@@ -381,7 +381,7 @@ export function installOverlay(target: Element, config: Partial<OverlayConfig> =
         template: `<Overlay ref='overlay' :translations="translations"/>`,
 
         data: {
-            translations: deepFreezeClone(config.translations || new Translations()),
+            translations: config.translations || new Translations(),
         },
 
         mounted(): void {
