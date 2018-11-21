@@ -32,7 +32,6 @@ export function deepClone<Tp>(input: Tp): Tp {
         } else if (type === 'object') {
             const copy: any = Object.create(input.constructor.prototype);
             Object.keys(input).forEach(key => copy[key] = doDeepClone(input[key]));
-            copy.prototype = input.prototype;
             return copy;
 
         } else {
