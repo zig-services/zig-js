@@ -159,7 +159,7 @@ export class Game {
                 }
 
             } catch (err) {
-                this.logger.warn(`Could not parse path: ${req.path}`);
+                this.logger.warn(`Could not parse path ${req.path}: ${err}`);
             }
 
             return this.connector.executeHttpRequest(request);
@@ -506,7 +506,7 @@ function verifyInGamePurchaseFlag(gameSettings: GameSettings, gameLoadedEvent: G
 function parseGameRequestFromInternalPath(path: string): GameRequest {
     const match = new RegExp('^/+zig/+games/+([^/]+)/+tickets:(settle|buy|demo)').exec(path);
     if (!match) {
-        throw new Error(`Can not parse url: ${path}`);
+        throw new Error(`Cannot parse url: ${path}`);
     }
 
     const [, gameName, op] = match;

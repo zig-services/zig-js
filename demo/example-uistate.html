@@ -54,7 +54,7 @@
             document.querySelector("#overlayContainer").onclick = () => game.playGame();
         }
 
-        buildRequestPath(request) {
+        buildRequestPath(r) {
             if (r.type === "buy" || r.type === "settle") {
                 return `/api/buy-tickets?game=${r.gameName}&demo=${r.type === 'demo'}&quantity=${r.quantity}&betFactor=${r.betFactor}`;
             } else if (r.type === "settle") {
