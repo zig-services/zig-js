@@ -79,6 +79,7 @@ export class Game {
             buttonType: 'loading',
             normalTicketPrice: MoneyAmount.of(this.config.ticketPrice).scaled(0),
             isFreeGame: false,
+            busy: false,
         };
 
         this.updateUIState(baseUIState);
@@ -224,8 +225,8 @@ export class Game {
         // always run with a unity quantity
         await initGame({quantity: 1, betFactor: 1});
 
-        // hide ui
-        this.updateUIState({buttonType: 'none'});
+        // show the ui as busy
+        this.updateUIState({busy: true});
 
         // goto fullscreen
         if (this.allowFullscreen) {
@@ -235,6 +236,9 @@ export class Game {
         this.logger.info('Wait for game to start...');
         const gameStartedEvent = await this.interface.waitForGameEvent('gameStarted');
         this.connector.onGameStarted(gameStartedEvent);
+
+        // hide the ui
+        this.updateUIState({busy: false, buttonType: 'none'});
 
         this.logger.info('Wait for game to settle...');
         await this.interface.waitForGameEvent('ticketSettled');
@@ -423,6 +427,7 @@ export class Game {
             normalTicketPrice: MoneyAmount.of(this.config.ticketPrice),
             ticketPriceIsVariable: false,
             isFreeGame: false,
+            busy: false,
         };
 
         // take the price from the customer state if possible.

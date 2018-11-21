@@ -1,0 +1,84 @@
+<!DOCTYPE>
+<html>
+<body>
+
+<style>
+    #zigContainer {
+        position: relative;
+        min-height: 10em;
+        background: #eee;
+        max-width: 50em;
+    }
+
+    #overlayContainer {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        margin: 0;
+        padding: 1em;
+        background: rgba(255, 255, 255, 0.75);
+    }
+</style>
+
+<div id="zigContainer">
+    <div id="gameContainer"></div>
+    <pre id="overlayContainer"></pre>
+</div>
+
+<script src="https://lib.zig.services/zig/1-dev/libint.js"></script>
+
+<script defer>
+    class DemoConnector extends ZIG.Connector {
+        constructor() {
+            super();
+        }
+
+        async fetchCustomerState() {
+            return {
+                loggedIn: true,
+                balance: ZIG.MoneyAmount.of(1000, "EUR"),
+            };
+        }
+
+        async showErrorDialog(error) {
+            alert(JSON.stringify(error, null, 2));
+        }
+
+        get allowFullscreen() {
+            return false;
+        }
+
+        updateUIState(uiState, game) {
+            document.querySelector("#overlayContainer").textContent = JSON.stringify(uiState, null, 2);
+            document.querySelector("#overlayContainer").onclick = () => game.playGame();
+        }
+
+        buildRequestPath(request) {
+            if (r.type === "buy" || r.type === "settle") {
+                return `/api/buy-tickets?game=${r.gameName}&demo=${r.type === 'demo'}&quantity=${r.quantity}&betFactor=${r.betFactor}`;
+            } else if (r.type === "settle") {
+                return `/api/settle?game=${r.gameName}&id=${r.ticketId}`;
+            }
+        }
+    }
+
+    window.onload = () => {
+        const gameConfig = {
+            canonicalGameName: "crossword",
+            isTestStage: true,
+        };
+
+        const game = ZIG.installGame({
+            container: document.querySelector("#gameContainer"),
+            url: "https://mylotto24.frontend.zig.services/crossword/latest/tipp24_com/game/outer.html",
+            gameConfig: gameConfig,
+            connector: new DemoConnector(),
+        });
+
+        game.initialize();
+    };
+</script>
+
+</body>
+</html>

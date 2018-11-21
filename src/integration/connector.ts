@@ -80,6 +80,10 @@ export interface UIState {
 
     // True if the player is _currently_ playing a free demo game round.
     readonly isFreeGame: boolean;
+
+    // Marks the ui as busy - e.g. because a request to buy a ticket
+    // is currently running.
+    readonly busy: boolean;
 }
 
 export interface SettleGameRequest {
