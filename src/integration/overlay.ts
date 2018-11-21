@@ -4,7 +4,6 @@ import {Game} from './webpage';
 import Vue, {ComputedOptions} from 'vue';
 import {Logger} from '../common/logging';
 import {injectStyle} from '../common/dom';
-import {deepFreezeClone} from '../common/common';
 
 const logger = Logger.get('zig.Overlay');
 
@@ -303,16 +302,22 @@ Vue.component('Overlay', {
         },
 
         mainAction(): string {
-            const actions: { [key: string]: string } = {
-                'buy': this.translations.action_Buy,
-                'play': this.translations.action_Play,
-                'payin': this.translations.action_Payin,
-                'login': this.translations.action_Login,
-                'resume': this.translations.action_Resume,
-                'voucher': this.translations.action_Voucher,
-            };
-
-            return actions[this.uiState!.buttonType] || this.translations.action_Buy;
+            switch (this.uiState!.buttonType) {
+                case 'buy':
+                    return this.translations.action_Buy;
+                case 'play':
+                    return this.translations.action_Play;
+                case 'payin':
+                    return this.translations.action_Payin;
+                case 'login':
+                    return this.translations.action_Login;
+                case 'unplayed':
+                    return this.translations.action_Resume;
+                case 'voucher':
+                    return this.translations.action_Voucher;
+                default:
+                    return this.translations.action_Buy;
+            }
         },
 
         ticketPriceFormatted(): string | null {
