@@ -323,7 +323,7 @@ export class Game {
             await this.interface.waitForGameEvent('ticketSettled');
             this.connector.onGameSettled();
 
-        } while (!demoGame);
+        } while (true);
 
         this.logger.info('Leaving inGame flow');
         return 'success';
