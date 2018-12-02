@@ -524,7 +524,7 @@ function parseGameRequestFromInternalPath(path: string): GameRequest {
 
         case 'buy':
         case 'demo':
-            const rex = new RegExp('(bet-factor|betFactor|quantitiy)=([0-9]+)', 'g');
+            const rex = new RegExp('(bet-factor|betFactor|quantity)=([0-9]+)', 'g');
 
             const query: { [key: string]: number } = {};
 
