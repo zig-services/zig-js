@@ -265,7 +265,7 @@ function patchInstantWinGamingScripts() {
         return {
             location: window.parent.location,
 
-            postMessage(message: any, ...args: any[]): void {
+            postMessage(message: any, targetOrigin: string): void {
                 try {
                     // test if we need to intercept this message
                     if (ticketInfo && message && message.command === 'gameStarted') {
@@ -287,7 +287,7 @@ function patchInstantWinGamingScripts() {
                 }
 
                 // call original function and forward parameters
-                return _postMessage.call(_parent, message, ...args);
+                return _postMessage.call(_parent, message, targetOrigin);
             },
         };
     }());
