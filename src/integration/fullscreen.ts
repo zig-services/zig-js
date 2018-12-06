@@ -60,7 +60,10 @@ export class FullscreenService {
         document.body.style.overflow = 'hidden';
 
         // noinspection JSIgnoredPromiseFromCall
-        document.body.requestFullscreen();
+
+        if (document.fullscreenEnabled) {
+            document.body.requestFullscreen();
+        } // otherwise backup css style will be used
 
         // register a listener to keep orientation.
         const resizeHandler = () => this.onWindowResize();
@@ -85,7 +88,9 @@ export class FullscreenService {
         this.backupStyle = null;
 
         // noinspection JSIgnoredPromiseFromCall
-        document.exitFullscreen();
+        if (document.fullscreenEnabled) {
+            document.exitFullscreen();
+        }
     }
 }
 
