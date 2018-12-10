@@ -62,7 +62,7 @@ export class FullscreenService {
         if (document.fullscreenEnabled) {
           // noinspection JSIgnoredPromiseFromCall
             document.body.requestFullscreen();
-        } // otherwise backup css style will be used
+        }
 
         // register a listener to keep orientation.
         const resizeHandler = () => this.onWindowResize();
