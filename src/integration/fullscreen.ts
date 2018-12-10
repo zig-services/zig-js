@@ -60,7 +60,7 @@ export class FullscreenService {
         document.body.style.overflow = 'hidden';
 
         if (document.fullscreenEnabled) {
-          // noinspection JSIgnoredPromiseFromCall
+            // noinspection JSIgnoredPromiseFromCall
             document.body.requestFullscreen();
         }
 
@@ -87,7 +87,7 @@ export class FullscreenService {
         this.backupStyle = null;
 
         if (document.fullscreenEnabled) {
-          // noinspection JSIgnoredPromiseFromCall
+            // noinspection JSIgnoredPromiseFromCall
             document.exitFullscreen();
         }
     }
