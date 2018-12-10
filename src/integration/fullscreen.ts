@@ -59,8 +59,10 @@ export class FullscreenService {
         // disable scroll bars
         document.body.style.overflow = 'hidden';
 
-        // noinspection JSIgnoredPromiseFromCall
-        document.body.requestFullscreen();
+        if (document.fullscreenEnabled) {
+            // noinspection JSIgnoredPromiseFromCall
+            document.body.requestFullscreen();
+        }
 
         // register a listener to keep orientation.
         const resizeHandler = () => this.onWindowResize();
@@ -84,8 +86,10 @@ export class FullscreenService {
         applyStyle(this.node, this.backupStyle);
         this.backupStyle = null;
 
-        // noinspection JSIgnoredPromiseFromCall
-        document.exitFullscreen();
+        if (document.fullscreenEnabled) {
+            // noinspection JSIgnoredPromiseFromCall
+            document.exitFullscreen();
+        }
     }
 }
 
