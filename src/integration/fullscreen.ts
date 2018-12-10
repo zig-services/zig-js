@@ -59,9 +59,8 @@ export class FullscreenService {
         // disable scroll bars
         document.body.style.overflow = 'hidden';
 
-        // noinspection JSIgnoredPromiseFromCall
-
         if (document.fullscreenEnabled) {
+          // noinspection JSIgnoredPromiseFromCall
             document.body.requestFullscreen();
         } // otherwise backup css style will be used
 
@@ -87,8 +86,8 @@ export class FullscreenService {
         applyStyle(this.node, this.backupStyle);
         this.backupStyle = null;
 
-        // noinspection JSIgnoredPromiseFromCall
         if (document.fullscreenEnabled) {
+          // noinspection JSIgnoredPromiseFromCall
             document.exitFullscreen();
         }
     }
