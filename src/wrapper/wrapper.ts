@@ -76,7 +76,7 @@ async function initializeGame(): Promise<HTMLIFrameElement> {
     const messageInterface = new GameMessageInterface(parentMessageClient, config.canonicalGameName);
     messageInterface.updateGameSettings(GameSettings);
 
-    if(GameSettings.clockStyle !== false) {
+    if (GameSettings.clockStyle !== false) {
         setupGameClock(config, messageInterface);
     }
 
@@ -125,25 +125,17 @@ async function initializeGame(): Promise<HTMLIFrameElement> {
 }
 
 function showClock(style: Required<ClockStyle>, clientTimeOffsetInMillis: number) {
-    function setTime(div: HTMLElement) {
-        let alignment = style.verticalAlignment == 'top' ? 'top:0;' : 'bottom:0;';
-        alignment += style.horizontalAlignment == 'right' ? 'right:0;' : 'left:0;';
-        div.innerHTML = `<div id="clock">${getTime(clientTimeOffsetInMillis)}</div>`;
-    }
-
     const div = document.createElement('div');
     div.className = 'zig-clock';
     div.style.color = style.fontColor;
     div.style[style.verticalAlignment] = '0';
     div.style[style.horizontalAlignment] = '0.5em';
     div.style.backgroundColor = style.backgroundColor;
-    setTime(div);
+    div.innerHTML = getTime(clientTimeOffsetInMillis);
 
     document.body.appendChild(div);
 
-    setInterval(function () {
-        setTime(div);
-    }, 1000);
+    setInterval(() => div.innerHTML = getTime(clientTimeOffsetInMillis), 1000);
 }
 
 function getTime(clientTimeOffsetInMillis: number): string {
