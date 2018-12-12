@@ -30,18 +30,29 @@ function setupGameClock(config: GameConfig, messageInterface: GameMessageInterfa
         ...(GameSettings.clockStyle || {}),
     };
 
-    let unregister: Unregister;
+    let unregisterShowClock: Unregister;
+    let unregisterHideClock: Unregister;
 
     function _showClock() {
         showClock(clockStyle, config.clientTimeOffsetInMillis);
-        unregister();
+        unregisterShowClock();
     }
 
-    unregister = messageInterface.registerGeneric({
+    function _hideClock() {
+        hideClock();
+        unregisterHideClock();
+    }
+
+    unregisterShowClock = messageInterface.registerGeneric({
         prepareGame: _showClock,
         playGame: _showClock,
         playDemoGame: _showClock,
         requestStartGame: _showClock,
+        gameFinished: _hideClock,
+    });
+
+    unregisterHideClock = messageInterface.registerGeneric({
+        gameFinished: _hideClock,
     });
 }
 
@@ -136,6 +147,13 @@ function showClock(style: Required<ClockStyle>, clientTimeOffsetInMillis: number
     document.body.appendChild(div);
 
     setInterval(() => div.innerHTML = getTime(clientTimeOffsetInMillis), 1000);
+}
+
+function hideClock(): void {
+    const clockElement = <HTMLDivElement>document.querySelector(".zig-clock");
+    if (clockElement) {
+        clockElement.remove();
+    }
 }
 
 function getTime(clientTimeOffsetInMillis: number): string {
