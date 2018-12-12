@@ -125,10 +125,10 @@ async function initializeGame(): Promise<HTMLIFrameElement> {
 }
 
 function showClock(style: Required<ClockStyle>, clientTimeOffsetInMillis: number) {
-    let alignment = style.verticalAlignment == 'top' ? 'top:0;' : 'bottom:0;';
-    alignment += style.horizontalAlignment == 'right' ? 'right:0;' : 'left:0;';
     function setTime(div: HTMLElement) {
-        div.innerHTML = `${getTime(clientTimeOffsetInMillis)}`;
+        let alignment = style.verticalAlignment == 'top' ? 'top:0;' : 'bottom:0;';
+        alignment += style.horizontalAlignment == 'right' ? 'right:0;' : 'left:0;';
+        div.innerHTML = `<div id="clock">${getTime(clientTimeOffsetInMillis)}</div>`;
     }
 
     const div = document.createElement('div');
