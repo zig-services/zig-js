@@ -1,23 +1,12 @@
 import '../common/polyfills';
 
 import {sleep} from '../common/common';
-import {
-    GameMessageInterface,
-    MessageClient,
-    ParentMessageInterface,
-    Unregister
-} from '../common/message-client';
+import {GameMessageInterface, MessageClient, ParentMessageInterface, Unregister} from '../common/message-client';
 import {injectStyle, onDOMLoad} from '../common/dom';
 import {buildTime, clientVersion} from '../common/vars';
 import {delegateToVersion} from '../common/delegate';
 import {Options} from '../common/options';
-import {
-    appendGameConfigToURL,
-    ClockStyle,
-    GameConfig,
-    GameSettings,
-    parseGameConfigFromURL
-} from '../common/config';
+import {appendGameConfigToURL, ClockStyle, GameConfig, GameSettings, parseGameConfigFromURL} from '../common/config';
 import {IError} from '../common/domain';
 import {Logger} from '../common/logging';
 import {WrapperStyleCSS} from './style.css';
@@ -59,9 +48,12 @@ function setupGameClock(config: GameConfig, messageInterface: GameMessageInterfa
         playGame: _showClock,
         playDemoGame: _showClock,
         requestStartGame: _showClock,
+        gameFinished: _hideClock,
     });
 
-    unregisterHideClock = messageInterface.register("gameFinished", _hideClock);
+    unregisterHideClock = messageInterface.registerGeneric({
+        gameFinished: _hideClock,
+    });
 }
 
 /**
