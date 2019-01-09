@@ -78,7 +78,7 @@ async function initializeGame(): Promise<HTMLIFrameElement> {
     iframe.src = url;
     iframe.allowFullscreen = true;
     iframe.scrolling = 'no';
-    iframe.allow = "autoplay";
+    (iframe as any).allow = "autoplay";
     iframe.onerror = err => log.error('Error in iframe:', err);
 
     const parentMessageClient = new MessageClient(window.parent);
