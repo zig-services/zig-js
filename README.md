@@ -117,7 +117,7 @@ interface Ticket {
     // this field contains optional data from the integrating platform.
     // this can be used to add additional fields to the ticket payload, e.g. a
     // ticket id or ticket number which is valid in the integrating platform.
-    customContent?: object;
+    customContent?: any;
 }
 
 interface MoneyAmount {

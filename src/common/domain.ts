@@ -68,7 +68,7 @@ export interface Ticket {
     // this field contains optional data from the integrating platform.
     // this can be used to add additional fields to the ticket payload, e.g. a
     // ticket id or ticket number which is valid in the integrating platform.
-    readonly customContent?: object;
+    readonly customContent?: any;
 }
 
 export interface WinningClass {
