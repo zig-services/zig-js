@@ -64,6 +64,11 @@ export interface Ticket {
     // the decoded scenario object or undefined if the scenario
     // field could not be decoded. Basically `JSON.parse(atob(scenario))`
     readonly decodedScenario?: any;
+
+    // this field contains optional data from the integrating platform.
+    // this can be used to add additional fields to the ticket payload, e.g. a
+    // ticket id or ticket number which is valid in the integrating platform.
+    readonly customContent?: object;
 }
 
 export interface WinningClass {
