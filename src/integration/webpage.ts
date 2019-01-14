@@ -105,18 +105,27 @@ export class Game {
                 throw new Error('gameSettings.chromeless implies gameSettings.purchaseInGame');
             }
 
-            if (gameInput !== undefined) {
-                this.logger.info('Got game input, wait for game to request it.');
-                await this.interface.waitForGameEvent('requestGameInput');
-
+            // There are two possibilities: The game might request game input, if it needs some,
+            // or it will just tell us that the game was loaded successfully.
+            this.logger.info('Wait for game to load or to request game input');
+            //
+            const event = await this.interface.waitForGameEvents('requestGameInput', 'gameLoaded');
+            if (event.requestGameInput) {
                 this.logger.info('Sending game input to game frame now.');
                 this.gameWindow.interface.gameInput(gameInput);
             }
 
-            // wait for the game-frame to load
-            this.logger.info('Wait for game to load...');
+            // take the game loaded event that we've got.
+            let gameLoadedEvent: GameLoadedMessage | undefined = undefined;
+            if (event.gameLoaded) {
+                this.logger.info('Got a game loaded event, no game input requested.');
+                gameLoadedEvent = event.gameLoaded;
+            } else {
+                // wait for the game-frame to load
+                this.logger.info('Wait for game to load...');
+                gameLoadedEvent = await this.interface.waitForGameEvent('gameLoaded');
+            }
 
-            const gameLoadedEvent = await this.interface.waitForGameEvent('gameLoaded');
             verifyInGamePurchaseFlag(this.gameSettings, gameLoadedEvent);
 
             const customerState = await customerState$;
