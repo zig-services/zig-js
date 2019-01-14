@@ -98,6 +98,7 @@ export class Game {
             const gameSettingsEvent = await this.interface.waitForGameEvent('updateGameSettings');
 
             this._gameSettings = gameSettingsEvent.gameSettings;
+            this.connector.onGameSettings(gameSettingsEvent.gameSettings);
 
             // We can only do purchaseInGame if we requesting chromeless mode.
             if (this.gameSettings.chromeless && !this.gameSettings.purchaseInGame) {
@@ -224,9 +225,6 @@ export class Game {
     private async handleSingleRoundGameFlow(initGame: InitGame): Promise<GameResult> {
         // always run with a unity quantity
         await initGame({quantity: 1, betFactor: 1});
-
-        // show the ui as busy
-        this.updateUIState({busy: true});
 
         // goto fullscreen
         if (this.allowFullscreen) {
@@ -366,6 +364,9 @@ export class Game {
      */
     private async flow(fn: () => Promise<GameResult>, resetUIState: boolean = true): Promise<GameResult> {
         try {
+            // show the ui as busy
+            this.updateUIState({busy: true});
+
             try {
                 const result = await fn();
 

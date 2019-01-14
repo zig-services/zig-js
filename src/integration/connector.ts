@@ -3,6 +3,7 @@ import {Logger} from '../common/logging';
 import {executeRequest, Request, Result} from '../common/request';
 import {GameStartedMessage} from '../common/message-client';
 import {Game} from './webpage';
+import {GameSettings} from '../common/config';
 
 export interface UnplayedTicketInfo {
     readonly type: 'BASKET' | 'BUNDLE' | 'PRIZE' | 'UNFINISHED'
@@ -179,6 +180,13 @@ export abstract class Connector {
      */
     public get allowFullscreen(): boolean {
         return true;
+    }
+
+    /**
+     * The game settings that might be used by the integrating code.
+     * This method will be called some time before onGameLoaded.
+     */
+    public onGameSettings(gameSettings: GameSettings) {
     }
 
     /**
