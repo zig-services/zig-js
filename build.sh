@@ -5,7 +5,7 @@ set -e -o pipefail
 HASH=$(md5sum package.json | cut -b-32)
 echo "package.json hash is $HASH"
 
-if ! [ -f "node_modules/$HASH" ] ; then
+if ! [[ -f "node_modules/$HASH" ]] ; then
     echo "package.json has changed, installing node modules"
 
     # ensure all dependencies are installed

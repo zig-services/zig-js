@@ -1,12 +1,14 @@
 {
   "non-interactive": true,
-  "requireCleanWorkingDir": true,
   "increment": "patch",
-  "src": {
-    "tagName": "v%s",
-    "afterReleaseCommand": "./upload.sh"
+  "scripts": {
+    "beforeStage": "./build.sh",
+    "afterRelease": "./upload.sh"
   },
-  "buildCommand": "./build.sh",
+  "git": {
+    "requireCleanWorkingDir": true,
+    "tagName": "v%s"
+  },
   "github": {
     "release": false
   },
