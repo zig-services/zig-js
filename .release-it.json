@@ -13,5 +13,6 @@
   "npm": {
     "publish": true,
     "publishPath": "dist"
-  }
+  },
+  "use": "pkg.version"
 }
