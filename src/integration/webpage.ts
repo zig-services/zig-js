@@ -8,7 +8,7 @@ import {BaseCustomerState, CANCELED, Connector, CustomerState, GameRequest, UISt
 import {GameWindow} from './game-window';
 import {GameSettings} from '../common/config';
 import {FullscreenService} from './fullscreen';
-import {arrayNotEmpty, deepFreezeClone} from '../common/common';
+import {arrayIsEmpty, arrayNotEmpty, deepFreezeClone} from '../common/common';
 
 type GameResult = 'success' | 'failure' | 'canceled';
 
@@ -264,7 +264,7 @@ export class Game {
         const state = await this.connector.fetchCustomerState();
 
         // check if the customer has an unplayed ticket he wants to resume
-        let requirePrepareGame: boolean = !state.loggedIn || arrayNotEmpty(state.unplayedTicketInfos);
+        let requirePrepareGame: boolean = !state.loggedIn || arrayIsEmpty(state.unplayedTicketInfos);
         if (requirePrepareGame) {
             // jump directly into the game.
             this.logger.info('Set the game into prepare mode');
