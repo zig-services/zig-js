@@ -72,6 +72,7 @@ export class Game {
             enabled: false,
             allowFreeGame: false,
             buttonType: 'loading',
+            balance: MoneyAmount.of(this.config.ticketPrice).scaled(0),
             normalTicketPrice: MoneyAmount.of(this.config.ticketPrice).scaled(0),
             isFreeGame: false,
             busy: false,
@@ -87,7 +88,7 @@ export class Game {
      */
     public async initialize(gameInput?: any): Promise<void> {
         await this.flow(async (): Promise<GameResult> => {
-            const customerState$: Promise<CustomerState> = this.connector.fetchCustomerState();
+            const customerState$: Promise<CustomerState> = this.fetchCustomerState();
 
             this.logger.info('Wait for game settings');
             const gameSettingsEvent = await this.interface.waitForGameEvent('updateGameSettings');
@@ -261,7 +262,7 @@ export class Game {
             this.fullscreenService.enable();
         }
 
-        const state = await this.connector.fetchCustomerState();
+        const state = await this.fetchCustomerState();
 
         // check if the customer has an unplayed ticket he wants to resume
         let requirePrepareGame: boolean = !state.loggedIn || arrayIsEmpty(state.unplayedTicketInfos);
@@ -336,7 +337,7 @@ export class Game {
      * to play or has not enought money this method will throw an exception.
      */
     private async verifyPreConditions(scaling: Scaling): Promise<void> {
-        const customerState = await this.connector.fetchCustomerState();
+        const customerState = await this.fetchCustomerState();
 
         this.logger.info('Check if the customer is logged in');
         if (!customerState.loggedIn) {
@@ -450,6 +451,8 @@ export class Game {
             uiStateUpdate.buttonType = 'none';
 
         } else if (customerState.loggedIn) {
+            uiStateUpdate.balance = customerState.balance;
+
             if (this.gameSettings.purchaseInGame) {
                 uiStateUpdate.buttonType = 'play';
                 uiStateUpdate.ticketPriceIsVariable = true;
@@ -481,6 +484,16 @@ export class Game {
         while (true) {
             await this.flow(() => this.playGame());
         }
+    }
+
+    private async fetchCustomerState(): Promise<CustomerState> {
+        const customerState = await this.connector.fetchCustomerState();
+        if (customerState.loggedIn) {
+            // publish update in balance.
+            this.updateUIState({balance: customerState.balance});
+        }
+
+        return customerState;
     }
 }
 

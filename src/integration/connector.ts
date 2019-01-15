@@ -85,6 +85,10 @@ export interface UIState {
     // Marks the ui as busy - e.g. because a request to buy a ticket
     // is currently running.
     readonly busy: boolean;
+
+    // The current balance of the player as returned by the most recent
+    // fetchCustomerState call. Unset, if the customer is not logged in.
+    readonly balance?: MoneyAmount;
 }
 
 export interface SettleGameRequest {
