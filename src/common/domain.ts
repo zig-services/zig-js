@@ -195,7 +195,7 @@ export class MoneyAmount implements IMoneyAmount {
         return new MoneyAmount(0, currency);
     }
 
-    static isZero(amount: IMoneyAmount | null | undefined): amount is IMoneyAmount {
+    static isZero(amount: IMoneyAmount | null | undefined): boolean {
         return !amount || amount.amountInMinor === 0;
     }
 

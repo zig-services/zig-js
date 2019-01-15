@@ -41,3 +41,11 @@ export function deepClone<Tp>(input: Tp): Tp {
 
     return doDeepClone(input);
 }
+
+export function arrayNotEmpty<T>(arr: Array<T> | undefined): arr is Array<T> {
+    return arr != null && arr.length !== 0;
+}
+
+export function arrayIsEmpty<T>(arr: Array<T> | undefined): boolean {
+    return arr == null || arr.length === 0;
+}

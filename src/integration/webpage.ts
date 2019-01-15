@@ -8,7 +8,7 @@ import {BaseCustomerState, CANCELED, Connector, CustomerState, GameRequest, UISt
 import {GameWindow} from './game-window';
 import {GameSettings} from '../common/config';
 import {FullscreenService} from './fullscreen';
-import {deepFreezeClone} from '../common/common';
+import {arrayNotEmpty, deepFreezeClone} from '../common/common';
 
 type GameResult = 'success' | 'failure' | 'canceled';
 
@@ -268,8 +268,7 @@ export class Game {
 
         // check if the customer has an unplayed ticket he wants to resume
         const state = await this.connector.fetchCustomerState();
-        let requirePrepareGame: boolean = !state.loggedIn || !state.unplayedTicketInfos
-            || state.unplayedTicketInfos.length === 0;
+        let requirePrepareGame: boolean = !state.loggedIn || arrayNotEmpty(state.unplayedTicketInfos);
 
         if (requirePrepareGame) {
             // jump directly into the game.
@@ -352,7 +351,7 @@ export class Game {
 
         const order = calculateTicketPrice(scaling, customerState, this.config.ticketPrice);
 
-        const isFreeGame = customerState.unplayedTicketInfos != null || MoneyAmount.isNotZero(customerState.voucher);
+        const isFreeGame = arrayNotEmpty(customerState.unplayedTicketInfos) || MoneyAmount.isNotZero(customerState.voucher);
         if (!isFreeGame) {
             this.logger.info('Check if the customer has enough money');
 
@@ -455,7 +454,7 @@ export class Game {
                 uiStateUpdate.buttonType = 'play';
                 uiStateUpdate.ticketPriceIsVariable = true;
 
-            } else if (customerState.unplayedTicketInfos && customerState.unplayedTicketInfos.length) {
+            } else if (arrayNotEmpty(customerState.unplayedTicketInfos)) {
                 uiStateUpdate.allowFreeGame = false;
                 uiStateUpdate.unplayedTicketInfo = customerState.unplayedTicketInfos[0];
                 uiStateUpdate.buttonType = 'unplayed';
