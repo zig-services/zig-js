@@ -6,15 +6,15 @@ import {Logger} from '../common/logging';
 import {registerRequestListener} from '../common/request';
 import {BaseCustomerState, CANCELED, Connector, CustomerState, GameRequest, UIState} from './connector';
 import {GameWindow} from './game-window';
-import {GameSettings} from '../common/config';
+import {GameConfig, GameSettings} from '../common/config';
 import {FullscreenService} from './fullscreen';
 import {arrayNotEmpty, deepFreezeClone} from '../common/common';
 
 type GameResult = 'success' | 'failure' | 'canceled';
 
-interface Config {
-    canonicalGameName: string;
-    ticketPrice: IMoneyAmount;
+export interface LocalGameConfig {
+    readonly canonicalGameName: string;
+    readonly ticketPrice: IMoneyAmount;
 }
 
 interface Scaling {
@@ -45,7 +45,6 @@ class TicketPrice {
 
 export class Game {
     private readonly logger: Logger;
-    private readonly config: Config;
 
     private readonly fullscreenService: FullscreenService;
 
@@ -59,14 +58,10 @@ export class Game {
     private disallowFreeGames: boolean = false;
 
     constructor(private readonly gameWindow: GameWindow,
-                private readonly connector: Connector) {
+                private readonly connector: Connector,
+                private readonly config: LocalGameConfig) {
 
         this.fullscreenService = new FullscreenService(gameWindow.wrapper);
-
-        this.config = {
-            canonicalGameName: 'demo',
-            ticketPrice: MoneyAmount.of(150, 'EUR'),
-        };
 
         this.logger = Logger.get(`zig.Game.${this.config.canonicalGameName}`);
 

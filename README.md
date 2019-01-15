@@ -320,6 +320,7 @@ window.onload = async () => {
     connector: new YourConnector(),
     container: document.getElementById('zig-game'),
     url: frontendUrl,
+    baseTicketPrice: MoneyAmount.of(150, 'EUR'),
     gameConfig: {
       canonicalGameName: 'dickehose',
     },

@@ -1,9 +1,9 @@
-import {appendGameConfigToURL, GameConfig} from '../common/config';
+import {appendGameConfigToURL, GameConfig, GameSettings} from '../common/config';
 import {Connector} from './connector';
 import {Logger} from '../common/logging';
 import {MessageClient, ParentMessageInterface} from '../common/message-client';
-import {GameSettings} from '../common/config';
 import {Game} from './webpage';
+import {IMoneyAmount, MoneyAmount} from '../common/domain';
 
 export interface InstallGameOptions {
     // target container where to place the game
@@ -17,6 +17,9 @@ export interface InstallGameOptions {
 
     // the platform connector to speak to.
     connector: Connector;
+
+    // the base price of the ticket.
+    baseTicketPrice: IMoneyAmount;
 }
 
 /**
@@ -27,7 +30,10 @@ export function installGame(opts: InstallGameOptions): Game {
     const gameWindow = installGameElement(opts.container, opts.url, opts.gameConfig);
 
     // let the games begin!
-    return new Game(gameWindow, opts.connector);
+    return new Game(gameWindow, opts.connector, {
+        canonicalGameName: opts.gameConfig.canonicalGameName,
+        ticketPrice: MoneyAmount.of(opts.baseTicketPrice),
+    });
 }
 
 /**
