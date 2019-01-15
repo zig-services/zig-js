@@ -126,10 +126,10 @@ export abstract class Connector {
     /**
      * Ensure that the customer has the required balance. You could show
      * a pay in dialog for the customer here. The default implementation will
-     * just return 'true' without doing any extra checking.
+     * just fail with 'false', as it can not do any payin or similar.
      */
-    public async ensureCustomerBalance(amount: IMoneyAmount): Promise<true> {
-        return true;
+    public async ensureCustomerBalance(amount: IMoneyAmount): Promise<boolean> {
+        return false;
     }
 
     /**

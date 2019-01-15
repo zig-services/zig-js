@@ -6,7 +6,7 @@ import {Logger} from '../common/logging';
 import {registerRequestListener} from '../common/request';
 import {BaseCustomerState, CANCELED, Connector, CustomerState, GameRequest, UIState} from './connector';
 import {GameWindow} from './game-window';
-import {GameConfig, GameSettings} from '../common/config';
+import {GameSettings} from '../common/config';
 import {FullscreenService} from './fullscreen';
 import {arrayNotEmpty, deepFreezeClone} from '../common/common';
 
@@ -261,10 +261,10 @@ export class Game {
             this.fullscreenService.enable();
         }
 
-        // check if the customer has an unplayed ticket he wants to resume
         const state = await this.connector.fetchCustomerState();
-        let requirePrepareGame: boolean = !state.loggedIn || arrayNotEmpty(state.unplayedTicketInfos);
 
+        // check if the customer has an unplayed ticket he wants to resume
+        let requirePrepareGame: boolean = !state.loggedIn || arrayNotEmpty(state.unplayedTicketInfos);
         if (requirePrepareGame) {
             // jump directly into the game.
             this.logger.info('Set the game into prepare mode');
@@ -351,8 +351,13 @@ export class Game {
             this.logger.info('Check if the customer has enough money');
 
             if (MoneyAmount.of(customerState.balance).lessThan(order.customerTicketPrice)) {
-                await this.connector.ensureCustomerBalance(this.config.ticketPrice);
-                throw CANCELED;
+                if (!await this.connector.ensureCustomerBalance(this.config.ticketPrice)) {
+                    throw CANCELED;
+                }
+
+                // at this point we expect the customer to have the required money amount.
+                // we could do a second check here and fail on error, but thats not needed,
+                // the game will just fail when purchasing the ticket.
             }
 
             this.logger.info('Verify that the customer really wants to buy this game');
