@@ -60,7 +60,7 @@ export class GameWindow {
         this.messageClient = new MessageClient(contentWindow);
         this.interface = new ParentMessageInterface(this.messageClient, gameName);
 
-        runAsync(async () => {
+        void runAsync(async () => {
             await waitUntilChildGetsRemoved(wrapper, frame);
             this.destroy();
         });

@@ -326,9 +326,6 @@ export class Game {
             this.connector.onGameSettled();
 
         } while (true);
-
-        this.logger.info('Leaving inGame flow');
-        return 'success';
     }
 
 

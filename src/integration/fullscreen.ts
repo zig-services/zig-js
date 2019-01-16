@@ -12,7 +12,7 @@ export class FullscreenService {
     constructor(private node: HTMLElement) {
     }
 
-    private styleForOrientation(): Style {
+    private static styleForOrientation(): Style {
         const landscape = screen.width > screen.height;
 
         if (landscape) {
@@ -43,7 +43,7 @@ export class FullscreenService {
     private onWindowResize() {
         if (this.backupStyle != null) {
             this.logger.info('Update style after window size changed.');
-            applyStyle(this.node, this.styleForOrientation());
+            applyStyle(this.node, FullscreenService.styleForOrientation());
         }
     }
 
@@ -54,7 +54,7 @@ export class FullscreenService {
         }
 
         this.logger.info('Applying style');
-        this.backupStyle = applyStyle(this.node, this.styleForOrientation());
+        this.backupStyle = applyStyle(this.node, FullscreenService.styleForOrientation());
 
         // disable scroll bars
         document.body.style.overflow = 'hidden';

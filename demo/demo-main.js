@@ -224,6 +224,7 @@ window.onload = async () => {
           container: this.$refs.gameContainer,
           url: demoConfig.gameUrl,
           gameConfig: gameConfig,
+          baseTicketPrice: MoneyAmount.of(75, "EUR"),
           connector: new DemoConnector(this, updateUIState),
         });
 
