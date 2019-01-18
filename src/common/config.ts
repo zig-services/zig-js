@@ -50,8 +50,16 @@ export interface GameConfig {
     // set to true to enable overlay in the outer.html
     readonly overlay: boolean;
 
-    // access token for remote game services.
+    /**
+     * access token for remote game services.
+     * @deprecated
+     */
     readonly remoteAccessToken?: string;
+
+    // the vendor config. This is an opaque value that is given to the operator
+    // by a previous launchGame request and is used by the games frontend
+    // to authenticate with the vendors remote game service implementation.
+    readonly vendorConfig?: { [key: string]: string; };
 
     // can be used as a redirect after purchasing a game via basket
     readonly basketPurchaseRedirect: string;
@@ -124,7 +132,9 @@ function defaultsToGameConfig(config: SimpleGameConfig): GameConfig {
 
     return {
         canonicalGameName: config.canonicalGameName,
+
         remoteAccessToken: config.remoteAccessToken,
+        vendorConfig: deepFreezeClone(config.vendorConfig),
 
         basketPurchaseRedirect: config.basketPurchaseRedirect || '/basket',
 
