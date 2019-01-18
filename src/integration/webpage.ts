@@ -190,7 +190,7 @@ export class Game {
      * Returns true if the service should try to jump into fullscreen mode.
      */
     private get allowFullscreen(): boolean {
-        if (this.gameSettings.chromeless) {
+        if (this.gameSettings.chromeless || this.gameSettings.fullscreenNotSupported) {
             // never allow fullscreen for chromeless games.
             return false;
         }

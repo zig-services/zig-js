@@ -17,7 +17,7 @@ export interface GameSettings {
     readonly legacyGame?: boolean;
 
     // Set to true if the game should not have any overlay displayed.
-    // This also implies purchaseInGame=true.e
+    // This also implies purchaseInGame=true.
     readonly chromeless?: boolean;
 
     // Set this to signal that the game will handle the purchase flow itself.
@@ -26,6 +26,10 @@ export interface GameSettings {
 
     // Set this to configure the in game clock.
     readonly clockStyle?: ClockStyle | false;
+
+    // Set this to true to prevent the game to go to fullscreen
+    // even if the integrator allows it.
+    readonly fullscreenNotSupported?: true;
 }
 
 export interface ClockStyle {
