@@ -123,7 +123,7 @@ export abstract class Connector {
      * Ask the customer for permission to pay for the game. The default
      * implementation will always return 'true'.
      */
-    public async verifyTicketPurchase(): Promise<boolean> {
+    public async verifyTicketPurchase(amount: IMoneyAmount): Promise<boolean> {
         return true;
     }
 

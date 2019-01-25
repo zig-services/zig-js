@@ -349,7 +349,7 @@ export class Game {
             this.logger.info('Check if the customer has enough money');
 
             if (MoneyAmount.of(customerState.balance).lessThan(order.customerTicketPrice)) {
-                if (!await this.connector.ensureCustomerBalance(this.config.ticketPrice)) {
+                if (!await this.connector.ensureCustomerBalance(order.customerTicketPrice)) {
                     throw CANCELED;
                 }
 
@@ -359,7 +359,7 @@ export class Game {
             }
 
             this.logger.info('Verify that the customer really wants to buy this game');
-            if (!await this.connector.verifyTicketPurchase()) {
+            if (!await this.connector.verifyTicketPurchase(order.customerTicketPrice)) {
                 throw CANCELED;
             }
         }
