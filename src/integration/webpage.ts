@@ -312,7 +312,7 @@ export class Game {
 
             } catch (err) {
                 this.interface.cancelRequestStartGame();
-                this.logger.info('Error during game init, cancel the start request but keep running.');
+                this.logger.info('Error during game init, cancel the start request but keep running.', err);
                 continue;
             }
 
