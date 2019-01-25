@@ -143,6 +143,16 @@ export class Game {
 
             return 'success';
         }, false);
+
+        this.interface.registerGeneric({
+            gotoUrl: event => {
+                this.connector.goToUrl(event.destination);
+            },
+
+            gotoGame: event => {
+                this.connector.goToGame(event.destinationGame);
+            },
+        });
     }
 
     private get gameSettings(): GameSettings {

@@ -212,6 +212,23 @@ export abstract class Connector {
     }
 
     /**
+     * Open the webpage for the given game. By default, this redirects
+     * the current page to "/canonicalGameName"
+     */
+    public goToGame(canonicalGameName: string): void {
+        this.logger.info(`Go to game '${canonicalGameName}' now.`);
+        window.location.href = '/' + canonicalGameName;
+    }
+
+    /**
+     * Switches to a different URL by updating location.href.
+     */
+    public goToUrl(url: string): void {
+        this.logger.info(`Go to url '${url}' now.`);
+        window.location.href = url;
+    }
+
+    /**
      * Update the ui state.
      */
     public updateUIState(state: UIState, game: Game) {

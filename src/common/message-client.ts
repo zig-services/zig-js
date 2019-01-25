@@ -366,6 +366,8 @@ const commandMessageTypesObject = {
     gameStarted: typeOf<GameStartedMessage>(),
     gameFinished: typeOf<GameFinishedMessage>(),
     gameInput: typeOf<GameInputMessage>(),
+    gotoUrl: typeOf<GotoUrlMessage>(),
+    gotoGame: typeOf<GotoGameMessage>(),
     ticketSettled: typeOf<TicketSettledMessage>(),
     requestGameInput: typeOf<RequestGameInputMessage>(),
     requestStartGame: typeOf<RequestStartGameMessage>(),
