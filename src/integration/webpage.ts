@@ -311,10 +311,8 @@ export class Game {
                 await initGame(gameScaling);
 
             } catch (err) {
-                this.logger.info('Cancel game preparations');
-                this.interface.cancelRequestStartGame();
-
-                throw err;
+                this.logger.info('Error during game init, will not cancel the game.');
+                continue
             }
 
             this.logger.info('Wait for game to start...');
