@@ -459,11 +459,7 @@ export class Game {
         } else if (customerState.loggedIn) {
             uiStateUpdate.balance = customerState.balance;
 
-            if (this.gameSettings.purchaseInGame) {
-                uiStateUpdate.buttonType = 'play';
-                uiStateUpdate.ticketPriceIsVariable = true;
-
-            } else if (arrayNotEmpty(customerState.unplayedTicketInfos)) {
+            if (arrayNotEmpty(customerState.unplayedTicketInfos)) {
                 uiStateUpdate.allowFreeGame = false;
                 uiStateUpdate.unplayedTicketInfo = customerState.unplayedTicketInfos[0];
                 uiStateUpdate.buttonType = 'unplayed';
@@ -471,6 +467,10 @@ export class Game {
             } else if (MoneyAmount.isNotZero(customerState.voucher)) {
                 uiStateUpdate.allowFreeGame = false;
                 uiStateUpdate.buttonType = 'voucher';
+
+            } else if (this.gameSettings.purchaseInGame) {
+                uiStateUpdate.buttonType = 'play';
+                uiStateUpdate.ticketPriceIsVariable = true;
 
             } else if (MoneyAmount.of(customerState.balance).lessThan(this.config.ticketPrice)) {
                 uiStateUpdate.buttonType = 'payin';
