@@ -284,6 +284,10 @@ export interface TicketPriceChangedMessage extends BaseMessage {
 
     readonly quantity: number;
 
+    // an optional bet factor that can be send with the event.
+    // a bet factor of one will be assumed if no value is provided.
+    readonly betFactor?: number;
+
     /**
      * @deprecated use quantity now.
      */
@@ -549,7 +553,7 @@ function normalizeMessage(game: string, message: Message): BaseMessage {
     if (converted.command === 'buy') {
         // add missing default value to buy message event.
         const buy = converted as BuyMessage;
-        converted = <BuyMessage> {
+        converted = <BuyMessage>{
             ...buy,
             quantity: buy.quantity || 1,
             betFactor: buy.betFactor || 1,

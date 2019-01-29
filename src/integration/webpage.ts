@@ -291,20 +291,26 @@ export class Game {
 
         do {
             if (requirePrepareGame) {
-                const event = await this.interface.waitForGameEvents('buy', 'requestStartGame', 'ticketPriceChanged', 'gameFinished');
+                const event = await this.interface.waitForGameEvents(
+                    'buy', 'requestStartGame', 'ticketPriceChanged', 'gameFinished');
+
                 if (event.gameFinished) {
                     return 'success';
                 }
 
                 if (event.ticketPriceChanged) {
                     gameScaling.quantity = event.ticketPriceChanged.quantity;
-                    gameScaling.betFactor = 1;
+                    gameScaling.betFactor = event.ticketPriceChanged.betFactor || 1;
                     continue;
                 }
 
                 if (event.buy) {
                     gameScaling.quantity = event.buy.quantity;
                     gameScaling.betFactor = event.buy.betFactor;
+                }
+
+                if (event.requestStartGame) {
+                    // do nothing
                 }
             }
 
