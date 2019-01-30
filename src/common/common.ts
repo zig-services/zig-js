@@ -10,6 +10,9 @@ export function sleep(millis: number): Promise<{}> {
  * Returns a deep freezed deep copy of the object.
  */
 export function deepFreezeClone<T>(object: T): DeepReadonly<T> {
+    if (object == null)
+        return object;
+
     return deepFreeze(deepClone(object));
 }
 
