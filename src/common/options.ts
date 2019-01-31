@@ -49,7 +49,19 @@ export const Options = {
     },
 
 
+    get localeOverride(): string | null {
+        return KV.get('locale-override');
+    },
+
+    set localeOverride(locale: string | null) {
+        KV.set('locale-override', locale);
+    },
+
+
     get debuggingLayer(): boolean {
-        return !!this.logging || !!this.version || this.winningClassOverride != null;
+        return !!this.logging
+            || !!this.version
+            || this.winningClassOverride != null
+            || !!this.localeOverride;
     },
 };

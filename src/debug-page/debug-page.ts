@@ -16,6 +16,9 @@ Vue.component('DebugPage', {
             <div><label><input type="checkbox" v-model="hasWinningClassOverride"/>
                 Enable winning class override</label></div>
             
+            <div><label><input type="text" v-model="localeOverride"/>
+                Override the locale</label></div>
+            
             <div v-if="hasWinningClassOverride">
                 <div><label><input type="number" v-model.number="winningClassOverride.winningClass"/> winning class override</label></div>
                 <div><label><input type="number" v-model.number="winningClassOverride.scenarioId"/> scenario id eoverride</label></div>
@@ -30,6 +33,7 @@ Vue.component('DebugPage', {
             hasWinningClassOverride: Options.winningClassOverride != null,
             winningClassOverride: Options.winningClassOverride,
             disableAudioContext: Options.disableAudioContext,
+            localeOverride: Options.localeOverride,
         };
     },
 
@@ -48,6 +52,14 @@ Vue.component('DebugPage', {
 
         hasWinningClassOverride(newValue: boolean) {
             this.winningClassOverride = newValue ? {scenarioId: 0, winningClass: 0} : null;
+        },
+
+        localeOverride(newValue: string) {
+            if (!newValue || newValue.trim() === '') {
+                Options.localeOverride = null;
+            } else {
+                Options.localeOverride = newValue.trim();
+            }
         },
 
         winningClassOverride: {

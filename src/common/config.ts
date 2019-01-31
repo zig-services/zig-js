@@ -3,6 +3,7 @@
  * integration wrapper frame (outer.html).
  */
 import {deepFreezeClone} from './common';
+import {Options} from './options';
 
 export interface GameSettings {
     // Filename or URL of the inner frame. If not set, this defaults to "inner.html"
@@ -99,11 +100,16 @@ export function parseGameConfigFromURL(url: string = location.href): GameConfig 
     }
 
     const [, encoded] = match;
-    const config = JSON.parse(atob(encoded)) as SimpleGameConfig;
+    let config = JSON.parse(atob(encoded)) as SimpleGameConfig;
 
     // noinspection SuspiciousTypeOfGuard
     if (typeof config.canonicalGameName !== 'string') {
         throw new Error('canonicalGameName not set in config.');
+    }
+
+    if (Options.localeOverride != null) {
+        // override locale in the config.
+        config = {...config, locale: Options.localeOverride};
     }
 
     return deepFreezeClone(defaultsToGameConfig(config));
