@@ -503,7 +503,13 @@ export class Game {
         if (customerState.loggedIn) {
             // publish update in balance.
             this.updateUIState({balance: customerState.balance});
+
+            // always send voucher to game
+            this.logger.info('Send voucher info to game.');
+            const voucherAmountInMinor = (customerState.voucher && customerState.voucher.amountInMinor) || 0;
+            this.interface.newVoucher(voucherAmountInMinor);
         }
+
 
         return customerState;
     }

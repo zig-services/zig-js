@@ -84,7 +84,7 @@ export interface ZigClient {
      * Queries for the given bundle information. This is used in some of our games
      * to offer extended functionality.
      */
-    bundle(bundleKey: number): Promise<Bundle>
+    bundle(bundleKey: string): Promise<Bundle>
 
     /**
      * Observes and tracks the position of the given marker element. Every time the
@@ -184,7 +184,7 @@ export class ZigClientImpl implements ZigClient {
         });
     }
 
-    public async bundle(bundleKey: number): Promise<Bundle> {
+    public async bundle(bundleKey: string): Promise<Bundle> {
         return await this._run(async () => {
             const bundle = await this.request<Bundle>('GET', `/zig/bundles/${bundleKey}`);
             return deepFreezeClone(bundle);
