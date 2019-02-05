@@ -272,7 +272,7 @@ export class Game {
             this.fullscreenService.enable();
         }
 
-        const state = await this.fetchCustomerState();
+        let state = await this.fetchCustomerState();
 
         // check if the customer has an unplayed ticket he wants to resume
         let requirePrepareGame: boolean = !state.loggedIn || arrayIsEmpty(state.unplayedTicketInfos);
@@ -339,6 +339,11 @@ export class Game {
             this.logger.info('Wait for game to settle...');
             await this.interface.waitForGameEvent('ticketSettled');
             this.connector.onGameSettled();
+
+            // if we had a voucher, we update now.
+            if (state.loggedIn && MoneyAmount.isNotZero(state.voucher)) {
+                state = await this.fetchCustomerState();
+            }
 
         } while (true);
     }
