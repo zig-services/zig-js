@@ -337,6 +337,7 @@ export interface GotoUrlMessage extends BaseMessage {
 
 export interface TicketActivatedEvent extends BaseMessage {
     readonly command: 'ticketActivated';
+    readonly ticketId: string;
 }
 
 export interface FetchRequestMessage extends BaseMessage {
@@ -712,8 +713,8 @@ export class GameMessageInterface extends MessageFactory {
         this.send<GotoUrlMessage>({command: 'gotoUrl', game: this.game, destination});
     }
 
-    public ticketActivated() {
-        this.send<TicketActivatedEvent>({command: 'ticketActivated', game: this.game});
+    public ticketActivated(ticketId: string) {
+        this.send<TicketActivatedEvent>({command: 'ticketActivated', game: this.game, ticketId});
     }
 
     public xhrRequest(request: WithCID<Request>) {
