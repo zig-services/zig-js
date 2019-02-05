@@ -73,7 +73,7 @@ export class Game {
             allowFreeGame: false,
             buttonType: 'loading',
             balance: MoneyAmount.of(this.config.ticketPrice).scaled(0),
-            normalTicketPrice: MoneyAmount.of(this.config.ticketPrice).scaled(0),
+            normalTicketPrice: MoneyAmount.of(this.config.ticketPrice),
             isFreeGame: false,
             busy: false,
         };
