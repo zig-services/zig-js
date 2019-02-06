@@ -126,7 +126,7 @@ export abstract class Connector {
      * If you need to show a dialog here, use `Game.runOutsideOfFullscreen` like this:
      *
      * ```js
-     * game.runOutsideOfFullscreen(async (amount) => await yourVerificationActions(amount));
+     * game.runOutsideOfFullscreen(async () => return await yourVerificationActions(amount));
      * ```
      */
     public async verifyTicketPurchase(amount: IMoneyAmount): Promise<boolean> {
