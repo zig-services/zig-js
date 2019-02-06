@@ -61,7 +61,7 @@ export class Game {
                 private readonly connector: Connector,
                 private readonly config: LocalGameConfig) {
 
-        this.fullscreenService = new FullscreenService(document.body);
+        this.fullscreenService = new FullscreenService(gameWindow.wrapper);
 
         this.logger = Logger.get(`zig.Game.${this.config.canonicalGameName}`);
 
