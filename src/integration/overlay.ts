@@ -8,7 +8,14 @@ import {injectStyle} from '../common/dom';
 const logger = Logger.get('zig.Overlay');
 
 function currencySymbol(currency: Currency): string {
-    return ({EUR: '€'} as any)[currency] || currency;
+    const symbols = {
+        EUR: '€',
+        USD: '$',
+        RON: 'RON',
+        GBP: '£',
+    };
+
+    return (symbols as any)[currency] || currency;
 }
 
 export class Translations {
@@ -236,6 +243,8 @@ Vue.component('Overlay', {
             type: Translations,
             required: true,
         },
+
+        belowGameHint: String,
     },
     template: `
         <div class="zig-overlay" v-if="isVisible">
@@ -273,7 +282,7 @@ Vue.component('Overlay', {
                 </ZigActionContainer>    
             </template>
             
-            <ZigDescription>Here we have some text.</ZigDescription>
+            <ZigDescription v-if="belowGameHint">{{ belowGameHint }}</ZigDescription>
         </div>`,
 
     data() {
@@ -365,6 +374,7 @@ let zigStylesInjected = false;
 
 interface OverlayConfig {
     translations: Translations;
+    belowGameHint?: string;
 }
 
 export function installOverlay(target: Element, config: Partial<OverlayConfig> = {}): (uiState: UIState, game: Game) => void {
@@ -383,10 +393,11 @@ export function installOverlay(target: Element, config: Partial<OverlayConfig> =
 
     new Vue({
         el: container,
-        template: `<Overlay ref='overlay' :translations="translations"/>`,
+        template: `<Overlay ref='overlay' :translations="translations" :belowGameHint="belowGameHint"/>`,
 
         data: {
             translations: config.translations || new Translations(),
+            belowGameHint: config.belowGameHint || '',
         },
 
         mounted(): void {
