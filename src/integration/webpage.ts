@@ -214,6 +214,19 @@ export class Game {
         }
     }
 
+    /**
+     * Jumps out of fullscreen to run the given action. Use this if you need to
+     * show something out of the game frame during game flow. Do not use it, if
+     * your action does not take a short time.
+     */
+    public async runOutsideOfFullscreen<T>(action: () => Promise<T>): Promise<T> {
+        this.fullscreenService.disable();
+        const result = await action();
+
+        this.enableFullscreenIfAllowed();
+        return result;
+    }
+
     public async playGame(): Promise<GameResult> {
         return this.play(false, async scaling => {
             await this.verifyPreConditions(scaling);
@@ -360,6 +373,8 @@ export class Game {
 
         this.logger.info('Check if the customer is logged in');
         if (!customerState.loggedIn) {
+            this.fullscreenService.disable();
+
             await this.connector.loginCustomer();
             throw CANCELED;
         }
@@ -371,9 +386,11 @@ export class Game {
             this.logger.info('Check if the customer has enough money');
 
             if (MoneyAmount.of(customerState.balance).lessThan(order.customerTicketPrice)) {
-                if (!await this.connector.ensureCustomerBalance(order.customerTicketPrice)) {
-                    throw CANCELED;
-                }
+                await this.runOutsideOfFullscreen(async () => {
+                    if (!await this.connector.ensureCustomerBalance(order.customerTicketPrice)) {
+                        throw CANCELED;
+                    }
+                });
 
                 // at this point we expect the customer to have the required money amount.
                 // we could do a second check here and fail on error, but that's not needed,

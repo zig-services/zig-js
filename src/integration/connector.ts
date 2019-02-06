@@ -122,6 +122,12 @@ export abstract class Connector {
     /**
      * Ask the customer for permission to pay for the game. The default
      * implementation will always return 'true'.
+     *
+     * If you need to show a dialog here, use `Game.runOutsideOfFullscreen` like this:
+     *
+     * ```js
+     * game.runOutsideOfFullscreen(async (amount) => await yourVerificationActions(amount));
+     * ```
      */
     public async verifyTicketPurchase(amount: IMoneyAmount): Promise<boolean> {
         return true;
