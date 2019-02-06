@@ -61,7 +61,7 @@ export class Game {
                 private readonly connector: Connector,
                 private readonly config: LocalGameConfig) {
 
-        this.fullscreenService = new FullscreenService(gameWindow.wrapper);
+        this.fullscreenService = new FullscreenService(document.body);
 
         this.logger = Logger.get(`zig.Game.${this.config.canonicalGameName}`);
 
@@ -208,6 +208,12 @@ export class Game {
         return this.connector.allowFullscreen;
     }
 
+    private enableFullscreenIfAllowed(): void {
+        if (this.allowFullscreen) {
+            this.fullscreenService.enable();
+        }
+    }
+
     public async playGame(): Promise<GameResult> {
         return this.play(false, async scaling => {
             await this.verifyPreConditions(scaling);
@@ -242,9 +248,7 @@ export class Game {
         await initGame({quantity: 1, betFactor: 1});
 
         // goto fullscreen
-        if (this.allowFullscreen) {
-            this.fullscreenService.enable();
-        }
+        this.enableFullscreenIfAllowed();
 
         this.logger.info('Wait for game to start...');
         const gameStartedEvent = await this.interface.waitForGameEvent('gameStarted');
@@ -268,9 +272,7 @@ export class Game {
         this.updateUIState({buttonType: 'none'});
 
         // go to fullscreen mode
-        if (this.allowFullscreen) {
-            this.fullscreenService.enable();
-        }
+        this.enableFullscreenIfAllowed();
 
         let state = await this.fetchCustomerState();
 
@@ -374,7 +376,7 @@ export class Game {
                 }
 
                 // at this point we expect the customer to have the required money amount.
-                // we could do a second check here and fail on error, but thats not needed,
+                // we could do a second check here and fail on error, but that's not needed,
                 // the game will just fail when purchasing the ticket.
             }
 

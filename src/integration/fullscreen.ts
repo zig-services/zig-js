@@ -88,7 +88,7 @@ export class FullscreenService {
 
         if (document.fullscreenEnabled) {
             // noinspection JSIgnoredPromiseFromCall
-            void document.exitFullscreen().catch(ignored => true)
+            void document.exitFullscreen().catch(ignored => true);
         }
     }
 }
