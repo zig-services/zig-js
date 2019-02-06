@@ -313,7 +313,7 @@ look like this:
 
 ```js
 // use the frontend url that was provided to you by the zig service, e.g:
-const frontendUrl = "https://mylotto24.frontend.zig.services/dickehose/latest/tipp24_com/game/outer.html";
+const frontendUrl = "https://mylotto24.frontend.zig.services/dickehose/tipp24_com/latest/game/outer.html";
 
 window.onload = async () => {
   const game = installGame({
@@ -390,13 +390,22 @@ export interface UIState {
 
   // True if the player is _currently_ playing a free demo game round.
   isFreeGame: boolean;
+  
+  // Marks the ui as busy - e.g. because a request to buy a ticket
+  // is currently running.
+  busy: boolean;
+
+  // The current balance of the player as returned by the most recent
+  // fetchCustomerState call. Unset, if the customer is not logged in.
+  balance?: MoneyAmount;
 }
 ```
 
 #### Using the default overlay
 
 This library will provide a basic user interface to simplify the
-integration of new games even more. **TODO customization**
+integration of new games even more. The default overlay is customizable
+to a small degree.
 
 A complete example on how to start a game looks like this:
 ```html
@@ -471,6 +480,20 @@ A complete example on how to start a game looks like this:
 </body>
 </html>
 ```
+
+The `installOverlay` method accepts a second parameter with customization options
+for the overlay. You can pass an object containing a `translations` property holding
+the translations object you would like to use in your frontend. To enable german
+translations, you would pass an instance of the class `ZIG.Translations_de_DE`.
+
+You can further specify a small text that will be shown at the bottom of the overlay:
+
+```js
+installOverlay(target, {
+  translations: new ZIG.Translations_de_DE(),
+  belowGameHint: "One sentence long short description of the game mechanics.",
+});
+```  
 
 ### Further customization
 

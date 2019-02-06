@@ -5,7 +5,7 @@ export * from './integration/connector';
 export * from './integration/game-window';
 export {MoneyAmount} from './common/domain';
 
-export {installOverlay} from "./integration/overlay"
+export * from "./integration/overlay"
 
 // legacy integration
 export * from './integration/integration';

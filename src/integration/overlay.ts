@@ -37,7 +37,7 @@ export class Translations {
     readonly demo_HintPlayAgain: string = 'Play a real game';
 
     public formatMoneyAmount(amount: IMoneyAmount): string {
-        const formatted = amount.amountInMajor.toFixed(2).replace(/,/, '.');
+        const formatted = amount.amountInMajor.toFixed(2).replace(',', '.');
         return `${formatted} ${currencySymbol(amount.currency)}`;
     }
 }
