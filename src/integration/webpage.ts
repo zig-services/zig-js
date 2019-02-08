@@ -372,7 +372,17 @@ export class Game {
 
         // noinspection InfiniteLoopJS
         while (true) {
-            await this.handleOneGameCycle();
+            try {
+                await this.handleOneGameCycle();
+            } catch (err) {
+                if (isTransientRemoteError(toErrorValue(err))) {
+                    // the game continues
+                    continue;
+                }
+
+                // re-throw the error value
+                throw err;
+            }
         }
     }
 
@@ -630,4 +640,9 @@ function parseGameRequestFromInternalPath(path: string): GameRequest {
             // unreachable
             throw new Error(`Invalid op: ${op}`);
     }
+}
+
+function isTransientRemoteError(err: IError) {
+    return err.type === 'urn:x-tipp24:realitycheck-limit-reached'
+        || err.type === 'urn:x-tipp24:daily-iwg-limit-reached';
 }

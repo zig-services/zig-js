@@ -122,6 +122,8 @@ export class MessageClient {
  * Converts any non null object into an error. This tries to make sense of the most common
  * normal error formats we have. If you pass null, this method will also return null.
  */
+export function toErrorValue(inputValue: null): null;
+export function toErrorValue(inputValue: any): IError;
 export function toErrorValue(inputValue: any): IError | null {
     if (inputValue == null) {
         return null;
