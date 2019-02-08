@@ -31,7 +31,7 @@ export function installGame(opts: InstallGameOptions): Game {
 
     // let the games begin!
     return new Game(gameWindow, opts.connector, {
-        canonicalGameName: opts.gameConfig.canonicalGameName,
+        ...opts.gameConfig,
         ticketPrice: MoneyAmount.of(opts.baseTicketPrice),
     });
 }

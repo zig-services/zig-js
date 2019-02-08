@@ -6,14 +6,13 @@ import {Logger} from '../common/logging';
 import {registerRequestListener} from '../common/request';
 import {BaseCustomerState, CANCELED, Connector, CustomerState, GameRequest, UIState} from './connector';
 import {GameWindow} from './game-window';
-import {GameSettings} from '../common/config';
+import {GameConfig, GameSettings} from '../common/config';
 import {FullscreenService} from './fullscreen';
 import {arrayIsEmpty, arrayNotEmpty, deepFreezeClone} from '../common/common';
 
 type GameResult = 'success' | 'failure' | 'canceled';
 
-export interface LocalGameConfig {
-    readonly canonicalGameName: string;
+export interface LocalGameConfig extends GameConfig {
     readonly ticketPrice: IMoneyAmount;
 }
 
@@ -51,7 +50,6 @@ export class Game {
     // the ui state. Should not be modified directly, always use "updateUIState"
     private _uiState?: Readonly<UIState>;
 
-    // the game wants to use inGamePurchase
     private _gameSettings?: GameSettings;
 
     // set to true to disable further free games.
@@ -248,10 +246,14 @@ export class Game {
         this.updateUIState({enabled: false, isFreeGame: demoGame});
 
         return this.flow(async (): Promise<GameResult> => {
-            if (this.gameSettings.purchaseInGame) {
-                return this.handlePurchaseInGameGameFlow(demoGame, initGame);
+            if (this.config.remoteAccessToken) {
+                return await this.handleRemoteGameFlow(initGame);
+
+            } else if (this.gameSettings.purchaseInGame) {
+                return await this.handlePurchaseInGameGameFlow(demoGame, initGame);
+
             } else {
-                return this.handleSingleRoundGameFlow(initGame);
+                return await this.handleSingleRoundGameFlow(initGame);
             }
         });
     }
@@ -347,13 +349,8 @@ export class Game {
                 continue;
             }
 
-            this.logger.info('Wait for game to start...');
-            const gameStartedEvent = await this.interface.waitForGameEvent('gameStarted');
-            this.connector.onGameStarted(gameStartedEvent);
-
-            this.logger.info('Wait for game to settle...');
-            await this.interface.waitForGameEvent('ticketSettled');
-            this.connector.onGameSettled();
+            // gameStarted/ticketSettle
+            await this.handleOneGameCycle();
 
             // if we had a voucher, we update now.
             if (state.loggedIn && MoneyAmount.isNotZero(state.voucher)) {
@@ -363,6 +360,31 @@ export class Game {
         } while (true);
     }
 
+    private async handleRemoteGameFlow(initGame: InitGame): Promise<GameResult> {
+        // always run with a unity quantity
+        await initGame({quantity: 1, betFactor: 1});
+
+        // hide the ui
+        this.updateUIState({busy: false, buttonType: 'none'});
+
+        // goto fullscreen
+        this.enableFullscreenIfAllowed();
+
+        // noinspection InfiniteLoopJS
+        while (true) {
+            await this.handleOneGameCycle();
+        }
+    }
+
+    private async handleOneGameCycle() {
+        this.logger.info('Wait for game to start...');
+        const gameStartedEvent = await this.interface.waitForGameEvent('gameStarted');
+        this.connector.onGameStarted(gameStartedEvent);
+
+        this.logger.info('Wait for game to settle...');
+        await this.interface.waitForGameEvent('ticketSettled');
+        this.connector.onGameSettled();
+    }
 
     /**
      * Validate that the customer can play a ticket. If the customer is not allowed
