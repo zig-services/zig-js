@@ -375,8 +375,12 @@ export class Game {
             try {
                 await this.handleOneGameCycle();
             } catch (err) {
-                if (isTransientRemoteError(toErrorValue(err))) {
-                    // the game continues
+                const errorValue = toErrorValue(err);
+                if (isTransientRemoteError(errorValue)) {
+                    // publish error directly...
+                    await this.connector.showErrorDialog(errorValue);
+
+                    // and continue the game.
                     continue;
                 }
 
