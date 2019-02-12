@@ -1,13 +1,12 @@
 import '../common/polyfills';
 
 import {sleep} from '../common/common';
-import {GameMessageInterface, MessageClient, ParentMessageInterface, Unregister} from '../common/message-client';
+import {GameMessageInterface, MessageClient, Unregister} from '../common/message-client';
 import {injectStyle, onDOMLoad} from '../common/dom';
 import {buildTime, clientVersion} from '../common/vars';
 import {delegateToVersion} from '../common/delegate';
 import {Options} from '../common/options';
 import {appendGameConfigToURL, ClockStyle, GameConfig, GameSettings, parseGameConfigFromURL} from '../common/config';
-import {IError} from '../common/domain';
 import {Logger} from '../common/logging';
 import {WrapperStyleCSS} from './style.css';
 
@@ -67,7 +66,7 @@ async function initializeGame(): Promise<HTMLIFrameElement> {
     iframe.src = url;
     iframe.allowFullscreen = true;
     iframe.scrolling = 'no';
-    (iframe as any).allow = "autoplay";
+    (iframe as any).allow = 'autoplay';
     iframe.onerror = err => log.error('Error in iframe:', err);
 
     const parentMessageClient = new MessageClient(window.parent);
@@ -106,18 +105,6 @@ async function initializeGame(): Promise<HTMLIFrameElement> {
                 }
             });
         };
-
-        if (parseGameConfigFromURL().overlay) {
-            const iface = new ParentMessageInterface(innerMessageClient, parseGameConfigFromURL().canonicalGameName);
-
-            log.info('Register messages listeners for overlay');
-
-            iface.registerGeneric({
-                gameLoaded: () => showControls(iface),
-                gameFinished: () => showControls(iface),
-                error: ev => showErrorDialog(ev),
-            });
-        }
     }
 
     await trySetupMessageClient();
@@ -132,43 +119,24 @@ function showClock(style: Required<ClockStyle>, clientTimeOffsetInMillis: number
     div.style[style.verticalAlignment] = '0';
     div.style[style.horizontalAlignment] = '0.5em';
     div.style.backgroundColor = style.backgroundColor;
-    div.innerHTML = getTime(clientTimeOffsetInMillis);
 
-    document.body.appendChild(div);
-
-    setInterval(() => div.innerHTML = getTime(clientTimeOffsetInMillis), 1000);
-}
-
-function getTime(clientTimeOffsetInMillis: number): string {
-    const now = new Date(Date.now() + clientTimeOffsetInMillis);
-    const hour = now.getHours();
-    const minutes = now.getMinutes();
-    return `${hour >= 10 ? hour : '0' + hour}:${minutes >= 10 ? minutes : '0' + minutes}`
-}
-
-/**
- * Shows an error dialog for the given error.
- */
-function showErrorDialog(error: IError) {
-    let message = error.details || '';
-
-    if (error.type === 'urn:x-tipp24:remote-client-error') {
-        message = 'An error occurred while communicating with the game backend, please try again.';
+    function getTimeString(now: Date): string {
+        const hour = now.getHours();
+        const minutes = now.getMinutes();
+        return `${hour >= 10 ? hour : '0' + hour}:${minutes >= 10 ? minutes : '0' + minutes}`;
     }
 
-    const div = document.createElement('div');
-    div.innerHTML = `
-      <div class='zig-overlay'>
-        <div class='zig-alert'>
-          <div class='zig-alert__title'></div>
-          <div class='zig-alert__text'></div>
-          <a href='#' class='zig-alert__button'>Close</a>
-        </div>
-      </div>`;
+    function updateOnce() {
+        const now = new Date(Date.now() + clientTimeOffsetInMillis);
+        div.innerText = getTimeString(now);
 
-    div.querySelector<HTMLElement>('.zig-alert__title')!.innerText = error.title;
-    div.querySelector<HTMLElement>('.zig-alert__text')!.innerText = message;
-    div.querySelector<HTMLElement>('.zig-alert__button')!.onclick = () => div.parentNode!.removeChild(div);
+        const currentSeconds = now.getSeconds();
+        const delayInSeconds = 60 - currentSeconds;
+
+        setTimeout(updateOnce, delayInSeconds * 1000);
+    }
+
+    updateOnce();
 
     document.body.appendChild(div);
 }
@@ -187,26 +155,6 @@ function proxyMessages(parentMessageClient: MessageClient, innerMessageClient: M
         log.debug('Proxy message parent -> game');
         innerMessageClient.send(ev);
     });
-}
-
-function showControls(iface: ParentMessageInterface) {
-    if (document.querySelector('.zig-start-button') != null) {
-        return;
-    }
-
-    const div = document.createElement('a');
-    div.className = 'zig-start-button';
-    div.innerText = 'Start game';
-    div.href = '#';
-    document.body.appendChild(div);
-
-
-    div.onclick = ev => {
-        ev.preventDefault();
-
-        iface.playGame();
-        div.parentNode!.removeChild(div);
-    };
 }
 
 function initializeWinningClassOverride(): boolean {
@@ -253,9 +201,7 @@ onDOMLoad(() => {
         const el = document.createElement('div');
         el.innerHTML = `
             <div style='position: absolute; top: 0; left: 0; font-size: 0.6em; padding: 0.25em; background: rgba(0, 0, 0, 128); color: white; z-index: 100;'>
-                <strong>ZIG</strong>
-                &nbsp;&nbsp;
-
+                <strong>ZIG</strong> &nbsp;&nbsp;
                 version: ${Options.version} (=${clientVersion}),
                 logging: ${Options.logging},
                 wc override: ${JSON.stringify(Options.winningClassOverride)},
