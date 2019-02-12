@@ -6,7 +6,7 @@ import {injectStyle, onDOMLoad} from '../common/dom';
 import {buildTime, clientVersion} from '../common/vars';
 import {delegateToVersion} from '../common/delegate';
 import {Options} from '../common/options';
-import {appendGameConfigToURL, ClockStyle, GameConfig, GameSettings, parseGameConfigFromURL} from '../common/config';
+import {appendGameConfigToURL, ClockStyle, GameSettings, parseGameConfigFromURL} from '../common/config';
 import {Logger} from '../common/logging';
 import {WrapperStyleCSS} from './style.css';
 
@@ -20,30 +20,6 @@ if (GameSettings == null) {
     throw new Error('window.GameConfig must be initialized.');
 }
 
-function setupGameClock(config: GameConfig, messageInterface: GameMessageInterface) {
-    const clockStyle: Required<ClockStyle> = {
-        horizontalAlignment: 'right',
-        verticalAlignment: 'top',
-        backgroundColor: 'rgba(0,0,0,0.5)',
-        fontColor: 'white',
-        ...(GameSettings.clockStyle || {}),
-    };
-
-    let unregister: Unregister;
-
-    function _showClock() {
-        showClock(clockStyle, config.clientTimeOffsetInMillis);
-        unregister();
-    }
-
-    unregister = messageInterface.registerGeneric({
-        prepareGame: _showClock,
-        playGame: _showClock,
-        playDemoGame: _showClock,
-        requestStartGame: _showClock,
-    });
-}
-
 /**
  * Create and load the real game inside the iframe.
  * This method will add the iframe to the body of the page.
@@ -52,7 +28,6 @@ async function initializeGame(): Promise<HTMLIFrameElement> {
     const config = parseGameConfigFromURL();
 
     let url = appendGameConfigToURL(GameSettings.index || 'inner.html', config);
-
 
     // legacy games need extra patching. We'll need to inform the inner.html about that.
     if (GameSettings.legacyGame === true) {
@@ -67,17 +42,18 @@ async function initializeGame(): Promise<HTMLIFrameElement> {
     iframe.allowFullscreen = true;
     iframe.scrolling = 'no';
     (iframe as any).allow = 'autoplay';
-    iframe.onerror = err => log.error('Error in iframe:', err);
 
     const parentMessageClient = new MessageClient(window.parent);
 
+    // forward errors to parent frame.
+    iframe.onerror = err => parentMessageClient.sendError(err);
 
     // send the new config to the parent so it can update the frame size
     const messageInterface = new GameMessageInterface(parentMessageClient, config.canonicalGameName);
     messageInterface.updateGameSettings(GameSettings);
 
     if (GameSettings.clockStyle !== false) {
-        setupGameClock(config, messageInterface);
+        setupGameClock(config.clientTimeOffsetInMillis, messageInterface);
     }
 
     // add game to window
@@ -112,6 +88,46 @@ async function initializeGame(): Promise<HTMLIFrameElement> {
     return iframe;
 }
 
+/**
+ * Set up a proxy for post messages. Everything coming from the iframe will be forwarded
+ * to the parent, and everything coming from the parent will be send to the iframe.
+ */
+function proxyMessages(parentMessageClient: MessageClient, innerMessageClient: MessageClient): void {
+    innerMessageClient.register(ev => {
+        log.debug('Proxy message parent <- game');
+        parentMessageClient.send(ev);
+    });
+
+    parentMessageClient.register(ev => {
+        log.debug('Proxy message parent -> game');
+        innerMessageClient.send(ev);
+    });
+}
+
+function setupGameClock(clientTimeOffsetInMillis: number, messageInterface: GameMessageInterface) {
+    const clockStyle: Required<ClockStyle> = {
+        horizontalAlignment: 'right',
+        verticalAlignment: 'top',
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        fontColor: 'white',
+        ...(GameSettings.clockStyle || {}),
+    };
+
+    let unregister: Unregister;
+
+    function _showClock() {
+        showClock(clockStyle, clientTimeOffsetInMillis);
+        unregister();
+    }
+
+    unregister = messageInterface.registerGeneric({
+        prepareGame: _showClock,
+        playGame: _showClock,
+        playDemoGame: _showClock,
+        requestStartGame: _showClock,
+    });
+}
+
 function showClock(style: Required<ClockStyle>, clientTimeOffsetInMillis: number) {
     const div = document.createElement('div');
     div.className = 'zig-clock';
@@ -139,22 +155,6 @@ function showClock(style: Required<ClockStyle>, clientTimeOffsetInMillis: number
     updateOnce();
 
     document.body.appendChild(div);
-}
-
-/**
- * Set up a proxy for post messages. Everything coming from the iframe will be forwarded
- * to the parent, and everything coming from the parent will be send to the iframe.
- */
-function proxyMessages(parentMessageClient: MessageClient, innerMessageClient: MessageClient): void {
-    innerMessageClient.register(ev => {
-        log.debug('Proxy message parent <- game');
-        parentMessageClient.send(ev);
-    });
-
-    parentMessageClient.register(ev => {
-        log.debug('Proxy message parent -> game');
-        innerMessageClient.send(ev);
-    });
 }
 
 function initializeWinningClassOverride(): boolean {
