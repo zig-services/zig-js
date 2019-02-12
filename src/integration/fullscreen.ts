@@ -68,6 +68,7 @@ export class FullscreenService {
 
         // register a listener to keep orientation.
         const resizeHandler = () => this.onWindowResize();
+        window.addEventListener('resize', resizeHandler);
         this.unregisterResizeListener = () => window.removeEventListener('resize', resizeHandler);
     }
 
