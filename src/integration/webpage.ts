@@ -247,7 +247,7 @@ export class Game {
 
         return this.flow(async (): Promise<GameResult> => {
             if (this.config.remoteAccessToken) {
-                return await this.handleRemoteGameFlow(initGame);
+                return await this.handleRemoteGameFlow(demoGame, initGame);
 
             } else if (this.gameSettings.purchaseInGame) {
                 return await this.handlePurchaseInGameGameFlow(demoGame, initGame);
@@ -360,7 +360,7 @@ export class Game {
         } while (true);
     }
 
-    private async handleRemoteGameFlow(initGame: InitGame): Promise<GameResult> {
+    private async handleRemoteGameFlow(demoGame: boolean, initGame: InitGame): Promise<GameResult> {
         // always run with a unity quantity
         await initGame({quantity: 1, betFactor: 1});
 
@@ -369,6 +369,12 @@ export class Game {
 
         // goto fullscreen
         this.enableFullscreenIfAllowed();
+
+        // jump directly into the game.
+        this.logger.info('Set the game into prepare mode');
+        this.gameWindow.interface.prepareGame(demoGame);
+
+        this.logger.info('Wait for player to start a game');
 
         // noinspection InfiniteLoopJS
         while (true) {
@@ -623,7 +629,7 @@ function parseGameRequestFromInternalPath(path: string): GameRequest {
         }
 
         case 'buy':
-        case 'demo':
+        case 'demo': {
             const rex = new RegExp('(bet-factor|betFactor|quantity)=([0-9]+)', 'g');
 
             const query: { [key: string]: number } = {};
@@ -639,6 +645,7 @@ function parseGameRequestFromInternalPath(path: string): GameRequest {
                 quantity: query.quantity || 1,
                 betFactor: query.betFactor || query['bet-factor'] || 1,
             };
+        }
 
         default:
             // unreachable
