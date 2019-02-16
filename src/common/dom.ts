@@ -3,9 +3,23 @@ const zigWindow: { __zig_events?: { [k: string]: boolean }; } = window as any;
 /**
  * Inject CSS styles into the page.
  */
-export function injectStyle(css: string): void {
-    const style = document.createElement('style');
+export function injectStyle(css: string, id?: string): void {
+    let style: HTMLStyleElement | null = null;
+
+    if (id) {
+        // lookup, maybe it is already in the document
+        style = document.getElementById(id) as HTMLStyleElement;
+    }
+
+    if (!style) {
+        style = document.createElement('style');
+        if (id) {
+            style.id = id
+        }
+    }
+
     style.textContent = css;
+
     document.body.appendChild(style);
 }
 

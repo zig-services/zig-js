@@ -14,7 +14,7 @@ function parseIntegrationConfiguration() {
   if (encoded) {
     const demoConfig = JSON.parse(encoded);
     const gameName = demoConfig.name || "yourgame";
-    const gameUrl = demoConfig.url || `https://mylotto24.frontend.zig.services/${gameName}/latest/tipp24_com/game/outer.html`;
+    const gameUrl = demoConfig.url || `https://mylotto24.frontend.zig.services/${gameName}/tipp24_com/latest/game/outer.html`;
     const extraGameConfig = demoConfig.gameConfig || {};
 
     return {
@@ -24,7 +24,7 @@ function parseIntegrationConfiguration() {
   } else {
     // use game/url parameters from URL.
     const gameName = url.searchParams.get("game") || "dickehose";
-    const gameUrl = url.searchParams.get("url") || `https://mylotto24.frontend.zig.services/${gameName}/latest/tipp24_com/game/outer.html`;
+    const gameUrl = url.searchParams.get("url") || `https://mylotto24.frontend.zig.services/${gameName}/tipp24_com/latest/game/outer.html`;
     const gameData = GameDataObjects[gameName] || {};
     return {gameName, gameUrl, gameData, extraGameConfig: {}};
   }
@@ -218,7 +218,8 @@ window.onload = async () => {
         };
 
         // add the overlay
-        const updateUIState = ZIG.installOverlay(this.$refs.overlayContainer);
+        const updateUIState = ZIG.installOverlay(this.$refs.overlayContainer,
+          {belowGameHint: demoConfig.gameData.belowGameHint});
 
         const game = ZIG.installGame({
           container: this.$refs.gameContainer,
