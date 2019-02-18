@@ -1,7 +1,13 @@
 import '../common/polyfills';
 
 import {IError, IMoneyAmount, MoneyAmount} from '../common/domain';
-import {GameLoadedMessage, MessageClient, ParentMessageInterface, toErrorValue} from '../common/message-client';
+import {
+    GameLoadedMessage,
+    MessageClient,
+    ParentMessageInterface,
+    TicketPriceChangedMessage,
+    toErrorValue,
+} from '../common/message-client';
 import {Logger} from '../common/logging';
 import {registerRequestListener} from '../common/request';
 import {BaseCustomerState, CANCELED, Connector, CustomerState, GameRequest, UIState} from './connector';
@@ -54,6 +60,8 @@ export class Game {
 
     // set to true to disable further free games.
     private disallowFreeGames: boolean = false;
+
+    private latestTicketPriceChangedMessage: TicketPriceChangedMessage | null = null;
 
     constructor(private readonly gameWindow: GameWindow,
                 private readonly connector: Connector,
@@ -108,6 +116,11 @@ export class Game {
                 this.logger.info('Sending game input to game frame now.');
                 this.gameWindow.interface.gameInput(gameInput);
             }
+
+            this.gameWindow.interface.register('ticketPriceChanged', (message: TicketPriceChangedMessage) => {
+                this.latestTicketPriceChangedMessage = message;
+            });
+
 
             // take the game loaded event that we've got.
             let gameLoadedEvent: GameLoadedMessage | undefined = undefined;
@@ -305,6 +318,12 @@ export class Game {
         // a quantity, it is possible for the game to send one or more extra ticketPriceChanged
         // events before we need it when the game sends a requestStartGame request.
         const gameScaling: Scaling = {quantity: 1, betFactor: 1};
+
+        // TODO remove once 'ticketPriceChanged' is gone.
+        if (this.latestTicketPriceChangedMessage) {
+            gameScaling.quantity = this.latestTicketPriceChangedMessage.quantity;
+            gameScaling.betFactor = this.latestTicketPriceChangedMessage.betFactor || 1;
+        }
 
         do {
             if (requirePrepareGame) {
