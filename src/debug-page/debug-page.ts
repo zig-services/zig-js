@@ -1,79 +1,70 @@
-import Vue from 'vue';
-import {Options, WinningClassOverride} from '../common/options';
+import {Options} from '../common/options';
 
-Vue.component('DebugPage', {
-    template: `
-        <div>
-            <div><label><input type="checkbox" v-model="devVersion"/>
-                Enable dev version (only supported games)</label></div>
-            
-            <div><label><input type="checkbox" v-model="logging"/>
-                Enable logging to console</label></div>
-            
-            <div><label><input type="checkbox" v-model="disableAudioContext"/>
-                Disable AudioContext in Firefox 63+</label></div>
-            
-            <div><label><input type="checkbox" v-model="hasWinningClassOverride"/>
-                Enable winning class override</label></div>
-            
-            <div><label><input type="text" v-model="localeOverride"/>
-                Override the locale</label></div>
-            
-            <div v-if="hasWinningClassOverride">
-                <div><label><input type="number" v-model.number="winningClassOverride.winningClass"/> winning class override</label></div>
-                <div><label><input type="number" v-model.number="winningClassOverride.scenarioId"/> scenario id eoverride</label></div>
-            </div>
-        </div>
-       `,
+function applyOptions() {
+    function setIfChanged(object: any, key: string, value: any) {
+        if (object[key] !== value) {
+            object[key] = value;
+        }
+    }
 
-    data() {
-        return {
-            logging: Options.logging,
-            devVersion: Options.version === '1-dev',
-            hasWinningClassOverride: Options.winningClassOverride != null,
-            winningClassOverride: Options.winningClassOverride,
-            disableAudioContext: Options.disableAudioContext,
-            localeOverride: Options.localeOverride,
+    setIfChanged(document.querySelector<HTMLInputElement>('#field_devVersion'),
+        'checked', Options.version === '1-dev');
+
+    setIfChanged(document.querySelector<HTMLInputElement>('#field_logging'),
+        'checked', Options.logging);
+
+    setIfChanged(document.querySelector<HTMLInputElement>('#field_disableAudioContext'),
+        'checked', Options.disableAudioContext);
+
+    setIfChanged(document.querySelector<HTMLInputElement>('#field_localeOverride'),
+        'value', Options.localeOverride || '');
+
+    setIfChanged(document.querySelector<HTMLInputElement>('#field_hasWinningClassOverride'),
+        'checked', Options.winningClassOverride != null);
+
+    setIfChanged(document.querySelector<HTMLInputElement>('#winningClassOverride')!.style,
+        'display', Options.winningClassOverride ? 'block' : 'none');
+
+    if (Options.winningClassOverride) {
+        setIfChanged(document.querySelector<HTMLInputElement>('#field_winningClassOverride_WinningClass'),
+            'valueAsNumber', Options.winningClassOverride.winningClass);
+
+        setIfChanged(document.querySelector<HTMLInputElement>('#field_winningClassOverride_ScenarioId'),
+            'valueAsNumber', Options.winningClassOverride.scenarioId);
+    }
+}
+
+window.addEventListener('DOMContentLoaded', function () {
+    applyOptions();
+
+    function handleChange(onChange: () => void): () => void {
+        return () => {
+            onChange();
+            applyOptions();
         };
-    },
+    }
 
-    watch: {
-        logging(newValue: boolean) {
-            Options.logging = newValue;
-        },
+    const fieldDevVersion = document.querySelector<HTMLInputElement>('#field_devVersion')!;
+    fieldDevVersion.onchange = handleChange(() => Options.version = fieldDevVersion.checked ? '1-dev' : null);
 
-        devVersion(newValue: boolean) {
-            Options.version = newValue ? '1-dev' : null;
-        },
+    const fieldLogging = document.querySelector<HTMLInputElement>('#field_logging')!;
+    fieldLogging.onchange = handleChange(() => Options.logging = fieldLogging.checked);
 
-        disableAudioContext(newValue: boolean) {
-            Options.disableAudioContext = newValue;
-        },
+    const fieldDisableAC = document.querySelector<HTMLInputElement>('#field_disableAudioContext')!;
+    fieldDisableAC.onchange = handleChange(() => Options.disableAudioContext = fieldDisableAC.checked);
 
-        hasWinningClassOverride(newValue: boolean) {
-            this.winningClassOverride = newValue ? {scenarioId: 0, winningClass: 0} : null;
-        },
+    const fieldLocale = document.querySelector<HTMLInputElement>('#field_localeOverride')!;
+    fieldLocale.onchange = handleChange(() => Options.localeOverride = fieldLocale.value || null);
 
-        localeOverride(newValue: string) {
-            if (!newValue || newValue.trim() === '') {
-                Options.localeOverride = null;
-            } else {
-                Options.localeOverride = newValue.trim();
-            }
-        },
+    const wcOverride = document.querySelector<HTMLInputElement>('#field_hasWinningClassOverride')!;
+    wcOverride.onchange = handleChange(() =>
+        Options.winningClassOverride = wcOverride.checked ? {scenarioId: 0, winningClass: 0} : null);
 
-        winningClassOverride: {
-            deep: true,
-            handler(newValue: WinningClassOverride) {
-                Options.winningClassOverride = newValue;
-            },
-        },
-    },
+    const wcOverride_WC = document.querySelector<HTMLInputElement>('#field_winningClassOverride_WinningClass')!;
+    wcOverride_WC.onchange = handleChange(() =>
+        Options.winningClassOverride = {...Options.winningClassOverride!, winningClass: wcOverride_WC.valueAsNumber});
+
+    const wcOverride_SC = document.querySelector<HTMLInputElement>('#field_winningClassOverride_ScenarioId')!;
+    wcOverride_SC.onchange = handleChange(() =>
+        Options.winningClassOverride = {...Options.winningClassOverride!, scenarioId: wcOverride_SC.valueAsNumber});
 });
-
-window.onload = () => {
-    new Vue({
-        el: '#page',
-        template: `<DebugPage/>`,
-    });
-};

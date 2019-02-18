@@ -17,8 +17,7 @@
     "@types/deep-freeze": "^0.1.1",
     "core-js": "^2.5.7",
     "deep-freeze": "0.0.1",
-    "tslib": "^1.9.3",
-    "vue": "^2.5.17"
+    "tslib": "^1.9.3"
   },
   "scripts": {
     "watch": "webpack --mode=development --watch",

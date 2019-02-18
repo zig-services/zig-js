@@ -17,10 +17,7 @@ module.exports = {
   },
 
   resolve: {
-    extensions: [".ts", ".tsx", ".js", ".jsx"],
-    alias: {
-      'vue$': 'vue/dist/vue.esm.js'
-    }
+    extensions: [".ts", ".tsx", ".js", ".jsx"]
   },
 
   watchOptions: {
