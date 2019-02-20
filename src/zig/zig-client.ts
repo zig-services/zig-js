@@ -148,7 +148,6 @@ export class ZigClientImpl implements ZigClient {
 
     public async demoTicket(payload: any = {}, options: BuyTicketOptions = {}): Promise<Ticket> {
         return this._run(async () => {
-            alert("fetiching demo ticket");
             const quantity: number = options.quantity || guessQuantity(payload);
 
             let url = `/zig/games/${this.gameConfig.canonicalGameName}/tickets:demo?quantity=${quantity}`;
@@ -166,7 +165,6 @@ export class ZigClientImpl implements ZigClient {
             const ticket = await this.request<Ticket>('POST', url, payload);
 
             this.Messages.gameStarted(ticket.id, ticket.ticketNumber);
-            alert("got ticket");
             return decodeTicket(ticket);
         });
     }
