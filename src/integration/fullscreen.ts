@@ -43,7 +43,6 @@ export class FullscreenService {
     }
 
     private onWindowResize() {
-        alert("going to full screen");
         if (this.backupStyle != null) {
             this.logger.info('Update style after window size changed.');
             applyStyle(this.node, FullscreenService.styleForOrientation());

@@ -147,6 +147,7 @@ export class ZigClientImpl implements ZigClient {
     }
 
     public async demoTicket(payload: any = {}, options: BuyTicketOptions = {}): Promise<Ticket> {
+        alert("bam");
         return this._run(async () => {
             const quantity: number = options.quantity || guessQuantity(payload);
 
