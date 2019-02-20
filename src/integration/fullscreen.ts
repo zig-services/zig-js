@@ -63,7 +63,7 @@ export class FullscreenService {
 
         if (document.fullscreenEnabled) {
             // noinspection JSIgnoredPromiseFromCall
-            void document.body.requestFullscreen().catch(ignored => true);
+            void document.body.requestFullscreen();//.catch(ignored => true);
         }
 
         // register a listener to keep orientation.
@@ -91,7 +91,7 @@ export class FullscreenService {
 
         if (document.fullscreenEnabled) {
             // noinspection JSIgnoredPromiseFromCall
-            void document.exitFullscreen().catch(ignored => true);
+            void document.exitFullscreen();//.catch(ignored => true);
         }
     }
 }

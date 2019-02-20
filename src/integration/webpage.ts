@@ -403,7 +403,6 @@ export class Game {
                 const errorValue = toErrorValue(err);
                 if (isTransientRemoteError(errorValue)) {
                     // publish error directly...
-                    alert('handleRemoteGameFlow');
                     await this.connector.showErrorDialog(errorValue);
 
                     // and continue the game.
@@ -493,7 +492,6 @@ export class Game {
 
             const errorValue: IError | null = toErrorValue(err);
             if (errorValue != null) {
-                alert('flow');
                 await this.connector.showErrorDialog(errorValue);
             }
 
