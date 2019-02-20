@@ -50,6 +50,7 @@ export class FullscreenService {
     }
 
     public enable(): void {
+        alert("going to full screen");
         if (this.backupStyle != null) {
             this.logger.warn('Style already applied, not applying again.');
             return;
