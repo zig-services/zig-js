@@ -213,7 +213,7 @@ window.onload = async () => {
           canonicalGameName: demoConfig.gameName,
           overlay: false,
           isTestStage: true,
-          remoteAccessToken: "dummy token",
+          remoteAccessToken: demoConfig.remoteAccessToken,
           ...demoConfig.extraGameConfig,
         };
 
@@ -249,15 +249,6 @@ window.onload = async () => {
       payin() {
         this.demoState.balance += 1000;
         this.game.resetUIState();
-      },
-
-      play() {
-        // play the game
-        this.game.playGame();
-      },
-
-      demo() {
-        this.game.playDemoGame();
       },
 
       async showErrorDialog(error) {
