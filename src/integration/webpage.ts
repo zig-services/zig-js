@@ -398,6 +398,12 @@ export class Game {
         // noinspection InfiniteLoopJS
         while (true) {
             try {
+                const event = await this.interface.waitForGameEvents('gameFinished');
+
+                if (event.gameFinished) {
+                    return 'success';
+                }
+
                 await this.handleOneGameCycle(demoGame);
             } catch (err) {
                 const errorValue = toErrorValue(err);
@@ -423,11 +429,9 @@ export class Game {
         this.logger.info('Wait for game to finish...');
         await this.interface.waitForGameEvent('gameFinished');
 
-        if (!demoGame) {
-            this.logger.info('Wait for game to settle...');
-            await this.interface.waitForGameEvent('ticketSettled');
-            this.connector.onGameSettled();
-        }
+        this.logger.info('Wait for game to settle...');
+        await this.interface.waitForGameEvent('ticketSettled');
+        this.connector.onGameSettled();
     }
 
     /**
