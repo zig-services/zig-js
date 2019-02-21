@@ -470,7 +470,6 @@ export class Game {
      * Executes the given flow and catches all error values.
      */
     private async flow(fn: () => Promise<GameResult>, resetUIState: boolean = true): Promise<GameResult> {
-        alert("bam");
         try {
             // show the ui as busy
             this.updateUIState({busy: true});
