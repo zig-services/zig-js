@@ -369,7 +369,7 @@ export class Game {
             }
 
             // gameStarted/ticketSettle
-            await this.handleOneGameCycle();
+            await this.handleOneGameCycle(demoGame);
 
             // if we had a voucher, we update now.
             if (state.loggedIn && MoneyAmount.isNotZero(state.voucher)) {
@@ -398,7 +398,7 @@ export class Game {
         // noinspection InfiniteLoopJS
         while (true) {
             try {
-                await this.handleOneGameCycle();
+                await this.handleOneGameCycle(demoGame);
             } catch (err) {
                 const errorValue = toErrorValue(err);
                 if (isTransientRemoteError(errorValue)) {
@@ -415,14 +415,19 @@ export class Game {
         }
     }
 
-    private async handleOneGameCycle() {
+    private async handleOneGameCycle(demoGame: boolean) {
         this.logger.info('Wait for game to start...');
         const gameStartedEvent = await this.interface.waitForGameEvent('gameStarted');
         this.connector.onGameStarted(gameStartedEvent);
 
-        this.logger.info('Wait for game to settle...');
-        await this.interface.waitForGameEvent('ticketSettled');
-        this.connector.onGameSettled();
+        this.logger.info('Wait for game to finish...');
+        await this.interface.waitForGameEvent('gameFinished');
+
+        if (!demoGame) {
+            this.logger.info('Wait for game to settle...');
+            await this.interface.waitForGameEvent('ticketSettled');
+            this.connector.onGameSettled();
+        }
     }
 
     /**
