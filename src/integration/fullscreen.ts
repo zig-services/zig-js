@@ -15,6 +15,8 @@ export class FullscreenService {
     private static styleForOrientation(): Style {
         const landscape = screen.width > screen.height;
 
+        // TODO: the return value is the for both cases same but I leave it because it will be changed in the future.
+        // We must discuss it with PO.
         if (landscape) {
             return {
                 position: 'fixed',
@@ -30,6 +32,15 @@ export class FullscreenService {
             return {
                 position: 'fixed',
                 top: '0',
+                left: '0',
+                width: '100vw',
+                height: '100vh',
+                padding: '0',
+                margin: '0',
+                'z-index': '9999',
+                /* This style rotates the iframe in landscape always.
+                position: 'fixed',
+                top: '0',
                 left: '100vw',
                 width: '100vh',
                 height: '100vw',
@@ -38,6 +49,7 @@ export class FullscreenService {
                 'z-index': '9999',
                 transform: 'rotate(90deg)',
                 'transform-origin': '0 0',
+                 */
             };
         }
     }
