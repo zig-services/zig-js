@@ -12,45 +12,42 @@ export class FullscreenService {
     constructor(private node: HTMLElement) {
     }
 
-    private static styleForOrientation(): Style {
+    private static styleForOrientation(orientation?: string[]): Style {
+        const defaultFullScreenStyle = {
+            position: 'fixed',
+            top: '0',
+            left: '0',
+            width: '100vw',
+            height: '100vh',
+            padding: '0',
+            margin: '0',
+            'z-index': '9999',
+        };
+
+        // rotated to landscape mode
+        const rotatedFullScreen = {
+            position: 'fixed',
+            top: '0',
+            left: '100vw',
+            width: '100vh',
+            height: '100vw',
+            padding: '0',
+            margin: '0',
+            'z-index': '9999',
+            transform: 'rotate(90deg)',
+            'transform-origin': '0 0',
+        };
+
         const landscape = screen.width > screen.height;
 
-        // TODO: the return value is the for both cases same but I leave it because it will be changed in the future.
-        // We must discuss it with PO.
         if (landscape) {
-            return {
-                position: 'fixed',
-                top: '0',
-                left: '0',
-                width: '100vw',
-                height: '100vh',
-                padding: '0',
-                margin: '0',
-                'z-index': '9999',
-            };
+            return defaultFullScreenStyle;
         } else {
-            return {
-                position: 'fixed',
-                top: '0',
-                left: '0',
-                width: '100vw',
-                height: '100vh',
-                padding: '0',
-                margin: '0',
-                'z-index': '9999',
-                /* This style rotates the iframe in landscape always.
-                position: 'fixed',
-                top: '0',
-                left: '100vw',
-                width: '100vh',
-                height: '100vw',
-                padding: '0',
-                margin: '0',
-                'z-index': '9999',
-                transform: 'rotate(90deg)',
-                'transform-origin': '0 0',
-                 */
-            };
+            // if game supports portrait then leave it portrait and don't rotate
+            if (orientation && orientation.some(o => o === 'portrait')) {
+                return defaultFullScreenStyle;
+            }
+            return rotatedFullScreen;
         }
     }
 
@@ -61,14 +58,14 @@ export class FullscreenService {
         }
     }
 
-    public enable(): void {
+    public enable(orientation?: string[]): void {
         if (this.backupStyle != null) {
             this.logger.warn('Style already applied, not applying again.');
             return;
         }
 
         this.logger.info('Applying style');
-        this.backupStyle = applyStyle(this.node, FullscreenService.styleForOrientation());
+        this.backupStyle = applyStyle(this.node, FullscreenService.styleForOrientation(orientation));
 
         // disable scroll bars
         document.body.style.overflow = 'hidden';

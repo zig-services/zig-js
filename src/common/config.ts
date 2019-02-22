@@ -31,6 +31,10 @@ export interface GameSettings {
     // Set this to true to prevent the game to go to fullscreen
     // even if the integrator allows it.
     readonly fullscreenNotSupported?: true;
+
+    // Possible values: 'portrait', 'orientation'.
+    // Defines orientation supported by a game.
+    readonly orientation?: string[];
 }
 
 export interface ClockStyle {
