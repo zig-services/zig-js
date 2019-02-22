@@ -51,10 +51,10 @@ export class FullscreenService {
         }
     }
 
-    private onWindowResize() {
+    private onWindowResize(orientation?: string[]) {
         if (this.backupStyle != null) {
             this.logger.info('Update style after window size changed.');
-            applyStyle(this.node, FullscreenService.styleForOrientation());
+            applyStyle(this.node, FullscreenService.styleForOrientation(orientation));
         }
     }
 
@@ -76,7 +76,7 @@ export class FullscreenService {
         }
 
         // register a listener to keep orientation.
-        const resizeHandler = () => this.onWindowResize();
+        const resizeHandler = () => this.onWindowResize(orientation);
         window.addEventListener('resize', resizeHandler);
         this.unregisterResizeListener = () => window.removeEventListener('resize', resizeHandler);
     }
