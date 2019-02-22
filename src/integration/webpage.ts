@@ -221,7 +221,7 @@ export class Game {
 
     private enableFullscreenIfAllowed(): void {
         if (this.allowFullscreen) {
-            this.fullscreenService.enable();
+            this.fullscreenService.enable(this.gameSettings.orientation);
         }
     }
 
