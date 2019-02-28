@@ -152,10 +152,16 @@ export class ZigClientImpl implements ZigClient {
 
             let url = `/zig/games/${this.gameConfig.canonicalGameName}/tickets:demo?quantity=${quantity}`;
 
-            if (Options.winningClassOverride) {
-                // append extra config parameters if the winning class
-                url += `&wc=${Options.winningClassOverride.winningClass}`;
-                url += `&scenario=${Options.winningClassOverride.scenarioId}`;
+            const wcOverride = Options.winningClassOverride;
+            if (wcOverride) {
+                if (payload) {
+                    log.warn('Can not send winning class override as there is already a payload:', payload);
+                } else {
+                    payload = {
+                        wc: wcOverride.winningClass,
+                        scenario: wcOverride.scenarioId,
+                    };
+                }
             }
 
             if (options.betFactor) {
