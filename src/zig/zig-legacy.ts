@@ -4,7 +4,7 @@
 import {Logger} from '../common/logging';
 import {injectStyle, onDOMLoad, onLoad} from '../common/dom';
 import {GameMessageInterface, MessageClient} from '../common/message-client';
-import {executeRequestInParent, Request, Response} from '../common/request';
+import {forwardRequestToParent, Request, Response} from '../common/request';
 import {parseGameConfigFromURL} from '../common/config';
 import {LegacyStyleCSS} from './legacy.css';
 
@@ -33,8 +33,38 @@ function rewriteLegacyEndpoint(path: string): string {
         }
     }
 
+    {
+        const match = new RegExp('^/product/iwg/([a-z]+)/tickets/([^/]+)/state(|\\?.*)$').exec(path);
+        if (match) {
+            const [, game, id, rest] = match;
+            return `/zig/games/${game}/tickets:state/${id}${rest}`;
+        }
+    }
+
     // no change
     return path;
+}
+
+function interceptTicketStateRequest(req: Request): Response {
+    const [, id] = new RegExp('tickets:state/([^/?]+)').exec(req.path)!;
+    const stateKey = `ticket-state:${id}`;
+
+    if (req.method === 'POST') {
+        if (req.body) {
+            localStorage.setItem(stateKey, req.body);
+        } else {
+            localStorage.removeItem(stateKey);
+        }
+
+        return {statusCode: 204, body: null};
+    }
+
+    if (req.method === 'GET') {
+        const body = localStorage.getItem(stateKey) || '{}';
+        return {statusCode: 200, body};
+    }
+
+    return {statusCode: 405, body: null};
 }
 
 function XMLHttpRequestUsingMessageClient() {
@@ -70,15 +100,22 @@ function XMLHttpRequestUsingMessageClient() {
         let req: Request | null = null;
         let listeners: { [eventType: string]: any[] } = {};
 
-        async function executeInParent() {
+        async function forwardToParent() {
             try {
                 if (req == null) {
                     // noinspection ExceptionCaughtLocallyJS
                     throw Error('no request set.');
                 }
 
-                const response = await executeRequestInParent(iface, req);
-                log.info('Got response from parent: ', response);
+                let response: Response;
+                if (/tickets:state/.test(req.path)) {
+                    response = interceptTicketStateRequest(req);
+                    log.info('Intercepted ticket state request, got: ', response);
+
+                } else {
+                    response = await forwardRequestToParent(iface, req);
+                    log.info('Got response from parent: ', response);
+                }
 
                 replaceWithResponse(response);
 
@@ -105,11 +142,6 @@ function XMLHttpRequestUsingMessageClient() {
 
         replace('open', open => {
             return (method: string, url: string, async = true) => {
-                // mojimoney is wrongly requesting "../resource", so we change it to "./resource".
-                if (location.href.indexOf('mojimoney') !== -1) {
-                    url = url.replace(/^\.\.\//, './');
-                }
-
                 const needsIntercept = new RegExp('^(?:https?://[^/]+)?(/product/iwg/|/iwg/)').test(url);
                 if (needsIntercept) {
                     log.info(`Intercepting xhr request: ${method} ${url}`);
@@ -137,7 +169,7 @@ function XMLHttpRequestUsingMessageClient() {
                         }
                     }
 
-                    const path = rewriteLegacyEndpoint(url.replace('https://mylotto24.frontend.zig.services', ''));
+                    const path = rewriteLegacyEndpoint(url.replace(/https:\/\/[a-z0-9]+.frontend.zig.services/, ''));
 
                     req = {
                         method: method,
@@ -168,10 +200,11 @@ function XMLHttpRequestUsingMessageClient() {
                             throw new Error('request not set.');
                         }
 
+                        // noinspection SuspiciousTypeOfGuard
                         if (typeof arg === 'string') {
-                            const match = arg.match(/^betFactor=([0-9]+)$/);
+                            const match = arg.match(/^(?:bet-factor|betFactor)=([0-9]+)$/);
                             if (match) {
-                                const [_, betFactor] = match;
+                                const [, betFactor] = match;
                                 log.info(`Found betFactor=${betFactor} in body, adding to URL.`);
 
                                 const sep = req.path.indexOf('?') === -1 ? '?' : '&';
@@ -190,7 +223,7 @@ function XMLHttpRequestUsingMessageClient() {
                             log.info(`Executing intercepted xhr request with rewritten path: ${req.path}`, req);
                         }
 
-                        void executeInParent();
+                        void forwardToParent();
                     });
 
                 } else {

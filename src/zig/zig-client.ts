@@ -1,7 +1,7 @@
 import {GameConfig, parseGameConfigFromURL} from '../common/config';
 import {Options} from '../common/options';
 import {GameMessageInterface, MessageClient, toErrorValue} from '../common/message-client';
-import {executeRequestInParent} from '../common/request';
+import {forwardRequestToParent} from '../common/request';
 import {Bundle, IError, Ticket} from '../common/domain';
 import {Logger} from '../common/logging';
 import {deepFreezeClone} from '../common/common';
@@ -208,7 +208,7 @@ export class ZigClientImpl implements ZigClient {
     }
 
     private async request<T>(method: string, path: string, body: any = null): Promise<T> {
-        const result = await executeRequestInParent(this.Messages, {
+        const result = await forwardRequestToParent(this.Messages, {
             method, path,
             body: body === null ? null : JSON.stringify(body),
             headers: body === null ? {} : {'Content-Type': 'application/json'},

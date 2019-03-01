@@ -145,10 +145,11 @@ let cidUniqueNumber = 1;
  *
  * This method will wait for the result to the request and provide it as a promise to a Response object.
  */
-export async function executeRequestInParent(iface: GameMessageInterface, req: Request): Promise<Response> {
-    const cid = req.path + ':' + Date.now() + ':' + cidUniqueNumber++;
+export async function forwardRequestToParent(iface: GameMessageInterface, req: Request): Promise<Response> {
+    // a unique id that identifies the response to this request
+    const cid = [Date.now(), cidUniqueNumber++, req.path].join(':');
 
-    return new Promise<Response>((resolve, reject) => {
+    return await new Promise<Response>((resolve, reject) => {
         // we are interested in results from our partner
         const unregister = iface.register('zig.XMLHttpRequest.result', (message: FetchResultMessage) => {
             const result: WithCID<Result> = message.result;
@@ -169,11 +170,14 @@ export async function executeRequestInParent(iface: GameMessageInterface, req: R
             }
         });
 
-        if (req.body === null) {
-            req.body = '{}';
+        const reqCopy = {...req};
+
+        // set a empty json body if no body is set.
+        if (reqCopy.body == null) {
+            reqCopy.body = '{}';
         }
 
         // send the request to the partner.
-        iface.xhrRequest({cid, data: req});
+        iface.xhrRequest({cid, data: reqCopy});
     });
 }
