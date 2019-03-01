@@ -471,6 +471,7 @@ A complete example on how to start a game looks like this:
       url: "https://mylotto24.frontend.zig.services/dickehose/latest/tipp24_com/game/outer.html",
       gameConfig: gameConfig,
       connector: new DemoConnector(updateUIState),
+      baseTicketPrice: ZIG.MoneyAmount.of(150, "EUR"),
     });
 
     game.initialize();
