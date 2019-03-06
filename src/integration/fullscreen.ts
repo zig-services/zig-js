@@ -38,7 +38,7 @@ export class FullscreenService {
             'transform-origin': '0 0',
         };
 
-        const landscape = screen.width > screen.height;
+        const landscape = window.innerWidth > window.innerHeight;
 
         if (landscape) {
             return defaultFullScreenStyle;
