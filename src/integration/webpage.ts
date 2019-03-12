@@ -92,7 +92,7 @@ export class Game {
     /**
      * Initializes the game and wait for it to load.
      */
-    public async initialize(gameInput?: any): Promise<void> {
+    public async initialize(gameInput: any = {}): Promise<void> {
         await this.flow(async (): Promise<GameResult> => {
             const customerState$: Promise<CustomerState> = this.fetchCustomerState();
 
