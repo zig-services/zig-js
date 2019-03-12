@@ -92,7 +92,7 @@ export class Game {
     /**
      * Initializes the game and wait for it to load.
      */
-    public async initialize(gameInput: any = {}): Promise<void> {
+    public async initialize(gameInput?: any): Promise<void> {
         await this.flow(async (): Promise<GameResult> => {
             const customerState$: Promise<CustomerState> = this.fetchCustomerState();
 
@@ -114,7 +114,7 @@ export class Game {
             const event = await this.interface.waitForGameEvents('requestGameInput', 'gameLoaded');
             if (event.requestGameInput) {
                 this.logger.info('Sending game input to game frame now.');
-                this.gameWindow.interface.gameInput(gameInput);
+                this.gameWindow.interface.gameInput(gameInput || {});
             }
 
             this.gameWindow.interface.register('ticketPriceChanged', (message: TicketPriceChangedMessage) => {
