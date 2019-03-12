@@ -12,6 +12,10 @@ If you also want to use `async`/`await` in your code, you might need to relay on
 *typescript* or *babel* to transpile those new keywords to ECMAScript 5 syntax.
 More information to [async function on MDN](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/await).
 
+## Changelog
+
+You can find an overview about recent changes [here](CHANGELOG.md).
+
 ## Embedding ZIG into your game
 
 For a quick start on how to include the `zig-js` library in a game project using webpack,
