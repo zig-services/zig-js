@@ -69,6 +69,10 @@ export interface GameConfig {
     // can be used as a redirect after purchasing a game via basket
     readonly basketPurchaseRedirect: string;
 
+    // If the game contains a "leave" button this will be the url
+    // it will redirect to. Dont show the button if this is not defined.
+    readonly lobbyUrl: string;
+
     // Set this to true to enable a test stage mode. Defaults to false
     // if not set.
     readonly isTestStage: boolean;
@@ -146,6 +150,7 @@ function defaultsToGameConfig(config: SimpleGameConfig): GameConfig {
         remoteAccessToken: config.remoteAccessToken,
         vendorConfig: deepFreezeClone(config.vendorConfig),
 
+        lobbyUrl: config.lobbyUrl || '/',
         basketPurchaseRedirect: config.basketPurchaseRedirect || '/basket',
 
         overlay: config.overlay || false,
