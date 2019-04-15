@@ -571,7 +571,7 @@ export class Game {
                 uiStateUpdate.buttonType = 'play';
                 uiStateUpdate.ticketPriceIsVariable = true;
 
-            } else if (MoneyAmount.of(customerState.balance).lessThan(this.config.ticketPrice)) {
+            } else if (MoneyAmount.of(customerState.balance).lessThan(personalized ? personalized.discountedTicketPrice : this.config.ticketPrice)) {
                 uiStateUpdate.buttonType = 'payin';
 
             } else {
