@@ -1,5 +1,11 @@
 # Changelog
 
+## Version 1.2.9
+
+* Add explicit `isRemoteGame` flag to game config 
+* Update dependencies and typescript
+* Add support for legacy `ticketID` in GameStartetEvent
+
 ## Version 1.2.6
 
 * Use empty game input if no parameter is specified for `Game.initialize()` 

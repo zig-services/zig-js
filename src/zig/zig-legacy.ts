@@ -141,7 +141,7 @@ function XMLHttpRequestUsingMessageClient() {
         }
 
         replace('open', open => {
-            return (method: string, url: string, async = true) => {
+            return (method: string, url: string, async: boolean = true) => {
                 const needsIntercept = new RegExp('^(?:https?://[^/]+)?(/product/iwg/|/iwg/)').test(url);
                 if (needsIntercept) {
                     log.info(`Intercepting xhr request: ${method} ${url}`);

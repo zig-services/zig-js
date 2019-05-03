@@ -240,6 +240,13 @@ export interface GameStartedMessage extends BaseMessage {
     readonly command: 'gameStarted';
     readonly ticketId: TicketId;
     readonly ticketNumber: TicketNumber;
+
+    /**
+     * some legacy games send the ticket id with the wrong name.
+     * Please use ticketId.
+     * @deprecated
+     */
+    readonly ticketID: TicketId;
 }
 
 export interface GameFinishedMessage extends BaseMessage {
@@ -553,6 +560,9 @@ function normalizeMessage(game: string, message: Message): BaseMessage {
     converted = fallback(converted as NewVoucherMessage, 'voucherValueInCents', 'voucherValueInMinor');
     converted = fallback(converted as NewVoucherMessage, 'voucherValueInMinor', 'voucherValueInCents');
 
+    converted = fallback(converted as GameStartedMessage, `ticketID`, 'ticketId');
+    converted = fallback(converted as GameStartedMessage, `ticketId`, 'ticketID');
+
     if (converted.command === 'buy') {
         // add missing default value to buy message event.
         const buy = converted as BuyMessage;
@@ -670,6 +680,7 @@ export class GameMessageInterface extends MessageFactory {
             game: this.game,
             ticketId,
             ticketNumber,
+            ticketID: ticketId,
         });
     }
 
