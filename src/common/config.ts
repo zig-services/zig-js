@@ -61,6 +61,11 @@ export interface GameConfig {
      */
     readonly remoteAccessToken?: string;
 
+    // Set this to true if you would like to handle the game as a
+    // remote game and would like to use the remote game flow. If not specified,
+    // this will be 'false' if no remoteAccessToken is given, true otherwise.
+    readonly isRemoteGame?: boolean;
+
     // the vendor config. This is an opaque value that is given to the operator
     // by a previous launchGame request and is used by the games frontend
     // to authenticate with the vendors remote game service implementation.
@@ -148,6 +153,8 @@ function defaultsToGameConfig(config: SimpleGameConfig): GameConfig {
         canonicalGameName: config.canonicalGameName,
 
         remoteAccessToken: config.remoteAccessToken,
+        isRemoteGame: config.isRemoteGame != null ? config.isRemoteGame : !!config.remoteAccessToken,
+
         vendorConfig: deepFreezeClone(config.vendorConfig),
 
         lobbyUrl: config.lobbyUrl || '/',

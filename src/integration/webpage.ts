@@ -259,7 +259,7 @@ export class Game {
         this.updateUIState({enabled: false, isFreeGame: demoGame});
 
         return this.flow(async (): Promise<GameResult> => {
-            if (this.config.remoteAccessToken) {
+            if (this.config.isRemoteGame) {
                 return await this.handleRemoteGameFlow(demoGame, initGame);
 
             } else if (this.gameSettings.purchaseInGame) {
