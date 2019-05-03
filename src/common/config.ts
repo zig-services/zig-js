@@ -44,6 +44,8 @@ export interface ClockStyle {
     backgroundColor?: string;
 }
 
+export type TicketIdOverlayType = 'ticketNumber' | 'ticketId' | null;
+
 /**
  * The game config is send from the integration to the games outer.html
  * and proxied by the outer.html to the inner.html.
@@ -64,7 +66,7 @@ export interface GameConfig {
     // Set this to true if you would like to handle the game as a
     // remote game and would like to use the remote game flow. If not specified,
     // this will be 'false' if no remoteAccessToken is given, true otherwise.
-    readonly isRemoteGame?: boolean;
+    readonly isRemoteGame: boolean;
 
     // the vendor config. This is an opaque value that is given to the operator
     // by a previous launchGame request and is used by the games frontend
@@ -94,6 +96,10 @@ export interface GameConfig {
     // The offset between the clients time and the server time.
     // Add this to Date.now() to get the current server time.
     readonly clientTimeOffsetInMillis: number;
+
+    // Show ticket number or ticket id in the game. No ticket id will be shown,
+    // if this is not set. The ticket id will be shown near the clock.
+    readonly displayTicketIdOverlayType: TicketIdOverlayType;
 }
 
 type SimpleGameConfig = Partial<GameConfig> & {
@@ -168,6 +174,8 @@ function defaultsToGameConfig(config: SimpleGameConfig): GameConfig {
         timeZoneOffsetToUTCInMillis: config.timeZoneOffsetToUTCInMillis || i18n.timeZoneOffsetToUTCInMillis,
 
         clientTimeOffsetInMillis: config.clientTimeOffsetInMillis || 0,
+
+        displayTicketIdOverlayType: config.displayTicketIdOverlayType || null,
     };
 }
 

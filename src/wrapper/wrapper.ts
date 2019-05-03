@@ -1,12 +1,12 @@
 import '../common/polyfills';
 
 import {sleep} from '../common/common';
-import {GameMessageInterface, MessageClient, Unregister} from '../common/message-client';
+import {GameMessageInterface, MessageClient, ParentMessageInterface, Unregister} from '../common/message-client';
 import {injectStyle, onDOMLoad} from '../common/dom';
 import {buildTime, clientVersion} from '../common/vars';
 import {delegateToVersion} from '../common/delegate';
 import {Options} from '../common/options';
-import {appendGameConfigToURL, ClockStyle, GameSettings, parseGameConfigFromURL} from '../common/config';
+import {appendGameConfigToURL, ClockStyle, GameConfig, GameSettings, parseGameConfigFromURL} from '../common/config';
 import {Logger} from '../common/logging';
 import {WrapperStyleCSS} from './style.css';
 
@@ -25,7 +25,7 @@ if (GameSettings == null) {
  * This method will add the iframe to the body of the page.
  */
 async function initializeGame(): Promise<HTMLIFrameElement> {
-    const config = parseGameConfigFromURL();
+    const config: GameConfig = parseGameConfigFromURL();
 
     let url = appendGameConfigToURL(GameSettings.index || 'inner.html', config);
 
@@ -49,12 +49,8 @@ async function initializeGame(): Promise<HTMLIFrameElement> {
     iframe.onerror = err => parentMessageClient.sendError(err);
 
     // send the new config to the parent so it can update the frame size
-    const messageInterface = new GameMessageInterface(parentMessageClient, config.canonicalGameName);
-    messageInterface.updateGameSettings(GameSettings);
-
-    if (GameSettings.clockStyle !== false) {
-        setupGameClock(config.clientTimeOffsetInMillis, messageInterface);
-    }
+    const outerMessageClient = new GameMessageInterface(parentMessageClient, config.canonicalGameName);
+    outerMessageClient.updateGameSettings(GameSettings);
 
     // add game to window
     document.body.appendChild(iframe);
@@ -71,6 +67,11 @@ async function initializeGame(): Promise<HTMLIFrameElement> {
 
         // and proxy all messages between the frames
         proxyMessages(parentMessageClient, innerMessageClient);
+
+        if (GameSettings.clockStyle !== false) {
+            const innerMessageInterface = new ParentMessageInterface(innerMessageClient, config.canonicalGameName);
+            setupGameClock(config, outerMessageClient, innerMessageInterface);
+        }
 
         window.onfocus = () => {
             log.debug('Got focus, focusing iframe now.');
@@ -104,7 +105,7 @@ function proxyMessages(parentMessageClient: MessageClient, innerMessageClient: M
     });
 }
 
-function setupGameClock(clientTimeOffsetInMillis: number, messageInterface: GameMessageInterface) {
+function setupGameClock(config: GameConfig, outerMessageInterface: GameMessageInterface, innerMessageInterface: ParentMessageInterface) {
     const clockStyle: Required<ClockStyle> = {
         horizontalAlignment: 'right',
         verticalAlignment: 'top',
@@ -113,48 +114,92 @@ function setupGameClock(clientTimeOffsetInMillis: number, messageInterface: Game
         ...(GameSettings.clockStyle || {}),
     };
 
+    const clock = new ClockOverlay(clockStyle, config.clientTimeOffsetInMillis);
+
     let unregister: Unregister;
 
     function _showClock() {
-        showClock(clockStyle, clientTimeOffsetInMillis);
+        document.body.appendChild(clock.div);
         unregister();
     }
 
-    unregister = messageInterface.registerGeneric({
+    unregister = outerMessageInterface.registerGeneric({
         prepareGame: _showClock,
         playGame: _showClock,
         playDemoGame: _showClock,
         requestStartGame: _showClock,
     });
+
+    if (config.displayTicketIdOverlayType != null) {
+        innerMessageInterface.registerGeneric({
+            gameStarted(event) {
+                if (config.displayTicketIdOverlayType === 'ticketId')
+                    clock.ticketIdValue = event.ticketId;
+
+                if (config.displayTicketIdOverlayType === 'ticketNumber')
+                    clock.ticketIdValue = event.ticketNumber;
+            },
+
+            ticketSettled() {
+                clock.ticketIdValue = null;
+            },
+
+            gameFinished() {
+                clock.ticketIdValue = null;
+            },
+        });
+    }
 }
 
-function showClock(style: Required<ClockStyle>, clientTimeOffsetInMillis: number) {
-    const div = document.createElement('div');
-    div.className = 'zig-clock';
-    div.style.color = style.fontColor;
-    div.style[style.verticalAlignment] = '0';
-    div.style[style.horizontalAlignment] = '0.5em';
-    div.style.backgroundColor = style.backgroundColor;
+class ClockOverlay {
+    public readonly div: HTMLDivElement;
+    private _ticketIdValue: string | null = null;
 
-    function getTimeString(now: Date): string {
-        const hour = now.getHours();
-        const minutes = now.getMinutes();
-        return `${hour >= 10 ? hour : '0' + hour}:${minutes >= 10 ? minutes : '0' + minutes}`;
+    constructor(
+        readonly style: Required<ClockStyle>,
+        private readonly clientTimeOffsetInMillis: number) {
+
+        this.div = document.createElement('div');
+        this.div.className = 'zig-clock';
+        this.div.style.color = style.fontColor;
+        this.div.style[style.verticalAlignment] = '0';
+        this.div.style[style.horizontalAlignment] = '0.5em';
+        this.div.style.backgroundColor = style.backgroundColor;
+
+        this.updateAndReschedule();
     }
 
-    function updateOnce() {
-        const now = new Date(Date.now() + clientTimeOffsetInMillis);
-        div.innerText = getTimeString(now);
+    set ticketIdValue(value: string | null) {
+        this._ticketIdValue = value;
+        this.updateOnce();
+    }
+
+    private updateAndReschedule() {
+        this.updateOnce();
+
+        const now = new Date(Date.now() + this.clientTimeOffsetInMillis);
 
         const currentSeconds = now.getSeconds();
         const delayInSeconds = 60 - currentSeconds;
-
-        setTimeout(updateOnce, delayInSeconds * 1000);
+        setTimeout(() => this.updateAndReschedule(), delayInSeconds * 1000);
     }
 
-    updateOnce();
+    private updateOnce() {
+        const now = new Date(Date.now() + this.clientTimeOffsetInMillis);
 
-    document.body.appendChild(div);
+        let text = getTimeString(now);
+        if (this._ticketIdValue != null) {
+            text += ' - ' + this._ticketIdValue;
+        }
+
+        this.div.innerText = text;
+
+        function getTimeString(now: Date): string {
+            const hour = now.getHours();
+            const minutes = now.getMinutes();
+            return `${hour >= 10 ? hour : '0' + hour}:${minutes >= 10 ? minutes : '0' + minutes}`;
+        }
+    }
 }
 
 function initializeWinningClassOverride(): boolean {
