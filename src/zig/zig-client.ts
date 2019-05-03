@@ -193,7 +193,7 @@ export class ZigClientImpl implements ZigClient {
     public async bundle(bundleKey: string): Promise<Bundle> {
         return await this._run(async () => {
             const bundle = await this.request<Bundle>('GET', `/zig/bundles/${bundleKey}`);
-            return deepFreezeClone(bundle);
+            return deepFreezeClone(bundle) as Bundle;
         });
     }
 
