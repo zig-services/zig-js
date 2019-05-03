@@ -87,7 +87,7 @@ export interface WinningClass {
  * A bundle of tickets BundleTickets.
  */
 export interface Bundle {
-    readonly tickets: readonly BundleTicket[];
+    readonly tickets: ReadonlyArray<BundleTicket>[];
 }
 
 export interface BundleTicket {

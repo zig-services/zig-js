@@ -4,7 +4,7 @@
 
 * Add explicit `isRemoteGame` flag to game config 
 * Update dependencies and typescript
-* Add support for legacy `ticketID` in GameStartetEvent
+* Add support for legacy `ticketID` in `GameStartetEvent`
 
 ## Version 1.2.6
 
