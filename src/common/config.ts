@@ -175,7 +175,7 @@ function defaultsToGameConfig(config: SimpleGameConfig): GameConfig {
 
         clientTimeOffsetInMillis: config.clientTimeOffsetInMillis || 0,
 
-        displayTicketIdOverlayType: config.displayTicketIdOverlayType || null,
+        displayTicketIdOverlayType: "ticketId",//config.displayTicketIdOverlayType || null,
     };
 }
 
