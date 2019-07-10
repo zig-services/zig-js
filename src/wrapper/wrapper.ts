@@ -141,7 +141,7 @@ function setupGameClock(config: GameConfig, outerMessageInterface: GameMessageIn
             },
 
             ticketSettled() {
-                clock.ticketIdValue = null;
+                //clock.ticketIdValue = null;
             },
 
             gameFinished() {
