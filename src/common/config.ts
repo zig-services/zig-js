@@ -102,7 +102,7 @@ export interface GameConfig {
     readonly displayTicketIdOverlayType: TicketIdOverlayType;
 }
 
-type SimpleGameConfig = Partial<GameConfig> & {
+export type SimpleGameConfig = Partial<GameConfig> & {
     // This is the only required field in a game config.
     // All other values will be filled with default values if not set.
     readonly canonicalGameName: string
@@ -129,6 +129,10 @@ export function parseGameConfigFromURL(url: string = location.href): GameConfig 
     if (Options.localeOverride != null) {
         // override locale in the config.
         config = {...config, locale: Options.localeOverride};
+    }
+
+    if (Options.configOverrideEnabled) {
+        config = Object.assign(config, Options.configOverride);
     }
 
     return deepFreezeClone(defaultsToGameConfig(config));

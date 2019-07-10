@@ -1,4 +1,5 @@
 import {Options} from '../common/options';
+import {SimpleGameConfig} from '../common/config';
 
 function applyOptions() {
     function setIfChanged(object: any, key: string, value: any) {
@@ -31,6 +32,11 @@ function applyOptions() {
 
         setIfChanged(document.querySelector<HTMLInputElement>('#field_winningClassOverride_ScenarioId'),
             'valueAsNumber', Options.winningClassOverride.scenarioId);
+    }
+
+    if (Options.configOverride) {
+        setIfChanged(document.querySelector<HTMLInputElement>('#field_configOverride'),
+            'valueAsNumber', Options.configOverride);
     }
 }
 
@@ -67,4 +73,12 @@ window.addEventListener('DOMContentLoaded', function () {
     const wcOverride_SC = document.querySelector<HTMLInputElement>('#field_winningClassOverride_ScenarioId')!;
     wcOverride_SC.onchange = handleChange(() =>
         Options.winningClassOverride = {...Options.winningClassOverride!, scenarioId: wcOverride_SC.valueAsNumber});
+
+    const configOverrideEnabled = document.querySelector<HTMLInputElement>('#field_hasConfigOverride')!;
+    configOverrideEnabled.onchange = handleChange(() =>
+        Options.configOverride = configOverrideEnabled.checked ? {canonicalGameName: ''} : null);
+
+    const configOverride = document.querySelector<HTMLInputElement>('#field_configOverride')!;
+    configOverride.onchange = handleChange(() =>
+        Options.configOverride = Options.configOverride);
 });

@@ -1,4 +1,5 @@
 import {KV} from './kv';
+import {SimpleGameConfig} from './config';
 
 export interface WinningClassOverride {
     winningClass: number;
@@ -57,6 +58,21 @@ export const Options = {
         KV.set('locale-override', locale);
     },
 
+    get configOverrideEnabled(): Boolean | null {
+        return KV.get('config-override-enabled');
+    },
+
+    set configOverrideEnabled(value: Boolean | null) {
+        KV.set('config-override-enabled', value);
+    },
+
+    get configOverride(): SimpleGameConfig | null {
+        return KV.get('config-override');
+    },
+
+    set configOverride(value: SimpleGameConfig | null) {
+        KV.set('config-override', value);
+    },
 
     get debuggingLayer(): boolean {
         return !!this.logging
