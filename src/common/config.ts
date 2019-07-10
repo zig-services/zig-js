@@ -156,7 +156,7 @@ export function appendGameConfigToURL(url: string, config: SimpleGameConfig): st
 }
 
 
-function defaultsToGameConfig(config: SimpleGameConfig): GameConfig {
+export function defaultsToGameConfig(config: SimpleGameConfig): GameConfig {
     const i18n = defaultInternationalization();
 
     return {

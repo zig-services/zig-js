@@ -1,5 +1,5 @@
 import {Options} from '../common/options';
-import {SimpleGameConfig} from '../common/config';
+import {defaultsToGameConfig, GameConfig} from '../common/config';
 
 function applyOptions() {
     function setIfChanged(object: any, key: string, value: any) {
@@ -81,10 +81,15 @@ window.addEventListener('DOMContentLoaded', function () {
         Options.winningClassOverride = {...Options.winningClassOverride!, scenarioId: wcOverride_SC.valueAsNumber});
 
     const configOverrideEnabled = document.querySelector<HTMLInputElement>('#field_hasConfigOverride')!;
-    configOverrideEnabled.onchange = handleChange(() =>
-        Options.configOverrideEnabled = configOverrideEnabled.checked);
+    configOverrideEnabled.onchange = handleChange(() => {
+            if (Options.configOverride == null) {
+                Options.configOverride = defaultsToGameConfig({canonicalGameName: 'XXX'});
+            }
+            Options.configOverrideEnabled = configOverrideEnabled.checked;
+        },
+    );
 
     const configOverride = document.querySelector<HTMLInputElement>('#field_configOverride')!;
     configOverride.onchange = handleChange(() =>
-        Options.configOverride = JSON.parse(configOverride.value) || {});
+        Options.configOverride = JSON.parse(configOverride.value || JSON.stringify(defaultsToGameConfig({canonicalGameName: 'XXX'}), null, 2)));
 });
