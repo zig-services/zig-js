@@ -1,5 +1,5 @@
 import {KV} from './kv';
-import {SimpleGameConfig} from './config';
+import {GameConfig, SimpleGameConfig} from './config';
 
 export interface WinningClassOverride {
     winningClass: number;
@@ -66,11 +66,11 @@ export const Options = {
         KV.set('config-override-enabled', value);
     },
 
-    get configOverride(): SimpleGameConfig | null {
+    get configOverride(): Partial<GameConfig> | null {
         return KV.get('config-override');
     },
 
-    set configOverride(value: SimpleGameConfig | null) {
+    set configOverride(value: Partial<GameConfig> | null) {
         KV.set('config-override', value);
     },
 

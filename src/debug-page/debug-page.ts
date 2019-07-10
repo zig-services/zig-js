@@ -34,9 +34,15 @@ function applyOptions() {
             'valueAsNumber', Options.winningClassOverride.scenarioId);
     }
 
-    if (Options.configOverride) {
+    setIfChanged(document.querySelector<HTMLInputElement>('#field_hasConfigOverride'),
+        'checked', Options.configOverrideEnabled);
+
+    setIfChanged(document.querySelector<HTMLInputElement>('#configOverride')!.style,
+        'display', Options.configOverrideEnabled ? 'block' : 'none');
+
+    if (Options.configOverride != null) {
         setIfChanged(document.querySelector<HTMLInputElement>('#field_configOverride'),
-            'valueAsNumber', Options.configOverride);
+            'value', JSON.stringify(Options.configOverride, null, 2));
     }
 }
 
@@ -76,9 +82,9 @@ window.addEventListener('DOMContentLoaded', function () {
 
     const configOverrideEnabled = document.querySelector<HTMLInputElement>('#field_hasConfigOverride')!;
     configOverrideEnabled.onchange = handleChange(() =>
-        Options.configOverride = configOverrideEnabled.checked ? {canonicalGameName: ''} : null);
+        Options.configOverrideEnabled = configOverrideEnabled.checked);
 
     const configOverride = document.querySelector<HTMLInputElement>('#field_configOverride')!;
     configOverride.onchange = handleChange(() =>
-        Options.configOverride = Options.configOverride);
+        Options.configOverride = JSON.parse(configOverride.value) || {});
 });
