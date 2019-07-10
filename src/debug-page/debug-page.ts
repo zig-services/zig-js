@@ -91,5 +91,5 @@ window.addEventListener('DOMContentLoaded', function () {
 
     const configOverride = document.querySelector<HTMLInputElement>('#field_configOverride')!;
     configOverride.onchange = handleChange(() =>
-        Options.configOverride = JSON.parse(configOverride.value || JSON.stringify(defaultsToGameConfig({canonicalGameName: 'XXX'}), null, 2)));
+        Options.configOverride = JSON.parse(configOverride.value || JSON.stringify(defaultsToGameConfig({canonicalGameName: 'XXX', isTestStage: true}), null, 2)));
 });
