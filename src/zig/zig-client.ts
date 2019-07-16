@@ -100,6 +100,22 @@ export class ZigError extends Error {
     }
 }
 
+function isEmptyPayload(payload: any): boolean {
+    if (payload == null) {
+        return true;
+    }
+
+    if (typeof payload === 'string' || Array.isArray(payload)) {
+        return payload.length === 0;
+    }
+
+    if (typeof payload === 'object') {
+        return payload.constructor === Object && Object.keys(payload).length === 0;
+    }
+
+    return false;
+}
+
 export class ZigClientImpl implements ZigClient {
     readonly Messages: GameMessageInterface;
 
@@ -154,13 +170,13 @@ export class ZigClientImpl implements ZigClient {
 
             const wcOverride = Options.winningClassOverride;
             if (wcOverride) {
-                if (payload) {
-                    log.warn('Can not send winning class override as there is already a payload:', payload);
-                } else {
+                if (isEmptyPayload(payload)) {
                     payload = {
                         wc: wcOverride.winningClass,
                         scenario: wcOverride.scenarioId,
                     };
+                } else {
+                    log.warn('Can not send winning class override as there is already a payload:', payload);
                 }
             }
 
