@@ -1,5 +1,9 @@
 # Changelog
 
+## Version 1.2.16
+
+* Detect empty payload when using scenario/winning class override.
+
 ## Version 1.2.9
 
 * Add explicit `isRemoteGame` flag to game config 
