@@ -19,7 +19,7 @@ You can find an overview about recent changes [here](CHANGELOG.md).
 ## Embedding ZIG into your game
 
 For a quick start on how to include the `zig-js` library in a game project using webpack,
-see our [example project](https://github.com/zig-services/example-game/blob/master/README.md)
+see our [example project](https://github.com/zig-services/examples/tree/master/game)
 on github. The project also includes information on how to test your game integration
 locally.
 
