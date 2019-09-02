@@ -26,6 +26,7 @@ export class Translations {
     readonly action_Voucher: string = 'Play for free';
 
     readonly main_TicketPrice: string = 'Price per game: ';
+    readonly main_Unplayed: string = 'Resume unplayed game';
 
     readonly hint_Login: string = 'Login first';
 
@@ -53,6 +54,7 @@ export class Translations_de_DE extends Translations {
     readonly action_Voucher: string = 'Gutschein einlösen';
 
     readonly main_TicketPrice: string = 'Preis pro Spiel: ';
+    readonly main_Unplayed: string = 'Ein ungespieltes Spiel fortsetzen';
 
     readonly hint_Login: string = 'Bitte melden Sie sich zuerst an';
 
@@ -178,19 +180,19 @@ const css: string = `
 `;
 
 function renderUIState(target: Element, translations: Translations, belowGameHint?: string): UpdateUIStateFn {
-    function ZigTitle(type: string, content: string = "&nbsp;"): string {
+    function ZigTitle(type: string, content: string = '&nbsp;'): string {
         return `<div class="zig-overlay__title zig-overlay__title--${type}">${content}</div>`;
     }
 
-    function ZigSubtitle(type: string, content: string = "&nbsp;"): string {
+    function ZigSubtitle(type: string, content: string = '&nbsp;'): string {
         return `<div class="zig-overlay__subtitle zig-overlay__subtitle--${type}">${content}</div>`;
     }
 
-    function ZigActionContainer(type: string, content: string = "&nbsp;"): string {
+    function ZigActionContainer(type: string, content: string = '&nbsp;'): string {
         return `<div class="zig-overlay__action zig-overlay__action--${type}">${content}</div>`;
     }
 
-    function ZigDescription(content: string = "&nbsp;"): string {
+    function ZigDescription(content: string = '&nbsp;'): string {
         return `<div class="zig-overlay__description">${content}</div>`;
     }
 
@@ -224,7 +226,7 @@ function renderUIState(target: Element, translations: Translations, belowGameHin
         const derivedState = {
             isVisible: uiState.buttonType !== 'loading' && uiState.buttonType !== 'none',
 
-            mainSubtitle: "&nbsp",
+            mainSubtitle: '&nbsp',
 
             get mainHint(): string {
                 const actions: { [key: string]: string } = {
@@ -261,31 +263,38 @@ function renderUIState(target: Element, translations: Translations, belowGameHin
         };
 
         if (!derivedState.isVisible)
-            return "";
+            return '';
 
         const html: string[] = [];
         const output = html.push.bind(html);
 
         if (uiState.allowFreeGame) {
-            output(ZigTitle("demo", translations.demo_FreePlay));
-            output(ZigSubtitle("demo", translations.demo_NoPayout));
-            output(ZigActionContainer("demo",
+            output(ZigTitle('demo', translations.demo_FreePlay));
+            output(ZigSubtitle('demo', translations.demo_NoPayout));
+            output(ZigActionContainer('demo',
                 ZigAction(false, translations.demo_Action)));
         } else {
-            output(ZigTitle("demo", translations.demo_HintNoFree));
-            output(ZigSubtitle("demo"));
-            output(ZigActionContainer("demo",
+            output(ZigTitle('demo', translations.demo_HintNoFree));
+            output(ZigSubtitle('demo'));
+            output(ZigActionContainer('demo',
                 `<div class="zig-hint">${translations.demo_HintPlayAgain}</div>`));
         }
 
-        output(ZigTitle("main", translations.main_TicketPrice + " "
-            + ZigPrice(uiState.normalTicketPrice, derivedState.discountedTicketPrice)));
+        switch (uiState.buttonType) {
+            case 'unplayed':
+                output(ZigTitle('main', translations.main_Unplayed));
+                break;
 
-        output(ZigSubtitle("main", derivedState.mainSubtitle));
+            default:
+                output(ZigTitle('main', translations.main_TicketPrice + ' '
+                    + ZigPrice(uiState.normalTicketPrice, derivedState.discountedTicketPrice)));
+        }
 
-        const mainHint = derivedState.mainHint ? `<div class="zig-hint">${derivedState.mainHint}</div>` : "";
-        output(ZigActionContainer("main",
-            mainHint + " " + ZigAction(true, derivedState.mainAction)));
+        output(ZigSubtitle('main', derivedState.mainSubtitle));
+
+        const mainHint = derivedState.mainHint ? `<div class="zig-hint">${derivedState.mainHint}</div>` : '';
+        output(ZigActionContainer('main',
+            mainHint + ' ' + ZigAction(true, derivedState.mainAction)));
 
         if (belowGameHint) {
             output(ZigDescription(belowGameHint));
@@ -296,27 +305,27 @@ function renderUIState(target: Element, translations: Translations, belowGameHin
 
     let actionTarget: Game | null = null;
 
-    target.addEventListener("click", event => {
+    target.addEventListener('click', event => {
         const target = event.target as HTMLElement;
-        if (!actionTarget || !target.classList.contains("zig-action")) {
+        if (!actionTarget || !target.classList.contains('zig-action')) {
             return;
         }
 
         event.preventDefault();
 
-        const primaryAction = target.classList.contains("zig-action--primary");
+        const primaryAction = target.classList.contains('zig-action--primary');
 
         if (primaryAction) {
-            actionTarget.playGame();
+            void actionTarget.playGame();
         } else {
-            actionTarget.playDemoGame();
+            void actionTarget.playDemoGame();
         }
     });
 
     return (uiState, game) => {
         actionTarget = game;
 
-        logger.info("Got uiState update, updating overlay now.");
+        logger.info('Got uiState update, updating overlay now.');
         target.innerHTML = renderUIState(uiState);
     };
 }
@@ -329,14 +338,14 @@ export interface OverlayConfig {
 export type UpdateUIStateFn = (uiState: UIState, game: Game) => void;
 
 export function installOverlay(target: Element, config: Partial<OverlayConfig> = {}): UpdateUIStateFn {
-    logger.info("Installing overlay");
+    logger.info('Installing overlay');
 
-    injectStyle(css, "zigOverlayStyle");
+    injectStyle(css, 'zigOverlayStyle');
 
     const container = document.createElement('div');
     target.append(container);
 
     const translations = config.translations || new Translations();
-    const belowGameHint = config.belowGameHint || "";
+    const belowGameHint = config.belowGameHint || '';
     return renderUIState(container, translations, belowGameHint);
 }

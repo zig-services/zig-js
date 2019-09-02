@@ -3,6 +3,8 @@
 ## Version 1.2.16
 
 * Detect empty payload when using scenario/winning class override.
+* Update TypeScript to 3.6.
+* Do not allow multiple calls to flow at the same time.
 
 ## Version 1.2.9
 

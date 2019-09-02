@@ -7,6 +7,7 @@ export class FullscreenService {
     private readonly logger = Logger.get('zig.Fullscreen');
 
     private backupStyle: Style | null = null;
+    private backupOverflow: string | null = null;
     private unregisterResizeListener?: Unregister;
 
     constructor(private node: HTMLElement) {
@@ -68,6 +69,7 @@ export class FullscreenService {
         this.backupStyle = applyStyle(this.node, FullscreenService.styleForOrientation(orientation));
 
         // disable scroll bars
+        this.backupOverflow = document.body.style.overflow;
         document.body.style.overflow = 'hidden';
 
         if (document.fullscreenEnabled) {
@@ -92,7 +94,9 @@ export class FullscreenService {
             this.unregisterResizeListener();
         }
 
-        document.body.style.overflow = null;
+        if (this.backupOverflow != null) {
+            document.body.style.overflow = this.backupOverflow;
+        }
 
         // re-apply original previous style
         applyStyle(this.node, this.backupStyle);

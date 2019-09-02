@@ -501,10 +501,10 @@ export class MessageDispatcher {
 
             // register event handlers
             types.forEach(k => {
-                unregister.push(this.register(k, (event: CommandMessageTypes[K]) => {
+                unregister.push(this.register(k, (event: any) => {
                     unregisterAll();
 
-                    const result: Partial<Pick<CommandMessageTypes, K>> = {};
+                    const result: any = {};
                     result[k] = event;
                     resolve(result);
                 }));

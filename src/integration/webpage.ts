@@ -53,15 +53,23 @@ export class Game {
 
     private readonly fullscreenService: FullscreenService;
 
+    // Set to true while a flow is active. Calls to start a new flow while this
+    // is active will be ignored.
+    private flowIsActive: boolean = false;
+
     // the ui state. Should not be modified directly, always use "updateUIState"
     private _uiState?: Readonly<UIState>;
 
+    // lazy game settings, will be set during initialization and should only be
+    // read through the gameSettings property.
     private _gameSettings?: GameSettings;
 
     // set to true to disable further free games.
     private disallowFreeGames: boolean = false;
 
     private latestTicketPriceChangedMessage: TicketPriceChangedMessage | null = null;
+
+    private activeFetchCustomerState$: null | Promise<CustomerState> = null;
 
     constructor(private readonly gameWindow: GameWindow,
                 private readonly connector: Connector,
@@ -147,13 +155,13 @@ export class Game {
 
             this.resetUIState(customerState);
 
-            if (this.gameSettings.chromeless) {
-                // spawn the gameloop in background
-                void this.startChromelessGameLoop();
-            }
-
             return 'success';
         }, false);
+
+        if (this.gameSettings.chromeless) {
+            // spawn the game flow in the background.
+            void this.startChromelessGameLoop();
+        }
 
         this.interface.registerGeneric({
             gotoUrl: event => {
@@ -477,6 +485,13 @@ export class Game {
      * Executes the given flow and catches all error values.
      */
     private async flow(fn: () => Promise<GameResult>, resetUIState: boolean = true): Promise<GameResult> {
+        if (this.flowIsActive) {
+            this.logger.warn('A flow is currently active. Skip starting a new one.');
+            return 'canceled';
+        }
+
+        this.flowIsActive = true;
+
         try {
             // show the ui as busy
             this.updateUIState({busy: true});
@@ -505,6 +520,9 @@ export class Game {
 
             return 'failure';
         } finally {
+            // mark flow as finished.
+            this.flowIsActive = false;
+
             if (resetUIState) {
                 await this.flow(async () => void (await this.resetUIState()) || 'success', false);
             }
@@ -529,7 +547,7 @@ export class Game {
     async resetUIState(): Promise<void>
     async resetUIState(customerState?: CustomerState): Promise<void> {
         if (customerState == null) {
-            customerState = await this.connector.fetchCustomerState();
+            customerState = await this.fetchCustomerStateFromConnector();
         }
 
         type Modifyable<T> = { -readonly [P in keyof T]: T[P]; };
@@ -587,12 +605,13 @@ export class Game {
     private async startChromelessGameLoop() {
         // noinspection InfiniteLoopJS
         while (true) {
+            this.logger.debug('Call playGame() from chromeless game loop.');
             await this.flow(() => this.playGame());
         }
     }
 
     private async fetchCustomerState(): Promise<CustomerState> {
-        const customerState = await this.connector.fetchCustomerState();
+        const customerState = await this.fetchCustomerStateFromConnector();
         if (customerState.loggedIn) {
             // publish update in balance.
             this.updateUIState({balance: customerState.balance});
@@ -605,6 +624,30 @@ export class Game {
 
 
         return customerState;
+    }
+
+    /**
+     * Deduplicate concurrent requests to the customer state. If this method is called a second
+     * time while already fetching the customer state, no second state will be fetched.
+     */
+    private async fetchCustomerStateFromConnector(): Promise<CustomerState> {
+        if (this.activeFetchCustomerState$ != null) {
+            this.logger.warn('Already fetching customer state, will not fetch twice.');
+            return this.activeFetchCustomerState$;
+        }
+
+        const customerState$ = this.connector.fetchCustomerState();
+
+        // remember for later
+        this.activeFetchCustomerState$ = customerState$;
+
+        try {
+            return await customerState$;
+
+        } finally {
+            // reset once the request finishes
+            this.activeFetchCustomerState$ = null;
+        }
     }
 }
 
