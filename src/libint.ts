@@ -6,6 +6,3 @@ export * from './integration/game-window';
 export {MoneyAmount} from './common/domain';
 
 export * from "./integration/overlay"
-
-// legacy integration
-export * from './integration/integration';
