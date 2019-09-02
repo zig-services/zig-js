@@ -5,6 +5,9 @@
 * Detect empty payload when using scenario/winning class override.
 * Update TypeScript to 3.6.
 * Do not allow multiple calls to flow at the same time.
+* Add `resumeTicketId` to `UnplayedTicketInfo` and `GameRequest`. This improves
+idempotency and reduces risks due to concurrency as it allows the user to pass
+the `resumeTicketId` as a parameter when buying the next ticket.  
 
 ## Version 1.2.9
 

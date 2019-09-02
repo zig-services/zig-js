@@ -10,7 +10,15 @@ import {
 } from '../common/message-client';
 import {Logger} from '../common/logging';
 import {registerRequestListener} from '../common/request';
-import {BaseCustomerState, CANCELED, Connector, CustomerState, GameRequest, UIState} from './connector';
+import {
+    BaseCustomerState,
+    CANCELED,
+    Connector,
+    CustomerState,
+    GameRequest,
+    UIState,
+    UnplayedTicketInfo,
+} from './connector';
 import {GameWindow} from './game-window';
 import {GameConfig, GameSettings} from '../common/config';
 import {FullscreenService} from './fullscreen';
@@ -69,7 +77,11 @@ export class Game {
 
     private latestTicketPriceChangedMessage: TicketPriceChangedMessage | null = null;
 
-    private activeFetchCustomerState$: null | Promise<CustomerState> = null;
+    private activeFetchCustomerState$: Promise<CustomerState> | null = null;
+
+    private latestUnplayedTickets: UnplayedTicketInfo[] | null = null;
+
+    private resumeTicketId: string | null = null;
 
     constructor(private readonly gameWindow: GameWindow,
                 private readonly connector: Connector,
@@ -186,7 +198,15 @@ export class Game {
         registerRequestListener(this.gameWindow.interface, req => {
             let request = req;
             try {
-                const parsedGameRequest = parseGameRequestFromInternalPath(req.path);
+                let parsedGameRequest = parseGameRequestFromInternalPath(req.path);
+                if (parsedGameRequest.type === 'buy') {
+                    if (this.resumeTicketId) {
+                        this.logger.debug('Use resumeTicketId in buy request:', this.resumeTicketId);
+                        parsedGameRequest = {...parsedGameRequest, resumeTicketId: this.resumeTicketId};
+                        this.resumeTicketId = null;
+                    }
+                }
+
                 const requestPath = this.connector.buildRequestPath(parsedGameRequest);
                 if (requestPath) {
                     request = {...request, path: requestPath};
@@ -247,8 +267,18 @@ export class Game {
     }
 
     public async playGame(): Promise<GameResult> {
+        if (this._uiState!.buttonType === 'unplayed' && this.latestUnplayedTickets) {
+            this.resumeTicketId = this.latestUnplayedTickets[0].resumeTicketId || null;
+        }
+
         return this.play(false, async scaling => {
-            await this.verifyPreConditions(scaling);
+            if (this.resumeTicketId) {
+                this.logger.debug('Will resume previously unfinished ticket %s', this.resumeTicketId);
+
+            } else {
+                // only verify if we don't have a ticket that we want to resume.
+                await this.verifyPreConditions(scaling);
+            }
 
             this.logger.info('Tell the game to buy a ticket');
             this.gameWindow.interface.playGame();
@@ -310,16 +340,21 @@ export class Game {
         // go to fullscreen mode
         this.enableFullscreenIfAllowed();
 
-        let state = await this.fetchCustomerState();
+        let state: CustomerState | null = null;
+        let requirePrepareGame: boolean = false;
 
-        // check if the customer has an unplayed ticket he wants to resume
-        let requirePrepareGame: boolean = !state.loggedIn || arrayIsEmpty(state.unplayedTicketInfos);
-        if (requirePrepareGame) {
-            // jump directly into the game.
-            this.logger.info('Set the game into prepare mode');
-            this.gameWindow.interface.prepareGame(demoGame);
+        if (!this.resumeTicketId) {
+            state = await this.fetchCustomerState();
 
-            this.logger.info('Wait for player to start a game');
+            // check if the customer has an unplayed ticket he wants to resume
+            requirePrepareGame = !state.loggedIn || arrayIsEmpty(state.unplayedTicketInfos);
+            if (requirePrepareGame) {
+                // jump directly into the game.
+                this.logger.info('Set the game into prepare mode');
+                this.gameWindow.interface.prepareGame(demoGame);
+
+                this.logger.info('Wait for player to start a game');
+            }
         }
 
         // Need to keep the options around. After getting a ticketPriceChanged method with
@@ -379,8 +414,12 @@ export class Game {
             // gameStarted/ticketSettle
             await this.handleOneGameCycle();
 
+            // if this one was set, it is now gone.
+            this.resumeTicketId = null;
+            this.latestUnplayedTickets = null;
+
             // if we had a voucher, we update now.
-            if (state.loggedIn && MoneyAmount.isNotZero(state.voucher)) {
+            if (state != null && state.loggedIn && MoneyAmount.isNotZero(state.voucher)) {
                 state = await this.fetchCustomerState();
             }
 
@@ -620,6 +659,12 @@ export class Game {
             this.logger.info('Send voucher info to game.');
             const voucherAmountInMinor = (customerState.voucher && customerState.voucher.amountInMinor) || 0;
             this.interface.newVoucher(voucherAmountInMinor);
+
+            // update the latest unplayed tickets
+            this.latestUnplayedTickets = customerState.unplayedTicketInfos || null;
+
+        } else {
+            this.latestUnplayedTickets = null;
         }
 
 

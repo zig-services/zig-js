@@ -13,6 +13,9 @@ export interface UnplayedTicketInfo {
 
     // True if this ticket was bought using a basket process and can now be played
     readonly fromBasket?: boolean;
+
+    // The ticket id of the unfinished ticket, if this is available.
+    readonly resumeTicketId?: string;
 }
 
 export interface TicketPricing {
@@ -102,6 +105,10 @@ export interface PurchaseGameRequest {
     readonly gameName: string;
     readonly quantity: number;
     readonly betFactor: number;
+
+    // if type is 'buy' the request might include a ticket id to be resumed.
+    // this should then be passed to the backend if possible.
+    readonly resumeTicketId?: string | null;
 }
 
 export type GameRequest = PurchaseGameRequest | SettleGameRequest;
@@ -166,7 +173,20 @@ export abstract class Connector {
         switch (r.type) {
             case 'buy':
             case 'demo':
-                return `/zig/games/${r.gameName}/tickets:${r.type}?quantity=${r.quantity}&betFactor=${r.betFactor}`;
+                const query: string[] = [];
+
+                if (r.resumeTicketId) {
+                    // add the ticket id to resume
+                    query.push(`resumeTicketId=${r.resumeTicketId}`);
+                } else {
+                    // add the query parameters
+                    query.push(
+                        `quantity=${r.quantity}`,
+                        `betFactor=${r.betFactor}`,
+                    );
+                }
+
+                return `/zig/games/${r.gameName}/tickets:${r.type}?${query.join('&')}`;
 
             case 'settle':
                 return `/zig/games/${r.gameName}/tickets:settle/${r.ticketId}`;

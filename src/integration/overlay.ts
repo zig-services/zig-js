@@ -326,6 +326,8 @@ function renderUIState(target: Element, translations: Translations, belowGameHin
         actionTarget = game;
 
         logger.info('Got uiState update, updating overlay now.');
+        logger.debug('uiState is now', uiState);
+
         target.innerHTML = renderUIState(uiState);
     };
 }
