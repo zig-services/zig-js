@@ -341,9 +341,13 @@ export class Game {
         this.enableFullscreenIfAllowed();
 
         let state: CustomerState | null = null;
-        let requirePrepareGame: boolean = false;
+        let requirePrepareGame: boolean;
 
-        if (!this.resumeTicketId) {
+        if (this.resumeTicketId) {
+            this.logger.info(`Skip 'prepareGame' step, resume ticket directly`, this.resumeTicketId);
+            requirePrepareGame = false;
+
+        } else {
             state = await this.fetchCustomerState();
 
             // check if the customer has an unplayed ticket he wants to resume
@@ -352,8 +356,6 @@ export class Game {
                 // jump directly into the game.
                 this.logger.info('Set the game into prepare mode');
                 this.gameWindow.interface.prepareGame(demoGame);
-
-                this.logger.info('Wait for player to start a game');
             }
         }
 
@@ -370,6 +372,8 @@ export class Game {
 
         do {
             if (requirePrepareGame) {
+                this.logger.info('Wait for player to start a game');
+
                 const event = await this.interface.waitForGameEvents(
                     'buy', 'requestStartGame', 'ticketPriceChanged', 'gameFinished');
 
@@ -419,7 +423,7 @@ export class Game {
             this.latestUnplayedTickets = null;
 
             // if we had a voucher, we update now.
-            if (state != null && state.loggedIn && MoneyAmount.isNotZero(state.voucher)) {
+            if (state == null || (state.loggedIn && MoneyAmount.isNotZero(state.voucher))) {
                 state = await this.fetchCustomerState();
             }
 
@@ -645,7 +649,7 @@ export class Game {
         // noinspection InfiniteLoopJS
         while (true) {
             this.logger.debug('Call playGame() from chromeless game loop.');
-            await this.flow(() => this.playGame());
+            await this.playGame();
         }
     }
 
