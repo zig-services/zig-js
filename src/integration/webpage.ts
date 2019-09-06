@@ -267,6 +267,12 @@ export class Game {
     }
 
     public async playGame(): Promise<GameResult> {
+        if (this._uiState!.buttonType === 'login') {
+            if (!await this.connector.loginCustomer()) {
+                return 'failure';
+            }
+        }
+
         if (this._uiState!.buttonType === 'unplayed' && this.latestUnplayedTickets) {
             this.resumeTicketId = this.latestUnplayedTickets[0].resumeTicketId || null;
         }
