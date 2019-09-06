@@ -547,8 +547,11 @@ export class Game {
             try {
                 const result = await fn();
 
-                // disable further free demo games after the first round
-                this.disallowFreeGames = true;
+                if (!this.config.multipleDemoGames) {
+                    // disable further free demo games after the first round
+                    this.disallowFreeGames = true;
+                }
+                
                 return result;
 
             } finally {

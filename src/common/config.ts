@@ -100,6 +100,9 @@ export interface GameConfig {
     // Show ticket number or ticket id in the game. No ticket id will be shown,
     // if this is not set. The ticket id will be shown near the clock.
     readonly displayTicketIdOverlayType: TicketIdOverlayType;
+
+    // If this is set to false (default), only one demo game will be allowed.
+    readonly multipleDemoGames: boolean;
 }
 
 export type SimpleGameConfig = Partial<GameConfig> & {
@@ -180,6 +183,8 @@ export function defaultsToGameConfig(config: SimpleGameConfig): GameConfig {
         clientTimeOffsetInMillis: config.clientTimeOffsetInMillis || 0,
 
         displayTicketIdOverlayType: config.displayTicketIdOverlayType || null,
+
+        multipleDemoGames: config.multipleDemoGames || false,
     };
 }
 
