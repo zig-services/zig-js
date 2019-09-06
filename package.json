@@ -14,7 +14,6 @@
   },
   "dependencies": {
     "@types/deep-freeze": "0.1.2",
-    "core-js": "3.2.1",
     "deep-freeze": "0.0.1",
     "fullscreen-polyfill": "1.0.2",
     "tslib": "1.10.0"
