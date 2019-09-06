@@ -316,16 +316,8 @@ export class Game {
         // goto fullscreen
         this.enableFullscreenIfAllowed();
 
-        this.logger.info('Wait for game to start...');
-        const gameStartedEvent = await this.interface.waitForGameEvent('gameStarted');
-        this.connector.onGameStarted(gameStartedEvent);
-
-        // hide the ui
-        this.updateUIState({busy: false, buttonType: 'none'});
-
-        this.logger.info('Wait for game to settle...');
-        await this.interface.waitForGameEvent('ticketSettled');
-        this.connector.onGameSettled();
+        // wait for game to start & finish.
+        this.handleOneGameCycle(() => this.updateUIState({busy: false, buttonType: 'none'}));
 
         this.logger.info('Wait for game to finish...');
         await this.interface.waitForGameEvent('gameFinished');
@@ -474,10 +466,17 @@ export class Game {
         }
     }
 
-    private async handleOneGameCycle() {
+    private async handleOneGameCycle(afterStart?: () => void) {
+        this.connector.onGameStarting();
+
         this.logger.info('Wait for game to start...');
         const gameStartedEvent = await this.interface.waitForGameEvent('gameStarted');
         this.connector.onGameStarted(gameStartedEvent);
+
+        if (afterStart) {
+            // run some action after the game starts.
+            afterStart();
+        }
 
         this.logger.info('Wait for game to settle...');
         await this.interface.waitForGameEvent('ticketSettled');

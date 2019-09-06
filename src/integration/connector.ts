@@ -226,6 +226,12 @@ export abstract class Connector {
     }
 
     /**
+     * Informs the connector that a new round is currently starting.
+     */
+    public onGameStarting() {
+    }
+
+    /**
      * Informs the connector that a game was started.
      */
     public onGameStarted(event: GameStartedMessage) {
