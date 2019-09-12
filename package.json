@@ -7,15 +7,15 @@
   "devDependencies": {
     "release-it": "12.3.6",
     "ts-declaration-webpack-plugin": "1.2.0",
-    "ts-loader": "6.0.4",
-    "typescript": "3.6.2",
+    "ts-loader": "6.1.0",
+    "typescript": "3.6.3",
     "webpack": "4.39.3",
     "webpack-cli": "3.3.8"
   },
   "dependencies": {
     "@types/deep-freeze": "0.1.2",
     "deep-freeze": "0.0.1",
-    "device-uuid": "^1.0.4",
+    "device-uuid": "1.0.4",
     "fullscreen-polyfill": "1.0.2",
     "tslib": "1.10.0"
   },
