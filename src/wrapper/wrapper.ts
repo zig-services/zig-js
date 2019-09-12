@@ -117,7 +117,7 @@ function addTrackingPixel() {
         const operatorId = encodeURIComponent(match ? match[0] : 'unknown');
 
         // build URL of tracking pixel
-        const url = `https://track.zig.services/pixel.png?d=${deviceId}&o=${operatorId}`;
+        const url = `https://track.zig.services/pixel?d=${deviceId}&o=${operatorId}&_=${Date.now()}`;
 
         // insert tracking pixel into the page.
         const img = document.createElement('img');
