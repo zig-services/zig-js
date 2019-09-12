@@ -1,9 +1,9 @@
 {
   "non-interactive": true,
   "increment": "patch",
-  "scripts": {
-    "beforeStage": "./build.sh",
-    "afterRelease": "./upload.sh"
+  "hooks": {
+    "after:bump": "./build.sh",
+    "after:release": "./upload.sh"
   },
   "git": {
     "requireCleanWorkingDir": true,
@@ -15,6 +15,5 @@
   "npm": {
     "publish": true,
     "publishPath": "dist"
-  },
-  "use": "pkg.version"
+  }
 }
