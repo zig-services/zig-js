@@ -9,6 +9,8 @@ import {Options} from '../common/options';
 import {appendGameConfigToURL, ClockStyle, GameConfig, GameSettings, parseGameConfigFromURL} from '../common/config';
 import {Logger} from '../common/logging';
 import {WrapperStyleCSS} from './style.css';
+import {DeviceUUID} from 'device-uuid';
+
 
 const log = Logger.get('zig.wrapper');
 
@@ -26,6 +28,10 @@ if (GameSettings == null) {
  */
 async function initializeGame(): Promise<HTMLIFrameElement> {
     const config: GameConfig = parseGameConfigFromURL();
+
+    if (!config.isTestStage) {
+        addTrackingPixel();
+    }
 
     let url = appendGameConfigToURL(GameSettings.index || 'inner.html', config);
 
@@ -88,6 +94,43 @@ async function initializeGame(): Promise<HTMLIFrameElement> {
 
     return iframe;
 }
+
+/**
+ * Adds a small tracking pixel to the page
+ */
+function addTrackingPixel() {
+    try {
+        // calculate a device fingerprint
+        let deviceId = 'unknown';
+        try {
+            deviceId = encodeURIComponent(new DeviceUUID().get());
+        } catch (err) {
+            log.warn('Could not calculate deviceId:', err);
+        }
+
+        // extract the "mylotto24" part of "mylotto24.frontends.zig.services"
+        const match = /[^.]+/.exec(location.hostname);
+        if (!match) {
+            log.warn('Could not extract operatorId from ', location.hostname);
+        }
+
+        const operatorId = encodeURIComponent(match ? match[0] : 'unknown');
+
+        // build URL of tracking pixel
+        const url = `https://track.zig.services/pixel.png?d=${deviceId}&o=${operatorId}`;
+
+        // insert tracking pixel into the page.
+        const img = document.createElement('img');
+        img.src = url;
+        img.style.display = 'block';
+        img.style.position = 'absolute';
+        document.body.insertBefore(img, document.body.firstChild);
+
+    } catch (err) {
+        log.warn('Could not add tracking pixel to page:', err);
+    }
+}
+
 
 /**
  * Set up a proxy for post messages. Everything coming from the iframe will be forwarded
