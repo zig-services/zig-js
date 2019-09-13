@@ -9,7 +9,6 @@ import {Options} from '../common/options';
 import {appendGameConfigToURL, ClockStyle, GameConfig, GameSettings, parseGameConfigFromURL} from '../common/config';
 import {Logger} from '../common/logging';
 import {WrapperStyleCSS} from './style.css';
-import {DeviceUUID} from 'device-uuid';
 
 
 const log = Logger.get('zig.wrapper');
@@ -30,7 +29,7 @@ async function initializeGame(): Promise<HTMLIFrameElement> {
     const config: GameConfig = parseGameConfigFromURL();
 
     if (!config.isTestStage) {
-        addTrackingPixel();
+        addTrackingPixel(config);
     }
 
     let url = appendGameConfigToURL(GameSettings.index || 'inner.html', config);
@@ -95,35 +94,43 @@ async function initializeGame(): Promise<HTMLIFrameElement> {
     return iframe;
 }
 
+function guessOperatorId(): string | null {
+    // extract the "mylotto24" part of "mylotto24.frontends.zig.services"
+    const match = /[^.]+/.exec(location.hostname);
+    if (!match) {
+        log.warn('Could not extract operatorId from ', location.hostname);
+    }
+
+    return match ? match[0] : null;
+}
+
+type InternalGameConfig = GameConfig & {
+    // Optional tracking token to pass down to the tracking pixel.
+    readonly trackingToken?: string;
+}
+
 /**
  * Adds a small tracking pixel to the page
  */
-function addTrackingPixel() {
+function addTrackingPixel(config: InternalGameConfig) {
     try {
-        // calculate a device fingerprint
-        let deviceId = 'unknown';
-        try {
-            deviceId = encodeURIComponent(new DeviceUUID().get());
-        } catch (err) {
-            log.warn('Could not calculate deviceId:', err);
-        }
-
-        // extract the "mylotto24" part of "mylotto24.frontends.zig.services"
-        const match = /[^.]+/.exec(location.hostname);
-        if (!match) {
-            log.warn('Could not extract operatorId from ', location.hostname);
-        }
-
-        const operatorId = encodeURIComponent(match ? match[0] : 'unknown');
+        const operatorId = encodeURIComponent(guessOperatorId() || '');
+        const gameId = encodeURIComponent(config.canonicalGameName);
+        const token = encodeURIComponent(config.trackingToken || '');
 
         // build URL of tracking pixel
-        const url = `https://track.zig.services/pixel?d=${deviceId}&o=${operatorId}&_=${Date.now()}`;
+        const url = `https://lighthouse.zig.services/flare?o=${operatorId}&g=${gameId}&t=${token}&_=${Date.now()}`;
 
-        // insert tracking pixel into the page.
+        // create an image element to load the pixel
         const img = document.createElement('img');
         img.src = url;
         img.style.display = 'block';
         img.style.position = 'absolute';
+
+        // remove the pixel from the body once it is loaded.
+        img.onload = () => document.body.removeChild(img);
+
+        // insert tracking pixel into the page.
         document.body.insertBefore(img, document.body.firstChild);
 
     } catch (err) {

@@ -163,6 +163,9 @@ export function defaultsToGameConfig(config: SimpleGameConfig): GameConfig {
     const i18n = defaultInternationalization();
 
     return {
+        // copy all extra fields that might not be part of the known config
+        ...config,
+
         canonicalGameName: config.canonicalGameName,
 
         remoteAccessToken: config.remoteAccessToken,
