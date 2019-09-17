@@ -1,6 +1,6 @@
 import {Currency, IMoneyAmount} from '../common/domain';
 import {UIState} from './connector';
-import {Game} from './webpage';
+import {GameActions} from './webpage';
 import {Logger} from '../common/logging';
 import {injectStyle} from '../common/dom';
 
@@ -280,14 +280,12 @@ function renderUIState(target: Element, translations: Translations, belowGameHin
                 `<div class="zig-hint">${translations.demo_HintPlayAgain}</div>`));
         }
 
-        switch (uiState.buttonType) {
-            case 'unplayed':
-                output(ZigTitle('main', translations.main_Unplayed));
-                break;
+        if (uiState.buttonType === 'unplayed') {
+            output(ZigTitle('main', translations.main_Unplayed));
 
-            default:
-                output(ZigTitle('main', translations.main_TicketPrice + ' '
-                    + ZigPrice(uiState.normalTicketPrice, derivedState.discountedTicketPrice)));
+        } else {
+            output(ZigTitle('main', translations.main_TicketPrice + ' '
+                + ZigPrice(uiState.normalTicketPrice, derivedState.discountedTicketPrice)));
         }
 
         output(ZigSubtitle('main', derivedState.mainSubtitle));
@@ -303,7 +301,7 @@ function renderUIState(target: Element, translations: Translations, belowGameHin
         return `<div class="zig-overlay">${html.join('')}</div>`;
     }
 
-    let actionTarget: Game | null = null;
+    let actionTarget: GameActions | null = null;
 
     target.addEventListener('click', event => {
         const target = event.target as HTMLElement;
@@ -337,7 +335,7 @@ export interface OverlayConfig {
     belowGameHint?: string;
 }
 
-export type UpdateUIStateFn = (uiState: UIState, game: Game) => void;
+export type UpdateUIStateFn = (uiState: UIState, game: GameActions) => void;
 
 export function installOverlay(target: Element, config: Partial<OverlayConfig> = {}): UpdateUIStateFn {
     logger.info('Installing overlay');

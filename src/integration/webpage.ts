@@ -56,7 +56,25 @@ class TicketPrice {
     }
 }
 
-export class Game {
+export interface GameActions {
+    /**
+     * Starts a new game round.
+     */
+    playGame(): Promise<GameResult>;
+
+    /**
+     * Starts a new demo game round.
+     */
+    playDemoGame(): Promise<GameResult>;
+
+    /**
+     * Resets the ui state. Might do nothing, depends on the implementation.
+     * You can use this to update the balance after a payin.
+     */
+    resetUIState(): Promise<void>;
+}
+
+export class Game implements GameActions {
     private readonly logger: Logger;
 
     private readonly fullscreenService: FullscreenService;
@@ -551,7 +569,7 @@ export class Game {
                     // disable further free demo games after the first round
                     this.disallowFreeGames = true;
                 }
-                
+
                 return result;
 
             } finally {
