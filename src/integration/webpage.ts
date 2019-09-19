@@ -21,7 +21,7 @@ import {
 } from './connector';
 import {GameWindow} from './game-window';
 import {GameConfig, GameSettings} from '../common/config';
-import {BrowserFullscreenService, FullscreenService} from './fullscreen';
+import {FullscreenService} from './fullscreen';
 import {arrayIsEmpty, arrayNotEmpty, deepFreezeClone} from '../common/common';
 
 type GameResult = 'success' | 'failure' | 'canceled';
@@ -76,9 +76,6 @@ export interface GameActions {
 
 export class Game implements GameActions {
     private readonly logger: Logger;
-
-    // Access to fullscreen related functionality.
-    readonly fullscreenService: BrowserFullscreenService;
 
     // Set to true while a flow is active. Calls to start a new flow while this
     // is active will be ignored.
