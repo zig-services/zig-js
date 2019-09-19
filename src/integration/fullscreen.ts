@@ -10,6 +10,9 @@ export class FullscreenService {
     private backupOverflow: string | null = null;
     private unregisterResizeListener?: Unregister;
 
+    public onEnterFullscreen?: () => void;
+    public onExitFullscreen?: () => void;
+
     constructor(private node: HTMLElement) {
     }
 
@@ -85,6 +88,10 @@ export class FullscreenService {
             });
         }
 
+        if (this.onEnterFullscreen) {
+            this.onEnterFullscreen();
+        }
+        
         // register a listener to keep orientation.
         const resizeHandler = () => this.onWindowResize(orientation);
         window.addEventListener('resize', resizeHandler);
@@ -118,6 +125,10 @@ export class FullscreenService {
             void Promise.resolve(document.exitFullscreen()).catch(err => {
                 this.logger.info('Could not disable fullscreen:', err);
             });
+        }
+
+        if (this.onExitFullscreen) {
+            this.onExitFullscreen();
         }
     }
 }

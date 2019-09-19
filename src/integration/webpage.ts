@@ -77,7 +77,8 @@ export interface GameActions {
 export class Game implements GameActions {
     private readonly logger: Logger;
 
-    private readonly fullscreenService: FullscreenService;
+    // Access to fullscreen related functionality.
+    readonly fullscreenService: FullscreenService;
 
     // Set to true while a flow is active. Calls to start a new flow while this
     // is active will be ignored.
