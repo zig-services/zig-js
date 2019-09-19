@@ -21,7 +21,7 @@ import {
 } from './connector';
 import {GameWindow} from './game-window';
 import {GameConfig, GameSettings} from '../common/config';
-import {FullscreenService} from './fullscreen';
+import {BrowserFullscreenService, FullscreenService} from './fullscreen';
 import {arrayIsEmpty, arrayNotEmpty, deepFreezeClone} from '../common/common';
 
 type GameResult = 'success' | 'failure' | 'canceled';
@@ -78,7 +78,7 @@ export class Game implements GameActions {
     private readonly logger: Logger;
 
     // Access to fullscreen related functionality.
-    readonly fullscreenService: FullscreenService;
+    readonly fullscreenService: BrowserFullscreenService;
 
     // Set to true while a flow is active. Calls to start a new flow while this
     // is active will be ignored.
@@ -104,9 +104,8 @@ export class Game implements GameActions {
 
     constructor(private readonly gameWindow: GameWindow,
                 private readonly connector: Connector,
+                private readonly fullscreenService: FullscreenService,
                 private readonly config: LocalGameConfig) {
-
-        this.fullscreenService = new FullscreenService(gameWindow.wrapper);
 
         this.logger = Logger.get(`zig.Game.${this.config.canonicalGameName}`);
 

@@ -4,6 +4,7 @@ import {Logger} from '../common/logging';
 import {MessageClient, ParentMessageInterface} from '../common/message-client';
 import {Game} from './webpage';
 import {IMoneyAmount, MoneyAmount} from '../common/domain';
+import {BrowserFullscreenService, FullscreenService} from './fullscreen';
 
 export interface InstallGameOptions {
     // target container where to place the game
@@ -20,6 +21,10 @@ export interface InstallGameOptions {
 
     // the base price of the ticket.
     baseTicketPrice: IMoneyAmount;
+
+    // You can pass your own fullscreen service to override the
+    // fullscreen handling.
+    fullscreenService?: FullscreenService;
 }
 
 /**
@@ -29,8 +34,11 @@ export function installGame(opts: InstallGameOptions): Game {
     // create and insert the game window into the document
     const gameWindow = installGameElement(opts.container, opts.url, opts.gameConfig);
 
+    // create a fullscreen service if non is given.
+    const fullscreenService = opts.fullscreenService || new BrowserFullscreenService(gameWindow.wrapper);
+
     // let the games begin!
-    return new Game(gameWindow, opts.connector, {
+    return new Game(gameWindow, opts.connector, fullscreenService, {
         ...opts.gameConfig,
         ticketPrice: MoneyAmount.of(opts.baseTicketPrice),
     });

@@ -3,104 +3,64 @@ import {Unregister} from '../common/message-client';
 
 type Style = { [key: string]: string | null; };
 
-export class FullscreenService {
+export interface FullscreenService {
+    enable(orientation?: string[]): boolean;
+
+    disable(): boolean;
+}
+
+export class BrowserFullscreenService implements FullscreenService {
     private readonly logger = Logger.get('zig.Fullscreen');
 
     private backupStyle: Style | null = null;
     private backupOverflow: string | null = null;
     private unregisterResizeListener?: Unregister;
 
-    public onEnterFullscreen?: () => void;
-    public onExitFullscreen?: () => void;
-
     constructor(private node: HTMLElement) {
     }
 
-    private static styleForOrientation(orientation?: string[]): Style {
-        const defaultFullScreenStyle = {
-            position: 'fixed',
-            top: '0',
-            left: '0',
-            width: '100vw',
-            height: '100vh',
-            padding: '0',
-            margin: '0',
-            'z-index': '9999',
-        };
-
-        // rotated to landscape mode
-        const rotatedFullScreen = {
-            position: 'fixed',
-            top: '0',
-            left: '100vw',
-            width: '100vh',
-            height: '100vw',
-            padding: '0',
-            margin: '0',
-            'z-index': '9999',
-            transform: 'rotate(90deg)',
-            'transform-origin': '0 0',
-        };
-
-        const landscape = window.innerWidth > window.innerHeight;
-
-        if (landscape) {
-            return defaultFullScreenStyle;
-        } else {
-            // if game supports portrait then leave it portrait and don't rotate
-            if (orientation && orientation.some(o => o === 'portrait')) {
-                return defaultFullScreenStyle;
-            }
-            return rotatedFullScreen;
-        }
-    }
-
-    private onWindowResize(orientation?: string[]) {
-        if (this.backupStyle != null) {
-            this.logger.info('Update style after window size changed.');
-            applyStyle(this.node, FullscreenService.styleForOrientation(orientation));
-        }
-    }
-
-    public enable(orientation?: string[]): void {
+    public enable(orientation?: string[]): boolean {
         if (this.backupStyle != null) {
             this.logger.warn('Style already applied, not applying again.');
-            return;
+            return false;
         }
 
         if (!document.fullscreenEnabled) {
-            return;
+            return false;
         }
 
         this.logger.info('Switching to fullscreen now.');
 
         // store style for rotating the game
-        this.backupStyle = applyStyle(this.node, FullscreenService.styleForOrientation(orientation));
+        this.backupStyle = applyStyle(this.node, styleForOrientation(orientation));
 
         // disable scroll bars
         this.backupOverflow = document.body.style.overflow;
         document.body.style.overflow = 'hidden';
 
-        const element = document.documentElement;
-        if (element != null) {
-            void Promise.resolve(element.requestFullscreen()).catch(err => {
-                this.logger.warn('Could not switch to fullscreen:', err);
-            });
-        }
-
-        if (this.onEnterFullscreen) {
-            this.onEnterFullscreen();
-        }
-        
         // register a listener to keep orientation.
         const resizeHandler = () => this.onWindowResize(orientation);
         window.addEventListener('resize', resizeHandler);
         this.unregisterResizeListener = () => window.removeEventListener('resize', resizeHandler);
+
+        const element = document.documentElement;
+        if (element != null) {
+            try {
+                void Promise.resolve(element.requestFullscreen()).catch(err => {
+                    this.logger.warn('Could not switch to fullscreen:', err);
+                });
+            } catch (err) {
+                this.logger.warn('Could not switch to fullscreen:', err);
+                return false;
+            }
+        }
+
+        return true;
     }
 
-    public disable() {
+    public disable(): boolean {
         if (this.backupStyle == null || !document.fullscreenEnabled) {
-            return;
+            return false;
         }
 
         this.logger.info('Leaving fullscreen now.');
@@ -127,8 +87,13 @@ export class FullscreenService {
             });
         }
 
-        if (this.onExitFullscreen) {
-            this.onExitFullscreen();
+        return true;
+    }
+
+    private onWindowResize(orientation?: string[]) {
+        if (this.backupStyle != null) {
+            this.logger.info('Update style after window size changed.');
+            applyStyle(this.node, styleForOrientation(orientation));
         }
     }
 }
@@ -147,10 +112,51 @@ function applyStyle(node: HTMLElement, style: Style): Style {
     }
 
     // set the new properties
-    for (let attribute in style) {
-        node.style.setProperty(attribute, style[attribute]);
+    for (const attribute in style) {
+        if (style.hasOwnProperty(attribute)) {
+            node.style.setProperty(attribute, style[attribute]);
+        }
     }
 
     // and return the backup
     return backup;
+}
+
+function styleForOrientation(orientation?: string[]): Style {
+    const defaultFullScreenStyle = {
+        position: 'fixed',
+        top: '0',
+        left: '0',
+        width: '100vw',
+        height: '100vh',
+        padding: '0',
+        margin: '0',
+        'z-index': '9999',
+    };
+
+    // rotated to landscape mode
+    const rotatedFullScreen = {
+        position: 'fixed',
+        top: '0',
+        left: '100vw',
+        width: '100vh',
+        height: '100vw',
+        padding: '0',
+        margin: '0',
+        'z-index': '9999',
+        transform: 'rotate(90deg)',
+        'transform-origin': '0 0',
+    };
+
+    const landscape = window.innerWidth > window.innerHeight;
+
+    if (landscape) {
+        return defaultFullScreenStyle;
+    } else {
+        // if game supports portrait then leave it portrait and don't rotate
+        if (orientation && orientation.some(o => o === 'portrait')) {
+            return defaultFullScreenStyle;
+        }
+        return rotatedFullScreen;
+    }
 }
