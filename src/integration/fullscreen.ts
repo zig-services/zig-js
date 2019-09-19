@@ -78,7 +78,7 @@ export class FullscreenService {
         this.backupOverflow = document.body.style.overflow;
         document.body.style.overflow = 'hidden';
 
-        const element = document.fullscreenElement;
+        const element = document.documentElement;
         if (element != null) {
             void Promise.resolve(element.requestFullscreen()).catch(err => {
                 this.logger.warn('Could not switch to fullscreen:', err);
