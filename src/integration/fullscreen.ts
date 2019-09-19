@@ -65,16 +65,24 @@ export class FullscreenService {
             return;
         }
 
-        this.logger.info('Applying style');
+        if (!document.fullscreenEnabled) {
+            return;
+        }
+
+        this.logger.info('Switching to fullscreen now.');
+
+        // store style for rotating the game
         this.backupStyle = applyStyle(this.node, FullscreenService.styleForOrientation(orientation));
 
         // disable scroll bars
         this.backupOverflow = document.body.style.overflow;
         document.body.style.overflow = 'hidden';
 
-        if (document.fullscreenEnabled) {
-            // noinspection JSIgnoredPromiseFromCall
-            void Promise.resolve(document.body.requestFullscreen()).catch(ignored => true);
+        const element = document.fullscreenElement;
+        if (element != null) {
+            void Promise.resolve(element.requestFullscreen()).catch(err => {
+                this.logger.warn('Could not switch to fullscreen:', err);
+            });
         }
 
         // register a listener to keep orientation.
@@ -84,7 +92,7 @@ export class FullscreenService {
     }
 
     public disable() {
-        if (this.backupStyle == null) {
+        if (this.backupStyle == null || !document.fullscreenEnabled) {
             return;
         }
 
@@ -92,19 +100,24 @@ export class FullscreenService {
 
         if (this.unregisterResizeListener) {
             this.unregisterResizeListener();
+            this.unregisterResizeListener = undefined;
         }
 
         if (this.backupOverflow != null) {
             document.body.style.overflow = this.backupOverflow;
+            this.backupOverflow = null;
         }
 
         // re-apply original previous style
         applyStyle(this.node, this.backupStyle);
         this.backupStyle = null;
 
-        if (document.fullscreenEnabled) {
+        const element = document.fullscreenElement;
+        if (element) {
             // noinspection JSIgnoredPromiseFromCall
-            void Promise.resolve(document.exitFullscreen()).catch(ignored => true);
+            void Promise.resolve(document.exitFullscreen()).catch(err => {
+                this.logger.info('Could not disable fullscreen:', err);
+            });
         }
     }
 }
