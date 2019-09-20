@@ -163,7 +163,6 @@ export function toErrorValue(inputValue: any): IError | null {
  * a generic default value will be used.
  */
 function guessErrorType(type: any | null): string {
-    // noinspection SuspiciousTypeOfGuard
     if (typeof type === 'string' && type.match(/^urn:/)) {
         return type;
     }
