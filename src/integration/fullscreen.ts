@@ -16,7 +16,7 @@ export class BrowserFullscreenService implements FullscreenService {
     private backupOverflow: string | null = null;
     private unregisterResizeListener?: Unregister;
 
-    constructor(private node: HTMLElement) {
+    constructor(private readonly node: HTMLElement) {
     }
 
     public enable(orientation?: string[]): boolean {
