@@ -99,8 +99,8 @@ export class GameWindow {
             this.frame.style.position = 'absolute';
             this.frame.style.top = "0";
             this.frame.style.left = "0";
-            this.frame.style.width = '100vw';
-            this.frame.style.height = '100vh';
+            this.frame.style.width = '100%';
+            this.frame.style.height = '100%';
         }
     }
 }
@@ -115,14 +115,13 @@ function installGameElement(container: HTMLElement, url: string, gameConfig: Gam
     frame.scrolling = 'no';
     frame.style.display = 'block';
     frame.style.border = '0';
-    frame.style.width = '100vw';
-    frame.style.height = '100vh';
+    frame.style.width = '100%';
+    frame.style.height = '100%';
 
     // A div wrapping the iframe.
     // This one is used for aspect ratio based scaling of the iframe.
     const wrapper: HTMLDivElement = document.createElement('div');
-    wrapper.style.width = '100vw';
-    wrapper.style.height = '100vh';
+    wrapper.style.width = '100%';
     wrapper.appendChild(frame);
 
     // and add it to the document
