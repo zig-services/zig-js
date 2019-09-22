@@ -123,15 +123,8 @@ function addTrackingPixel(config: InternalGameConfig) {
 
         // create an image element to load the pixel
         const img = document.createElement('img');
-        img.src = url;
-        img.style.display = 'block';
-        img.style.position = 'absolute';
-
-        // remove the pixel from the body once it is loaded.
-        img.onload = () => document.body.removeChild(img);
-
-        // insert tracking pixel into the page.
-        document.body.insertBefore(img, document.body.firstChild);
+        img.setAttribute('loading', 'eager');
+        img.setAttribute('src', url);
 
     } catch (err) {
         log.warn('Could not add tracking pixel to page:', err);

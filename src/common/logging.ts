@@ -1,16 +1,11 @@
 import {Options} from './options';
 
 const loggingOptions = new (class {
-    private lastUpdate: number = 0;
-    private enabledCached: boolean = false;
+    public enabled: boolean = Options.logging;
 
-    public get enabled(): boolean {
-        if (Date.now() - this.lastUpdate > 1) {
-            this.lastUpdate = Date.now();
-            this.enabledCached = Options.logging;
-        }
-
-        return this.enabledCached;
+    constructor() {
+        // reflect config value once a second.
+        setInterval(() => this.enabled = Options.logging, 1000);
     }
 })();
 
@@ -61,6 +56,7 @@ export class Logger {
     public time<T>(name: string, action: () => T): T {
         if (loggingOptions.enabled) {
             const startTime: number = Date.now();
+
             this.timeStamp(name);
 
             const result: T = action();
