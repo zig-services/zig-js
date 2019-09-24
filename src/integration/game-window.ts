@@ -4,7 +4,12 @@ import {Logger} from '../common/logging';
 import {MessageClient, ParentMessageInterface} from '../common/message-client';
 import {Game} from './webpage';
 import {IMoneyAmount, MoneyAmount} from '../common/domain';
-import {BrowserFullscreenService, FullscreenService} from './fullscreen';
+import {
+    CompositeFullscreenService,
+    FakeFullscreenService,
+    FullscreenService,
+    RealFullscreenService,
+} from './fullscreen';
 
 export interface InstallGameOptions {
     // target container where to place the game
@@ -35,7 +40,10 @@ export function installGame(opts: InstallGameOptions): Game {
     const gameWindow = installGameElement(opts.container, opts.url, opts.gameConfig);
 
     // create a fullscreen service if non is given.
-    const fullscreenService = opts.fullscreenService || new BrowserFullscreenService(gameWindow.wrapper);
+    const fullscreenService = opts.fullscreenService || new CompositeFullscreenService([
+        new FakeFullscreenService(gameWindow.wrapper),
+        new RealFullscreenService(),
+    ]);
 
     // let the games begin!
     return new Game(gameWindow, opts.connector, fullscreenService, {
@@ -97,8 +105,8 @@ export class GameWindow {
             this.wrapper.style.paddingBottom = (100 / gameSettings.aspect) + '%';
 
             this.frame.style.position = 'absolute';
-            this.frame.style.top = "0";
-            this.frame.style.left = "0";
+            this.frame.style.top = '0';
+            this.frame.style.left = '0';
             this.frame.style.width = '100%';
             this.frame.style.height = '100%';
         }

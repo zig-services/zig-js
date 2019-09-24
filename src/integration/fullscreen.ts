@@ -1,35 +1,49 @@
 import {Logger} from '../common/logging';
 import {Unregister} from '../common/message-client';
 
+const logger = Logger.get('zig.Fullscreen');
+
 type Style = { [key: string]: string | null; };
 
 export interface FullscreenService {
-    enable(orientation?: string[]): boolean;
+    enable(orientation?: string[]): void;
 
-    disable(): boolean;
+    disable(): void;
 }
 
-export class BrowserFullscreenService implements FullscreenService {
-    private readonly logger = Logger.get('zig.Fullscreen');
+export class CompositeFullscreenService implements FullscreenService {
+    constructor(private readonly delegates: FullscreenService[]) {
+    }
 
+    enable(orientation?: string[]): void {
+        this.delegates.forEach(delegate => delegate.enable(orientation));
+    }
+
+    disable(): void {
+        this.delegates.forEach(delegate => delegate.disable());
+    }
+}
+
+/**
+ * Does not move the element into fullscreen, only moves it out of the dom and
+ * sets it size to match the window.
+ */
+export class FakeFullscreenService implements FullscreenService {
     private backupStyle: Style | null = null;
     private backupOverflow: string | null = null;
+
     private unregisterResizeListener?: Unregister;
 
     constructor(private readonly node: HTMLElement) {
     }
 
-    public enable(orientation?: string[]): boolean {
+    public enable(orientation?: string[]): void {
         if (this.backupStyle != null) {
-            this.logger.warn('Style already applied, not applying again.');
-            return false;
+            logger.warn('Style already applied, not applying again.');
+            return;
         }
 
-        if (!document.fullscreenEnabled) {
-            return false;
-        }
-
-        this.logger.info('Switching to fullscreen now.');
+        logger.info('Switching to fullscreen now.');
 
         // store style for rotating the game
         this.backupStyle = applyStyle(this.node, styleForOrientation(orientation));
@@ -43,27 +57,15 @@ export class BrowserFullscreenService implements FullscreenService {
         window.addEventListener('resize', resizeHandler);
         this.unregisterResizeListener = () => window.removeEventListener('resize', resizeHandler);
 
-        const element = document.documentElement;
-        if (element != null) {
-            try {
-                void Promise.resolve(element.requestFullscreen()).catch(err => {
-                    this.logger.warn('Could not switch to fullscreen:', err);
-                });
-            } catch (err) {
-                this.logger.warn('Could not switch to fullscreen:', err);
-                return false;
-            }
-        }
-
-        return true;
+        return;
     }
 
-    public disable(): boolean {
-        if (this.backupStyle == null || !document.fullscreenEnabled) {
-            return false;
+    public disable(): void {
+        if (this.backupStyle == null) {
+            return;
         }
 
-        this.logger.info('Leaving fullscreen now.');
+        logger.info('Leaving fullscreen now.');
 
         if (this.unregisterResizeListener) {
             this.unregisterResizeListener();
@@ -78,23 +80,56 @@ export class BrowserFullscreenService implements FullscreenService {
         // re-apply original previous style
         applyStyle(this.node, this.backupStyle);
         this.backupStyle = null;
-
-        const element = document.fullscreenElement;
-        if (element) {
-            // noinspection JSIgnoredPromiseFromCall
-            void Promise.resolve(document.exitFullscreen()).catch(err => {
-                this.logger.info('Could not disable fullscreen:', err);
-            });
-        }
-
-        return true;
     }
 
     private onWindowResize(orientation?: string[]) {
         if (this.backupStyle != null) {
-            this.logger.info('Update style after window size changed.');
+            logger.info('Update style after window size changed.');
             applyStyle(this.node, styleForOrientation(orientation));
         }
+    }
+}
+
+/**
+ * Really put the document node into fullscreen. Works best as a second step
+ * to the FakeFullscreenService.
+ */
+export class RealFullscreenService implements FullscreenService {
+    enable(orientation?: string[]): void {
+        if (!document.fullscreenEnabled) {
+            return;
+        }
+
+        const element = document.documentElement;
+        if (element != null) {
+            try {
+                void Promise.resolve(element.requestFullscreen()).catch(err => {
+                    logger.warn('Could not switch to fullscreen:', err);
+                });
+            } catch (err) {
+                logger.warn('Could not switch to fullscreen:', err);
+                return;
+            }
+        }
+
+        return;
+    }
+
+    disable(): void {
+        if (!document.fullscreenEnabled) {
+            return;
+        }
+
+        const element = document.fullscreenElement;
+
+        if (element) {
+            // noinspection JSIgnoredPromiseFromCall
+            void Promise.resolve(document.exitFullscreen()).catch(err => {
+                logger.info('Could not disable fullscreen:', err);
+            });
+        }
+
+        return;
     }
 }
 
