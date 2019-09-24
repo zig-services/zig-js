@@ -6,7 +6,7 @@ const logger = Logger.get('zig.Fullscreen');
 type Style = { [key: string]: string | null; };
 
 export interface FullscreenService {
-    enable(orientation?: string[]): void;
+    enable(element: HTMLElement, orientation?: string[]): void;
 
     disable(): void;
 }
@@ -15,8 +15,8 @@ export class CompositeFullscreenService implements FullscreenService {
     constructor(private readonly delegates: FullscreenService[]) {
     }
 
-    enable(orientation?: string[]): void {
-        this.delegates.forEach(delegate => delegate.enable(orientation));
+    enable(element: HTMLElement, orientation?: string[]): void {
+        this.delegates.forEach(delegate => delegate.enable(element, orientation));
     }
 
     disable(): void {
@@ -29,15 +29,12 @@ export class CompositeFullscreenService implements FullscreenService {
  * sets it size to match the window.
  */
 export class FakeFullscreenService implements FullscreenService {
-    private backupStyle: Style | null = null;
     private backupOverflow: string | null = null;
 
+    private backupStyle?: Unregister;
     private unregisterResizeListener?: Unregister;
 
-    constructor(private readonly node: HTMLElement) {
-    }
-
-    public enable(orientation?: string[]): void {
+    public enable(element: HTMLElement, orientation?: string[]): void {
         if (this.backupStyle != null) {
             logger.warn('Style already applied, not applying again.');
             return;
@@ -46,14 +43,15 @@ export class FakeFullscreenService implements FullscreenService {
         logger.info('Switching to fullscreen now.');
 
         // store style for rotating the game
-        this.backupStyle = applyStyle(this.node, styleForOrientation(orientation));
+        const backup = applyStyle(element, styleForOrientation(orientation));
+        this.backupStyle = () => applyStyle(element, backup);
 
         // disable scroll bars
         this.backupOverflow = document.body.style.overflow;
         document.body.style.overflow = 'hidden';
 
         // register a listener to keep orientation.
-        const resizeHandler = () => this.onWindowResize(orientation);
+        const resizeHandler = () => this.onWindowResize(element, orientation);
         window.addEventListener('resize', resizeHandler);
         this.unregisterResizeListener = () => window.removeEventListener('resize', resizeHandler);
 
@@ -78,14 +76,14 @@ export class FakeFullscreenService implements FullscreenService {
         }
 
         // re-apply original previous style
-        applyStyle(this.node, this.backupStyle);
-        this.backupStyle = null;
+        this.backupStyle();
+        this.backupStyle = undefined;
     }
 
-    private onWindowResize(orientation?: string[]) {
+    private onWindowResize(element: HTMLElement, orientation?: string[]) {
         if (this.backupStyle != null) {
             logger.info('Update style after window size changed.');
-            applyStyle(this.node, styleForOrientation(orientation));
+            applyStyle(element, styleForOrientation(orientation));
         }
     }
 }
@@ -95,7 +93,7 @@ export class FakeFullscreenService implements FullscreenService {
  * to the FakeFullscreenService.
  */
 export class RealFullscreenService implements FullscreenService {
-    enable(orientation?: string[]): void {
+    enable(_: HTMLElement, orientation?: string[]): void {
         if (!document.fullscreenEnabled) {
             return;
         }

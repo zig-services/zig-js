@@ -264,7 +264,10 @@ export class Game implements GameActions {
 
     private enableFullscreenIfAllowed(): void {
         if (this.allowFullscreen) {
-            this.fullscreenService.enable(this.gameSettings.orientation);
+            this.fullscreenService.enable(
+                this.gameWindow.wrapper,
+                this.gameSettings.orientation,
+            );
         }
     }
 

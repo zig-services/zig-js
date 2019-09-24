@@ -41,7 +41,7 @@ export function installGame(opts: InstallGameOptions): Game {
 
     // create a fullscreen service if non is given.
     const fullscreenService = opts.fullscreenService || new CompositeFullscreenService([
-        new FakeFullscreenService(gameWindow.wrapper),
+        new FakeFullscreenService(),
         new RealFullscreenService(),
     ]);
 
