@@ -102,8 +102,10 @@ export class MessageClient {
         }
 
         // maybe an error? Need to patch legacy messages here.
-        if (typeof data.type === 'string' && typeof data.title === 'string' && typeof data.command === 'undefined') {
-            data.command = 'error';
+        if (typeof data.command === 'undefined' && typeof data.type === 'string') {
+            if ((typeof data.title === 'string' || typeof data.errorName === 'string')) {
+                data.command = 'error';
+            }
         }
 
         // call handlers with message
@@ -563,16 +565,6 @@ function normalizeMessage(game: string, message: Message): BaseMessage {
 
     converted = fallback(converted as GameStartedMessage, `ticketID`, 'ticketId');
     converted = fallback(converted as GameStartedMessage, `ticketId`, 'ticketID');
-
-    if (converted.command == null) {
-        if (typeof converted.type === 'string' && /^urn:/.test(converted.type)) {
-            converted = {...converted, command: 'error'};
-        }
-
-        if (converted.errorName != null) {
-            converted = {...converted, command: 'error'};
-        }
-    }
 
     if (converted.command === 'buy') {
         // add missing default value to buy message event.
