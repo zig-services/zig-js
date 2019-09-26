@@ -529,7 +529,9 @@ export class MessageDispatcher {
  * This also patches renamed/missing fields and convert legacy fields..
  */
 function normalizeMessage(game: string, message: Message): BaseMessage {
-    let converted: BaseMessage = typeof message === 'string'
+    type MaybeFields = { type?: string, errorName?: string, };
+
+    let converted: BaseMessage & MaybeFields = typeof message === 'string'
         ? {command: message, game}
         : {game, ...message};
 
@@ -561,6 +563,16 @@ function normalizeMessage(game: string, message: Message): BaseMessage {
 
     converted = fallback(converted as GameStartedMessage, `ticketID`, 'ticketId');
     converted = fallback(converted as GameStartedMessage, `ticketId`, 'ticketID');
+
+    if (converted.command == null) {
+        if (typeof converted.type === 'string' && /^urn:/.test(converted.type)) {
+            converted = {...converted, command: 'error'};
+        }
+
+        if (converted.errorName != null) {
+            converted = {...converted, command: 'error'};
+        }
+    }
 
     if (converted.command === 'buy') {
         // add missing default value to buy message event.
