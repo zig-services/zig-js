@@ -73,6 +73,9 @@ export interface UIState {
     // The discounted ticket price. Only set if there is a discount on the ticket.
     readonly discountedTicketPrice?: MoneyAmount;
 
+    // An optional ticket stake fee.
+    readonly ticketStakeFee?: MoneyAmount;
+
     // True if the ticket price can be adjusted by switching a bet factor in the game
     readonly ticketPriceIsVariable: boolean;
 

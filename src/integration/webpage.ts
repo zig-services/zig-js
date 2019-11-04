@@ -28,6 +28,7 @@ type GameResult = 'success' | 'failure' | 'canceled';
 
 export interface LocalGameConfig extends GameConfig {
     readonly ticketPrice: IMoneyAmount;
+    readonly ticketStakeFee?: IMoneyAmount;
 }
 
 interface Scaling {
@@ -110,6 +111,7 @@ export class Game implements GameActions {
         // ensure that we don't miss any initial values.
         const baseUIState: UIState = {
             ticketPriceIsVariable: false,
+            ticketStakeFee: MoneyAmount.ofNullable(config.ticketStakeFee),
             enabled: false,
             allowFreeGame: false,
             buttonType: 'loading',
@@ -628,6 +630,7 @@ export class Game implements GameActions {
             buttonType: 'play',
             normalTicketPrice: MoneyAmount.of(this.config.ticketPrice),
             ticketPriceIsVariable: false,
+            ticketStakeFee: MoneyAmount.ofNullable(this.config.ticketStakeFee),
             isFreeGame: false,
             busy: false,
         };

@@ -1,4 +1,4 @@
-import {Currency, IMoneyAmount} from '../common/domain';
+import {Currency, IMoneyAmount, MoneyAmount} from '../common/domain';
 import {UIState} from './connector';
 import {GameActions} from './webpage';
 import {Logger} from '../common/logging';
@@ -40,6 +40,10 @@ export class Translations {
         const formatted = amount.amountInMajor.toFixed(2).replace(',', '.');
         return `${formatted} ${currencySymbol(amount.currency)}`;
     }
+
+    public main_StakeFee(amount: IMoneyAmount): string {
+        return `plus ${this.formatMoneyAmount(amount)} fee`;
+    }
 }
 
 export class Translations_en_GB extends Translations {
@@ -67,6 +71,10 @@ export class Translations_de_DE extends Translations {
     public formatMoneyAmount(amount: IMoneyAmount): string {
         const formatted = amount.amountInMajor.toFixed(2).replace('.', ',');
         return `${formatted} ${currencySymbol(amount.currency)}`;
+    }
+
+    public main_StakeFee(amount: IMoneyAmount): string {
+        return `zzgl. Gebühren: ${this.formatMoneyAmount(amount)}`;
     }
 }
 
@@ -226,7 +234,11 @@ function renderUIState(target: Element, translations: Translations, belowGameHin
         const derivedState = {
             isVisible: uiState.buttonType !== 'loading' && uiState.buttonType !== 'none',
 
-            mainSubtitle: '&nbsp',
+            get mainSubtitle(): string {
+                return MoneyAmount.isNotZero(uiState.ticketStakeFee)
+                    ? translations.main_StakeFee(uiState.ticketStakeFee)
+                    : '&nbsp';
+            },
 
             get mainHint(): string {
                 const actions: { [key: string]: string } = {
@@ -255,10 +267,23 @@ function renderUIState(target: Element, translations: Translations, belowGameHin
                 }
             },
 
-            get discountedTicketPrice(): IMoneyAmount | undefined {
+            get displayDiscountedTicketPrice(): IMoneyAmount | undefined {
                 const normal = uiState.normalTicketPrice;
+
                 const discounted = uiState.discountedTicketPrice;
-                return discounted != null && !discounted.equalTo(normal) ? discounted : undefined;
+                if (discounted == null || discounted.equalTo(normal)) {
+                    return undefined;
+                }
+
+                return MoneyAmount.isNotZero(uiState.ticketStakeFee)
+                    ? discounted.minus(uiState.ticketStakeFee)
+                    : discounted;
+            },
+
+            get displayNormalTicketPrice(): IMoneyAmount {
+                return MoneyAmount.isNotZero(uiState.ticketStakeFee)
+                    ? uiState.normalTicketPrice.minus(uiState.ticketStakeFee)
+                    : uiState.normalTicketPrice;
             },
         };
 
@@ -285,7 +310,8 @@ function renderUIState(target: Element, translations: Translations, belowGameHin
 
         } else {
             output(ZigTitle('main', translations.main_TicketPrice + ' '
-                + ZigPrice(uiState.normalTicketPrice, derivedState.discountedTicketPrice)));
+                + ZigPrice(derivedState.displayNormalTicketPrice,
+                    derivedState.displayDiscountedTicketPrice)));
         }
 
         output(ZigSubtitle('main', derivedState.mainSubtitle));

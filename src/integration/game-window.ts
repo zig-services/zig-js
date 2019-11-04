@@ -27,6 +27,10 @@ export interface InstallGameOptions {
     // the base price of the ticket.
     baseTicketPrice: IMoneyAmount;
 
+    // An optional ticket stake-fee for this game. For display purposes, this amount
+    // can be subtracted from the normal ticket price and be displayed as "Scheingebühr".
+    ticketStakeFee?: IMoneyAmount;
+
     // You can pass your own fullscreen service to override the
     // fullscreen handling.
     fullscreenService?: FullscreenService;
@@ -49,6 +53,7 @@ export function installGame(opts: InstallGameOptions): Game {
     return new Game(gameWindow, opts.connector, fullscreenService, {
         ...opts.gameConfig,
         ticketPrice: MoneyAmount.of(opts.baseTicketPrice),
+        ticketStakeFee: MoneyAmount.ofNullable(opts.ticketStakeFee),
     });
 }
 

@@ -191,6 +191,10 @@ export class MoneyAmount implements IMoneyAmount {
         return new MoneyAmount(amount.amountInMinor, amount.currency);
     }
 
+    static ofNullable(amount: IMoneyAmount | null | undefined): MoneyAmount | undefined {
+        return amount == null ? undefined : MoneyAmount.of(amount);
+    }
+
     static zero(currency: Currency): MoneyAmount {
         return new MoneyAmount(0, currency);
     }
