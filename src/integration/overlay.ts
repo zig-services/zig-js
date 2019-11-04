@@ -47,7 +47,7 @@ export class Translations_en_GB extends Translations {
 
 export class Translations_de_DE extends Translations {
     readonly action_Play: string = 'Spielen';
-    readonly action_Buy: string = 'Kaufen & Spielen';
+    readonly action_Buy: string = 'Kaufen & spielen';
     readonly action_Resume: string = 'Fortsetzen';
     readonly action_Login: string = 'Anmelden';
     readonly action_Payin: string = 'Einzahlen';
