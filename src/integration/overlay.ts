@@ -235,8 +235,8 @@ function renderUIState(target: Element, translations: Translations, belowGameHin
             isVisible: uiState.buttonType !== 'loading' && uiState.buttonType !== 'none',
 
             get mainSubtitle(): string {
-                return MoneyAmount.isNotZero(uiState.ticketStakeFee)
-                    ? translations.main_StakeFee(uiState.ticketStakeFee)
+                return MoneyAmount.isNotZero(uiState.baseTicketPrice.feeWithDiscount)
+                    ? translations.main_StakeFee(uiState.baseTicketPrice.feeWithDiscount)
                     : '&nbsp';
             },
 
@@ -267,23 +267,14 @@ function renderUIState(target: Element, translations: Translations, belowGameHin
                 }
             },
 
-            get displayDiscountedTicketPrice(): IMoneyAmount | undefined {
-                const normal = uiState.normalTicketPrice;
-
-                const discounted = uiState.discountedTicketPrice;
-                if (discounted == null || discounted.equalTo(normal)) {
-                    return undefined;
-                }
-
-                return MoneyAmount.isNotZero(uiState.ticketStakeFee)
-                    ? discounted.minus(uiState.ticketStakeFee)
-                    : discounted;
+            get displayStakeWithDiscount(): IMoneyAmount | undefined {
+                return MoneyAmount.isNotZero(uiState.baseTicketPrice.discount)
+                    ? uiState.baseTicketPrice.stakeWithDiscount
+                    : undefined;
             },
 
-            get displayNormalTicketPrice(): IMoneyAmount {
-                return MoneyAmount.isNotZero(uiState.ticketStakeFee)
-                    ? uiState.normalTicketPrice.minus(uiState.ticketStakeFee)
-                    : uiState.normalTicketPrice;
+            get displayStake(): IMoneyAmount {
+                return uiState.baseTicketPrice.stakeNoDiscount;
             },
         };
 
@@ -310,8 +301,8 @@ function renderUIState(target: Element, translations: Translations, belowGameHin
 
         } else {
             output(ZigTitle('main', translations.main_TicketPrice + ' '
-                + ZigPrice(derivedState.displayNormalTicketPrice,
-                    derivedState.displayDiscountedTicketPrice)));
+                + ZigPrice(derivedState.displayStake,
+                    derivedState.displayStakeWithDiscount)));
         }
 
         output(ZigSubtitle('main', derivedState.mainSubtitle));

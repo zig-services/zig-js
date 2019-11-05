@@ -1,5 +1,9 @@
 # Changelog
 
+## Version 1.2.23
+
+* Add support for a real price table
+
 ## Version 1.2.16
 
 * Detect empty payload when using scenario/winning class override.

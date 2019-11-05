@@ -10,15 +10,7 @@ import {
 } from '../common/message-client';
 import {Logger} from '../common/logging';
 import {registerRequestListener} from '../common/request';
-import {
-    BaseCustomerState,
-    CANCELED,
-    Connector,
-    CustomerState,
-    GameRequest,
-    UIState,
-    UnplayedTicketInfo,
-} from './connector';
+import {CANCELED, Connector, CustomerState, GameRequest, UIState, UnplayedTicketInfo} from './connector';
 import {GameWindow} from './game-window';
 import {GameConfig, GameSettings} from '../common/config';
 import {FullscreenService} from './fullscreen';
@@ -26,9 +18,27 @@ import {arrayIsEmpty, arrayNotEmpty, deepFreezeClone} from '../common/common';
 
 type GameResult = 'success' | 'failure' | 'canceled';
 
+export type Price = {
+    totalWithDiscount: MoneyAmount;
+    totalNoDiscount: MoneyAmount;
+
+    stakeWithDiscount: MoneyAmount;
+    stakeNoDiscount: MoneyAmount;
+
+    feeWithDiscount: MoneyAmount;
+    feeNoDiscount: MoneyAmount;
+
+    discount: MoneyAmount;
+}
+
+
+export type PriceTableOf<T> = { [quantity: number]: { [betFactor: number]: T } };
+
+export type PriceTable = PriceTableOf<Price>;
+export type MoneyTable = PriceTableOf<IMoneyAmount>;
+
 export interface LocalGameConfig extends GameConfig {
-    readonly ticketPrice: IMoneyAmount;
-    readonly ticketStakeFee?: IMoneyAmount;
+    readonly priceTable: PriceTable;
 }
 
 interface Scaling {
@@ -107,16 +117,25 @@ export class Game implements GameActions {
 
         this.logger = Logger.get(`zig.Game.${this.config.canonicalGameName}`);
 
+        const price = priceOf(this.config.priceTable, 1, 1);
+
+        const discountedTicketPrice = MoneyAmount.isNotZero(price.discount)
+            ? price.totalWithDiscount
+            : undefined;
+
         // publish initial ui state to hide any ui there is. We define it as a variable here to
         // ensure that we don't miss any initial values.
         const baseUIState: UIState = {
             ticketPriceIsVariable: false,
-            ticketStakeFee: MoneyAmount.ofNullable(config.ticketStakeFee),
+
+            baseTicketPrice: price,
+            normalTicketPrice: price.totalNoDiscount,
+            discountedTicketPrice: discountedTicketPrice,
+
             enabled: false,
             allowFreeGame: false,
             buttonType: 'loading',
-            balance: MoneyAmount.of(this.config.ticketPrice).scaled(0),
-            normalTicketPrice: MoneyAmount.of(this.config.ticketPrice),
+            balance: MoneyAmount.zero(price.totalNoDiscount.currency),
             isFreeGame: false,
             busy: false,
         };
@@ -158,9 +177,8 @@ export class Game implements GameActions {
                 this.latestTicketPriceChangedMessage = message;
             });
 
-
             // take the game loaded event that we've got.
-            let gameLoadedEvent: GameLoadedMessage | undefined = undefined;
+            let gameLoadedEvent: GameLoadedMessage | undefined;
             if (event.gameLoaded) {
                 this.logger.info('Got a game loaded event, no game input requested.');
                 gameLoadedEvent = event.gameLoaded;
@@ -524,15 +542,15 @@ export class Game implements GameActions {
             throw CANCELED;
         }
 
-        const order = calculateTicketPrice(scaling, customerState, this.config.ticketPrice);
+        const order = priceOf(this.config.priceTable, scaling.quantity, scaling.betFactor);
 
         const isFreeGame = arrayNotEmpty(customerState.unplayedTicketInfos) || MoneyAmount.isNotZero(customerState.voucher);
         if (!isFreeGame) {
             this.logger.info('Check if the customer has enough money');
 
-            if (MoneyAmount.of(customerState.balance).lessThan(order.customerTicketPrice)) {
+            if (MoneyAmount.of(customerState.balance).lessThan(order.totalWithDiscount)) {
                 await this.runOutsideOfFullscreen(async () => {
-                    if (!await this.connector.ensureCustomerBalance(order.customerTicketPrice)) {
+                    if (!await this.connector.ensureCustomerBalance(order.totalWithDiscount)) {
                         throw CANCELED;
                     }
                 });
@@ -543,7 +561,7 @@ export class Game implements GameActions {
             }
 
             this.logger.info('Verify that the customer really wants to buy this game');
-            if (!await this.connector.verifyTicketPurchase(order.customerTicketPrice)) {
+            if (!await this.connector.verifyTicketPurchase(order.totalWithDiscount)) {
                 throw CANCELED;
             }
         }
@@ -623,24 +641,24 @@ export class Game implements GameActions {
 
         type Modifyable<T> = { -readonly [P in keyof T]: T[P]; };
 
+        const price = priceOf(this.config.priceTable, 1, 1);
+
+        const discountedTicketPrice = MoneyAmount.isNotZero(price.discount)
+            ? price.totalWithDiscount
+            : undefined;
+
         const uiStateUpdate: Modifyable<UIState> = {
             enabled: true,
             unplayedTicketInfo: undefined,
             allowFreeGame: !this.disallowFreeGames,
             buttonType: 'play',
-            normalTicketPrice: MoneyAmount.of(this.config.ticketPrice),
+            baseTicketPrice: price,
+            normalTicketPrice: price.totalNoDiscount,
+            discountedTicketPrice: discountedTicketPrice,
             ticketPriceIsVariable: false,
-            ticketStakeFee: MoneyAmount.ofNullable(this.config.ticketStakeFee),
             isFreeGame: false,
             busy: false,
         };
-
-        // take the price from the customer state if possible.
-        const personalized = customerState.personalizedTicketPrice;
-        if (personalized) {
-            uiStateUpdate.normalTicketPrice = personalized.normalTicketPrice;
-            uiStateUpdate.discountedTicketPrice = personalized.discountedTicketPrice;
-        }
 
         if (this.gameSettings.chromeless) {
             uiStateUpdate.buttonType = 'none';
@@ -661,7 +679,7 @@ export class Game implements GameActions {
                 uiStateUpdate.buttonType = 'play';
                 uiStateUpdate.ticketPriceIsVariable = true;
 
-            } else if (MoneyAmount.of(customerState.balance).lessThan(personalized ? personalized.discountedTicketPrice : this.config.ticketPrice)) {
+            } else if (MoneyAmount.of(customerState.balance).lessThan(price.totalWithDiscount)) {
                 uiStateUpdate.buttonType = 'payin';
 
             } else {
@@ -729,19 +747,6 @@ export class Game implements GameActions {
     }
 }
 
-function calculateTicketPrice(scaling: Scaling, customerState: BaseCustomerState, baseTicketPrice: IMoneyAmount): TicketPrice {
-    let baseNormalTicketPrice = MoneyAmount.of(baseTicketPrice);
-    let baseDiscountedTicketPrice = MoneyAmount.of(baseTicketPrice);
-
-    if (customerState.personalizedTicketPrice) {
-        const p = customerState.personalizedTicketPrice;
-        baseNormalTicketPrice = MoneyAmount.of(p.normalTicketPrice);
-        baseDiscountedTicketPrice = MoneyAmount.of(p.discountedTicketPrice);
-    }
-
-    return new TicketPrice(baseNormalTicketPrice, baseDiscountedTicketPrice, scaling.betFactor, scaling.quantity);
-}
-
 function verifyInGamePurchaseFlag(gameSettings: GameSettings, gameLoadedEvent: GameLoadedMessage) {
     // If there is an inGamePurchase field on the gameLoadedEvent, we'll verify that
     // it matches the configured game settings.
@@ -804,4 +809,12 @@ function parseGameRequestFromInternalPath(path: string): GameRequest {
 function isTransientRemoteError(err: IError) {
     return err.type === 'urn:x-tipp24:realitycheck-limit-reached'
         || err.type === 'urn:x-tipp24:daily-iwg-limit-reached';
+}
+
+export function priceOf<T>(pt: PriceTableOf<T>, quantity: number, betFactor: number): T {
+    if (pt[quantity] == null || pt[quantity][betFactor] == null) {
+        throw new Error(`no entry in paytable for quantity=${quantity} and betFactor=${betFactor}`);
+    }
+
+    return pt[quantity][betFactor];
 }

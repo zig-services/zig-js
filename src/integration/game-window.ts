@@ -2,8 +2,7 @@ import {appendGameConfigToURL, GameConfig, GameSettings} from '../common/config'
 import {Connector} from './connector';
 import {Logger} from '../common/logging';
 import {MessageClient, ParentMessageInterface} from '../common/message-client';
-import {Game} from './webpage';
-import {IMoneyAmount, MoneyAmount} from '../common/domain';
+import {Game, PriceTable} from './webpage';
 import {
     CompositeFullscreenService,
     FakeFullscreenService,
@@ -24,12 +23,8 @@ export interface InstallGameOptions {
     // the platform connector to speak to.
     connector: Connector;
 
-    // the base price of the ticket.
-    baseTicketPrice: IMoneyAmount;
-
-    // An optional ticket stake-fee for this game. For display purposes, this amount
-    // can be subtracted from the normal ticket price and be displayed as "Scheingebühr".
-    ticketStakeFee?: IMoneyAmount;
+    // the price table for the game.
+    priceTable: PriceTable,
 
     // You can pass your own fullscreen service to override the
     // fullscreen handling.
@@ -52,8 +47,7 @@ export function installGame(opts: InstallGameOptions): Game {
     // let the games begin!
     return new Game(gameWindow, opts.connector, fullscreenService, {
         ...opts.gameConfig,
-        ticketPrice: MoneyAmount.of(opts.baseTicketPrice),
-        ticketStakeFee: MoneyAmount.ofNullable(opts.ticketStakeFee),
+        priceTable: opts.priceTable,
     });
 }
 

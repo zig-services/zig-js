@@ -2,7 +2,7 @@ import {IError, IMoneyAmount, MoneyAmount} from '../common/domain';
 import {Logger} from '../common/logging';
 import {executeRequest, Request, Result} from '../common/request';
 import {GameStartedMessage} from '../common/message-client';
-import {Game} from './webpage';
+import {Game, MoneyTable, Price, PriceTableOf} from './webpage';
 import {GameSettings} from '../common/config';
 
 export interface UnplayedTicketInfo {
@@ -18,22 +18,11 @@ export interface UnplayedTicketInfo {
     readonly resumeTicketId?: string;
 }
 
-export interface TicketPricing {
-    readonly normalTicketPrice: MoneyAmount;
-
-    // Provide a discounted ticket price that is less than the normal ticket price if
-    // the customer gets the ticket cheaper. Set it to the same value as
-    // the normal ticket price if the customer gets no discount on the ticket.
-    readonly discountedTicketPrice: MoneyAmount;
-}
-
 export interface BaseCustomerState {
     readonly loggedIn: boolean;
 
-    // The personalized ticket price for this customer.
-    // You can use this to apply a discount for the customer. Leave it out if
-    // the standard pricing should apply.
-    readonly personalizedTicketPrice?: TicketPricing;
+    // A discount table that
+    readonly discountTable?: MoneyTable;
 }
 
 export interface AnonymousCustomerState extends BaseCustomerState {
@@ -67,14 +56,14 @@ export interface UIState {
     // If this is true you might offer a demo ticket to the customer.
     readonly allowFreeGame: boolean;
 
-    // The normal ticket price
+    // The normal ticket price. This is equal to `baseTicketPrice.totalNoDiscount`
     readonly normalTicketPrice: MoneyAmount;
 
     // The discounted ticket price. Only set if there is a discount on the ticket.
     readonly discountedTicketPrice?: MoneyAmount;
 
-    // An optional ticket stake fee.
-    readonly ticketStakeFee?: MoneyAmount;
+    // The base ticket price with all available information
+    readonly baseTicketPrice: Price,
 
     // True if the ticket price can be adjusted by switching a bet factor in the game
     readonly ticketPriceIsVariable: boolean;
