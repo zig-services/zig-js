@@ -15,19 +15,47 @@ function parseIntegrationConfiguration() {
     const demoConfig = JSON.parse(encoded);
     const gameName = demoConfig.name || "yourgame";
     const gameUrl = demoConfig.url || `https://mylotto24.frontend.zig.services/${gameName}/tipp24_com/latest/game/outer.html`;
+    const gamePriceTable = demoConfig.priceTable || "q1b1s20f5ds0df0";
     const extraGameConfig = demoConfig.gameConfig || {};
 
     return {
-      gameName, gameUrl, extraGameConfig,
+      gameName, gameUrl, extraGameConfig, gamePriceTable,
       gameData: demoConfig.data,
     }
   } else {
     // use game/url parameters from URL.
     const gameName = url.searchParams.get("game") || "dickehose";
     const gameUrl = url.searchParams.get("url") || `https://mylotto24.frontend.zig.services/${gameName}/tipp24_com/latest/game/outer.html`;
+    const gamePriceTable = url.searchParams.get("priceTable") || "q1b1s20f5ds0df0";
     const gameData = GameDataObjects[gameName] || {};
-    return {gameName, gameUrl, gameData, extraGameConfig: {}};
+    return {gameName, gameUrl, gamePriceTable, gameData, extraGameConfig: {}};
   }
+}
+
+function parsePriceTable(input, currency) {
+  const re = /q(\d+)b(\d+)s(\d+)f(\d+)ds(\d+)df(\d+)/g;
+  const priceTable = {};
+  let match;
+  while ((match = re.exec(input)) != null) {
+    const [quantity, betFactor, stakeInMinor, feeInMinor, discountOnStakeInMinor, discountOnFeeInMinor] = match.slice(1).map(value => parseInt(value, 10));
+    // convert to money objects
+    const stake = MoneyAmount.of(stakeInMinor, currency);
+    const fee = MoneyAmount.of(feeInMinor, currency);
+    const discountOnStake = MoneyAmount.of(discountOnStakeInMinor, currency);
+    const discountOnFee = MoneyAmount.of(discountOnFeeInMinor, currency);
+    const discount = discountOnStake.plus(discountOnFee);
+    const price = {
+      stakeNoDiscount: stake,
+      stakeWithDiscount: stake.minus(discountOnStake),
+      feeNoDiscount: fee,
+      feeWithDiscount: fee.minus(discountOnFee),
+      discount: discount,
+      totalNoDiscount: stake.plus(fee),
+      totalWithDiscount: stake.plus(fee).minus(discount),
+    };
+    priceTable[quantity] = Object.assign(Object.assign({}, priceTable[quantity]), {[betFactor]: price});
+  }
+  return priceTable;
 }
 
 function logEvent(prefix, event, textColor) {
@@ -225,6 +253,7 @@ window.onload = async () => {
           container: this.$refs.gameContainer,
           url: demoConfig.gameUrl,
           gameConfig: gameConfig,
+          priceTable: parsePriceTable(demoConfig.gamePriceTable, "EUR"),
           baseTicketPrice: MoneyAmount.of(75, "EUR"),
           connector: new DemoConnector(this, updateUIState),
         });
@@ -277,4 +306,3 @@ window.onload = async () => {
     },
   });
 };
-
