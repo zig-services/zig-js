@@ -812,8 +812,11 @@ function isTransientRemoteError(err: IError) {
 }
 
 export function priceOf<T>(pt: PriceTableOf<T>, quantity: number, betFactor: number): T {
+    if (pt === undefined) {
+        throw new Error(`no priceTable provided`);
+    }
     if (pt[quantity] == null || pt[quantity][betFactor] == null) {
-        throw new Error(`no entry in paytable for quantity=${quantity} and betFactor=${betFactor}`);
+        throw new Error(`no entry in priceTable for quantity=${quantity} and betFactor=${betFactor}`);
     }
 
     return pt[quantity][betFactor];
