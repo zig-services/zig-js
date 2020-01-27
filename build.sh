@@ -22,7 +22,7 @@ node_modules/.bin/tsc
 node_modules/.bin/webpack --mode production --progress
 
 # delete the bundle entry points
-rm dist/libint.* dist/libzig.*
+rm dist/libzig.*
 
 # copy files for npm to output directory
 cp package.json dist/

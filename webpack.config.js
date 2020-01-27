@@ -3,7 +3,6 @@ const webpack = require("webpack");
 
 module.exports = {
   entry: {
-    "libint": "./src/libint.ts",
     "libzig": "./src/libzig.ts",
     "wrapper": "./src/wrapper/wrapper.ts",
     "debug-page": "./src/debug-page/debug-page.ts",
