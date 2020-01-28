@@ -1,5 +1,11 @@
 # Changelog
 
+
+## Version 1.3.0
+
+* Remove the integration functions. You are not supposed to integrate a
+  ZIG game using the `zig-js` library anymore.
+
 ## Version 1.2.23
 
 * Add support for a real price table
