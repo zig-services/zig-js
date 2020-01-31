@@ -1,4 +1,3 @@
-import * as deepFreeze from 'deep-freeze';
 import {DeepReadonly} from 'deep-freeze';
 
 export function sleep(millis: number): Promise<{}> {
@@ -14,7 +13,7 @@ export function deepFreezeClone<T>(object: T): DeepReadonly<T> {
         return null as unknown as DeepReadonly<T>;
     }
 
-    return deepFreeze(deepClone(object));
+    return deepClone(object) as DeepReadonly<T>;
 }
 
 /**

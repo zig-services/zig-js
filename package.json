@@ -1,26 +1,35 @@
 {
   "name": "zig-js",
-  "version": "1.3.0",
+  "version": "1.3.1-beta.0",
   "description": "",
   "author": "",
   "license": "MIT",
+  "main": "dist/cjs/libzig.js",
+  "module": "dist/esm5/libzig.js",
+  "esm2015": "dist/esm2015/libzig.js",
+  "types": "dist/esm2015/libzig.d.ts",
   "devDependencies": {
+    "@rollup/plugin-node-resolve": "^7.0.0",
+    "gulp": "^4.0.2",
+    "gulp-better-rollup": "^4.0.1",
+    "gulp-sourcemaps": "^2.6.5",
+    "gulp-terser": "^1.2.0",
+    "gulp-typescript": "^6.0.0-alpha.1",
     "release-it": "12.4.3",
-    "ts-declaration-webpack-plugin": "1.2.0",
+    "rollup": "^1.31.0",
+    "rollup-plugin-node-resolve": "^5.2.0",
+    "rollup-stream": "^1.24.1",
     "ts-loader": "6.2.1",
-    "typescript": "3.7.5",
-    "webpack": "4.41.5",
-    "webpack-cli": "3.3.10"
+    "typescript": "3.7.5"
   },
   "dependencies": {
     "@types/deep-freeze": "0.1.2",
     "deep-freeze": "0.0.1",
     "fullscreen-polyfill": "1.0.2",
+    "gulp-rollup": "^2.16.2",
     "tslib": "1.10.0"
   },
   "scripts": {
-    "watch": "webpack --mode=development --watch",
-    "watch-prod": "webpack --mode=production --watch",
     "upload": "./upload.sh",
     "build-upload": "./build.sh && ./upload.sh",
     "release": "node_modules/.bin/release-it",
