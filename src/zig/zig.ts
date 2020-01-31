@@ -47,12 +47,6 @@ export const Zig: ZigGlobal = new (class ZigGlobalImpl implements ZigGlobal {
     }
 
     ready(callback?: (c: ZigClient) => void): Promise<ZigClient> {
-        if (delegateToVersion(`libzig.js`)) {
-            zigWindow.__zigInitializeOnLoad = true;
-        } else {
-            initializeClient();
-        }
-
         if (callback) {
             this.clientAsync.then(callback);
         }
@@ -120,6 +114,7 @@ if (!zigWindow.Zig) {
     zigWindow.Zig = Zig;
 }
 
-if (zigWindow.__zigInitializeOnLoad) {
+
+if (!delegateToVersion(`libzig.js`)) {
     initializeClient();
 }
