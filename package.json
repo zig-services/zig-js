@@ -4,6 +4,7 @@
   "description": "",
   "author": "",
   "license": "MIT",
+  "module": "esm5/libzig.js",
   "esm5": "esm5/libzig.js",
   "esm2015": "esm2015/libzig.js",
   "types": "esm2015/libzig.d.ts",
