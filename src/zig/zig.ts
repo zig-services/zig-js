@@ -25,6 +25,8 @@ export interface ZigGlobal {
 const log = Logger.get('zig.Main');
 
 const zigWindow = window as {
+    __zigInitializeOnLoad?: boolean
+
     __zigClientInstance?: ZigClient;
     __zigClientPromise?: Promise<ZigClient>;
     __zigClientPromiseResolve?: (c: ZigClient) => void;
@@ -45,7 +47,9 @@ export const Zig: ZigGlobal = new (class ZigGlobalImpl implements ZigGlobal {
     }
 
     ready(callback?: (c: ZigClient) => void): Promise<ZigClient> {
-        if (!delegateToVersion(`libzig.js`)) {
+        if (delegateToVersion(`libzig.js`)) {
+            zigWindow.__zigInitializeOnLoad = true;
+        } else {
             initializeClient();
         }
 
@@ -114,4 +118,8 @@ function initializeClient() {
 if (!zigWindow.Zig) {
     log.info(`Expose global 'Zig' instance on 'window' object.`);
     zigWindow.Zig = Zig;
+}
+
+if (zigWindow.__zigInitializeOnLoad) {
+    initializeClient();
 }
