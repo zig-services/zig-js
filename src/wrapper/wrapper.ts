@@ -1,20 +1,27 @@
 import '../common/polyfills';
 
-import {sleep} from '../common/common';
-import {GameMessageInterface, MessageClient, ParentMessageInterface} from '../common/message-client';
-import {injectStyle, onDOMLoad} from '../common/dom';
-import {buildTime, clientVersion} from '../common/vars';
-import {delegateToVersion} from '../common/delegate';
-import {Options} from '../common/options';
 import {
     appendGameConfigToURL,
+    buildTime,
+    clientVersion,
+    delegateToVersion,
     GameConfig,
+    GameMessageInterface,
     GameSettings,
+    injectStyle,
+    Logger,
+    MessageClient,
+    onDOMLoad,
+    Options,
     OverlayNoticeStyle,
+    ParentMessageInterface,
     parseGameConfigFromURL,
-} from '../common/config';
-import {Logger} from '../common/logging';
+    sleep,
+} from '..';
 import {WrapperStyleCSS} from './style.css';
+
+import logoZIG from './logo.svg';
+import logoMGA from './malta.png';
 
 
 const log = Logger.get('zig.wrapper');
@@ -25,6 +32,26 @@ const log = Logger.get('zig.wrapper');
 const GameSettings = (<any>window).GameSettings as GameSettings;
 if (GameSettings == null) {
     throw new Error('window.GameConfig must be initialized.');
+}
+
+type License = 'mga' | null;
+
+function licenseInformation(config: GameConfig): License {
+    const operator = guessOperatorId();
+
+    if (operator === 'mylotto24') {
+        if (/^gsl/.test(config.canonicalGameName)) {
+            return null;
+        }
+
+        if (/^gw/.test(config.canonicalGameName)) {
+            return null;
+        }
+
+    }
+
+    // all other are currently mga licensed.
+    return 'mga';
 }
 
 /**
@@ -66,6 +93,14 @@ async function initializeGame(): Promise<HTMLIFrameElement> {
     // add game to window
     document.body.appendChild(iframe);
 
+    const license = licenseInformation(config);
+    if (!GameSettings.chromeless && !GameSettings.disableSplashScreen) {
+        if (license === 'mga') {
+            const splash = new SplashScreenController();
+            document.body.appendChild(splash.$element);
+        }
+    }
+
     async function trySetupMessageClient(): Promise<void> {
         // wait for the content window to load.
         while (iframe.contentWindow == null) {
@@ -81,7 +116,7 @@ async function initializeGame(): Promise<HTMLIFrameElement> {
 
         // show small overlay notice
         const innerMessageInterface = new ParentMessageInterface(innerMessageClient, config.canonicalGameName);
-        const controller = setupOverlayNotice(config, innerMessageInterface);
+        const controller = setupOverlayNotice(config, license, innerMessageInterface);
         document.body.appendChild(controller.$element);
 
         window.onfocus = () => {
@@ -184,7 +219,42 @@ class OverlayNoticeController {
     }
 }
 
-function setupOverlayNotice(config: GameConfig, innerMessageInterface: ParentMessageInterface): OverlayNoticeController {
+class SplashScreenController {
+    public readonly $element = document.createElement('div');
+
+    constructor() {
+        this.$element.className = 'zig-splash';
+        this.$element.innerHTML = `
+            <div>
+                <div>
+                    <img style='width: 10em;' src='${logoZIG}'>
+                </div>
+                <div>
+                    <img style='width: 10em; margin-top: 0.5em;' src='${logoMGA}'>
+                </div>
+                <div style='margin-top: 0.5em'>
+                    This game is licenced by the Malta Gambling Authority
+                </div>
+            </div>
+        `;
+
+        setTimeout(() => this.fadeOut(), 1000);
+    }
+
+    private fadeOut() {
+        this.$element.style.opacity = '0';
+        setTimeout(() => this.remove(), 300);
+    }
+
+    private remove() {
+        const parent = this.$element.parentElement;
+        if (parent != null) {
+            parent.removeChild(this.$element);
+        }
+    }
+}
+
+function setupOverlayNotice(config: GameConfig, licence: License, innerMessageInterface: ParentMessageInterface): OverlayNoticeController {
     const controller = new OverlayNoticeController(GameSettings.overlayNoticeStyle ?? GameSettings.clockStyle ?? {});
 
     // await outerMessageInterface.waitForGameEvents(
@@ -194,8 +264,10 @@ function setupOverlayNotice(config: GameConfig, innerMessageInterface: ParentMes
     //     "requestStartGame",
     // );
 
-    if (GameSettings.chromeless) {
-        controller.addText(`This game is licenced by the Malta Gambling Authority `);
+    controller.add(new ClockController(config.clientTimeOffsetInMillis));
+
+    if (GameSettings.chromeless && licence === 'mga') {
+        controller.addText(`This game is licenced by the Malta Gambling Authority`);
     }
 
     if (config.displayTicketIdOverlayType != null) {

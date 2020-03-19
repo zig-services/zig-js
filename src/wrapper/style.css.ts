@@ -22,4 +22,24 @@ export const WrapperStyleCSS = `
     .zig-notice span + span {
         margin-left: 1em;
     }
+    
+    .zig-splash {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100vw;
+        height: 100vh;
+        
+        background-color: black;
+        color: white;
+        
+        display: flex;
+        
+        /* center content */
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        
+        transition: opacity 250ms ease-in;
+    }
 `;

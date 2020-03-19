@@ -17,15 +17,6 @@ rm -rf dist
 
 node_modules/.bin/gulp
 
-# Transpile the javascript source
-# node_modules/.bin/tsc
-
-# Build the bundles and put them under ./dist
-# node_modules/.bin/webpack --mode production --progress
-
-# delete the bundle entry points
-# rm dist/libzig.*
-
 # copy files for npm to output directory
 cp package.json dist/
 cp README.md dist/

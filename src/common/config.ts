@@ -29,11 +29,15 @@ export interface GameSettings {
      * Set this to configure the in game clock.
      * @deprecated Use overlayNoticeStyle now.
      */
-    readonly clockStyle?: OverlayNoticeStyle | false;
+    readonly clockStyle?: OverlayNoticeStyle;
 
     // Set the style for the overlay notice if it is displayed.
     // The notice might include the licence info as well as the clock.
-    readonly overlayNoticeStyle?: OverlayNoticeStyle | false;
+    readonly overlayNoticeStyle?: OverlayNoticeStyle;
+
+    // Disable the splash screen that is shown when loading the game. The default
+    // is to always show the splash screen if the game is not 'chromeless'
+    readonly disableSplashScreen?: true;
 
     // Set this to true to prevent the game to go to fullscreen
     // even if the integrator allows it.

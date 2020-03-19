@@ -2,6 +2,7 @@ const gulp = require('gulp');
 const ts = require('gulp-typescript');
 const sourcemaps = require('gulp-sourcemaps');
 const rollup = require('gulp-better-rollup');
+const rollupUrl = require("@rollup/plugin-url");
 const resolve = require('@rollup/plugin-node-resolve');
 const terser = require("gulp-terser");
 
@@ -9,8 +10,7 @@ function compileTypeScript(dest, opts) {
   const proj = ts.createProject('tsconfig.json', {...opts});
 
   return () =>
-    gulp
-      .src(proj.config.include)
+    proj.src()
       .pipe(sourcemaps.init())
       .pipe(proj())
       .pipe(sourcemaps.write())
@@ -19,7 +19,7 @@ function compileTypeScript(dest, opts) {
 
 function bundleGulp(input) {
   return () => gulp.src(input)
-    .pipe(rollup({treeshake: true, plugins: [resolve()]}, {
+    .pipe(rollup({treeshake: true, plugins: [resolve(), rollupUrl({limit: 1024*1024, emitFiles: false})]}, {
       name: "ZIG",
       format: "iife",
     }))
@@ -52,6 +52,11 @@ gulp.task(
 );
 
 gulp.task(
+  'copy:static',
+  () => gulp.src(['./src/**/*.svg', './src/**/*.png']).pipe(gulp.dest('./dist/esm5/')),
+);
+
+gulp.task(
   'bundle:browser',
   gulp.parallel(
     bundleGulp("dist/esm5/libzig.js"),
@@ -61,5 +66,5 @@ gulp.task(
 
 gulp.task('default',
   gulp.series(
-    gulp.parallel('build:cjs', 'build:esm5', 'build:esm2015'),
+    gulp.parallel('build:cjs', 'build:esm5', 'build:esm2015', 'copy:static'),
     'bundle:browser'));
