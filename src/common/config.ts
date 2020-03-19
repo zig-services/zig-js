@@ -25,8 +25,15 @@ export interface GameSettings {
     // This might be because it will handle bet factors or quantity selection.
     readonly purchaseInGame?: boolean;
 
-    // Set this to configure the in game clock.
-    readonly clockStyle?: ClockStyle | false;
+    /*
+     * Set this to configure the in game clock.
+     * @deprecated Use overlayNoticeStyle now.
+     */
+    readonly clockStyle?: OverlayNoticeStyle | false;
+
+    // Set the style for the overlay notice if it is displayed.
+    // The notice might include the licence info as well as the clock.
+    readonly overlayNoticeStyle?: OverlayNoticeStyle | false;
 
     // Set this to true to prevent the game to go to fullscreen
     // even if the integrator allows it.
@@ -37,7 +44,7 @@ export interface GameSettings {
     readonly orientation?: string[];
 }
 
-export interface ClockStyle {
+export interface OverlayNoticeStyle {
     verticalAlignment: 'top' | 'bottom';
     horizontalAlignment: 'left' | 'right';
     fontColor?: string;

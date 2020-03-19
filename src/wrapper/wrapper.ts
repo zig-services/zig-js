@@ -1,12 +1,18 @@
 import '../common/polyfills';
 
 import {sleep} from '../common/common';
-import {GameMessageInterface, MessageClient, ParentMessageInterface, Unregister} from '../common/message-client';
+import {GameMessageInterface, MessageClient, ParentMessageInterface} from '../common/message-client';
 import {injectStyle, onDOMLoad} from '../common/dom';
 import {buildTime, clientVersion} from '../common/vars';
 import {delegateToVersion} from '../common/delegate';
 import {Options} from '../common/options';
-import {appendGameConfigToURL, ClockStyle, GameConfig, GameSettings, parseGameConfigFromURL} from '../common/config';
+import {
+    appendGameConfigToURL,
+    GameConfig,
+    GameSettings,
+    OverlayNoticeStyle,
+    parseGameConfigFromURL,
+} from '../common/config';
 import {Logger} from '../common/logging';
 import {WrapperStyleCSS} from './style.css';
 
@@ -73,10 +79,10 @@ async function initializeGame(): Promise<HTMLIFrameElement> {
         // and proxy all messages between the frames
         proxyMessages(parentMessageClient, innerMessageClient);
 
-        if (GameSettings.clockStyle !== false) {
-            const innerMessageInterface = new ParentMessageInterface(innerMessageClient, config.canonicalGameName);
-            setupGameClock(config, outerMessageClient, innerMessageInterface);
-        }
+        // show small overlay notice
+        const innerMessageInterface = new ParentMessageInterface(innerMessageClient, config.canonicalGameName);
+        const controller = setupOverlayNotice(config, innerMessageInterface);
+        document.body.appendChild(controller.$element);
 
         window.onfocus = () => {
             log.debug('Got focus, focusing iframe now.');
@@ -148,73 +154,90 @@ function proxyMessages(parentMessageClient: MessageClient, innerMessageClient: M
     });
 }
 
-function setupGameClock(config: GameConfig, outerMessageInterface: GameMessageInterface, innerMessageInterface: ParentMessageInterface) {
-    const clockStyle: Required<ClockStyle> = {
-        horizontalAlignment: 'right',
-        verticalAlignment: 'top',
-        backgroundColor: 'rgba(0,0,0,0.5)',
-        fontColor: 'white',
-        ...(GameSettings.clockStyle || {}),
-    };
+class OverlayNoticeController {
+    public readonly $element = document.createElement('div');
 
-    const clock = new ClockOverlay(clockStyle, config.clientTimeOffsetInMillis);
+    constructor(styleInput: Partial<OverlayNoticeStyle | false>) {
+        const style = {
+            horizontalAlignment: 'right',
+            verticalAlignment: 'top',
+            backgroundColor: 'rgba(0,0,0,0.5)',
+            fontColor: 'white',
+            ...styleInput,
+        };
 
-    let unregister: Unregister;
-
-    function _showClock() {
-        document.body.appendChild(clock.div);
-        unregister();
+        this.$element.className = 'zig-notice';
+        this.$element.style.color = style.fontColor;
+        this.$element.style.backgroundColor = style.backgroundColor;
+        this.$element.style.setProperty(style.verticalAlignment, '0');
+        this.$element.style.setProperty(style.horizontalAlignment, '0.5em');
     }
 
-    unregister = outerMessageInterface.registerGeneric({
-        prepareGame: _showClock,
-        playGame: _showClock,
-        playDemoGame: _showClock,
-        requestStartGame: _showClock,
-    });
+    public addText(text: string) {
+        const span = document.createElement('span');
+        span.innerText = text;
+        this.$element.appendChild(span);
+    }
 
-    if (config.displayTicketIdOverlayType != null) {
-        innerMessageInterface.registerGeneric({
-            gameStarted(event) {
-                if (config.displayTicketIdOverlayType === 'ticketId')
-                    clock.ticketIdValue = event.ticketId;
-
-                if (config.displayTicketIdOverlayType === 'ticketNumber')
-                    clock.ticketIdValue = event.ticketNumber;
-            },
-
-            ticketSettled() {
-                //clock.ticketIdValue = null;
-            },
-
-            gameFinished() {
-                clock.ticketIdValue = null;
-            },
-        });
+    public add(obj: { $element: Element }) {
+        this.$element.appendChild(obj.$element);
     }
 }
 
-class ClockOverlay {
-    public readonly div: HTMLDivElement;
-    private _ticketIdValue: string | null = null;
+function setupOverlayNotice(config: GameConfig, innerMessageInterface: ParentMessageInterface): OverlayNoticeController {
+    const controller = new OverlayNoticeController(GameSettings.overlayNoticeStyle ?? GameSettings.clockStyle ?? {});
 
-    constructor(
-        readonly style: Required<ClockStyle>,
-        private readonly clientTimeOffsetInMillis: number) {
+    // await outerMessageInterface.waitForGameEvents(
+    //     "prepareGame",
+    //     "playGame",
+    //     "playDemoGame",
+    //     "requestStartGame",
+    // );
 
-        this.div = document.createElement('div');
-        this.div.className = 'zig-clock';
-        this.div.style.color = style.fontColor;
-        this.div.style[style.verticalAlignment] = '0';
-        this.div.style[style.horizontalAlignment] = '0.5em';
-        this.div.style.backgroundColor = style.backgroundColor;
+    if (GameSettings.chromeless) {
+        controller.addText(`This game is licenced by the Malta Gambling Authority `);
+    }
 
-        this.updateAndReschedule();
+    if (config.displayTicketIdOverlayType != null) {
+        const idController = new TicketIdController();
+        controller.add(idController);
+
+        innerMessageInterface.registerGeneric({
+            gameStarted(event) {
+                if (config.displayTicketIdOverlayType === 'ticketId')
+                    idController.ticketIdValue = event.ticketId;
+
+                if (config.displayTicketIdOverlayType === 'ticketNumber')
+                    idController.ticketIdValue = event.ticketNumber;
+            },
+
+            gameFinished() {
+                idController.ticketIdValue = null;
+            },
+        });
+    }
+
+    return controller;
+}
+
+class TicketIdController {
+    public readonly $element = document.createElement('span');
+
+    constructor() {
+        this.ticketIdValue = null;
     }
 
     set ticketIdValue(value: string | null) {
-        this._ticketIdValue = value;
-        this.updateOnce();
+        this.$element.style.display = value ? 'initial' : 'none';
+        this.$element.innerText = value ?? '';
+    }
+}
+
+class ClockController {
+    public readonly $element = document.createElement('span');
+
+    constructor(private readonly clientTimeOffsetInMillis: number) {
+        this.updateAndReschedule();
     }
 
     private updateAndReschedule() {
@@ -223,25 +246,19 @@ class ClockOverlay {
         const now = new Date(Date.now() + this.clientTimeOffsetInMillis);
 
         const currentSeconds = now.getSeconds();
-        const delayInSeconds = 60 - currentSeconds;
+        const delayInSeconds = 60 - currentSeconds + 1;
         setTimeout(() => this.updateAndReschedule(), delayInSeconds * 1000);
     }
 
     private updateOnce() {
-        const now = new Date(Date.now() + this.clientTimeOffsetInMillis);
-
-        let text = getTimeString(now);
-        if (this._ticketIdValue != null) {
-            text += ' - ' + this._ticketIdValue;
-        }
-
-        this.div.innerText = text;
-
         function getTimeString(now: Date): string {
             const hour = now.getHours();
             const minutes = now.getMinutes();
             return `${hour >= 10 ? hour : '0' + hour}:${minutes >= 10 ? minutes : '0' + minutes}`;
         }
+
+        const now = new Date(Date.now() + this.clientTimeOffsetInMillis);
+        this.$element.innerText = getTimeString(now);
     }
 }
 
