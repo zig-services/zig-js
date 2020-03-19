@@ -26,6 +26,8 @@ import logoMGA from './malta.png';
 
 const log = Logger.get('zig.wrapper');
 
+const licenseMGA = 'This game is licenced by the Malta Gaming Authortiy';
+
 /**
  * Get game config from window
  */
@@ -233,7 +235,7 @@ class SplashScreenController {
                     <img style='width: 10em; margin-top: 0.5em;' src='${logoMGA}'>
                 </div>
                 <div style='margin-top: 0.5em'>
-                    This game is licenced by the Malta Gambling Authority
+                    ${licenseMGA}
                 </div>
             </div>
         `;
@@ -267,7 +269,7 @@ function setupOverlayNotice(config: GameConfig, licence: License, innerMessageIn
     controller.add(new ClockController(config.clientTimeOffsetInMillis));
 
     if (GameSettings.chromeless && licence === 'mga') {
-        controller.addText(`This game is licenced by the Malta Gambling Authority`);
+        controller.addText(licenseMGA);
     }
 
     if (config.displayTicketIdOverlayType != null) {
