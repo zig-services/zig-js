@@ -235,7 +235,7 @@ class SplashScreenController {
                     <img style='width: 10em; margin-top: 0.5em;' src='${logoMGA}'>
                 </div>
                 <div style='margin-top: 0.5em'>
-                    ${licenseMGA}
+                    <small style="color: #ddd;">${licenseMGA}</small>
                 </div>
             </div>
         `;
