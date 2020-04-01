@@ -26,7 +26,7 @@ import logoMGA from './malta.png';
 
 const log = Logger.get('zig.wrapper');
 
-const licenseMGA = 'This game is licenced by the Malta Gaming Authortiy';
+const licenseMGA = 'This game is licensed by the Malta Gaming Authortiy';
 
 /**
  * Get game config from window
@@ -256,7 +256,7 @@ class SplashScreenController {
     }
 }
 
-function setupOverlayNotice(config: GameConfig, licence: License, innerMessageInterface: ParentMessageInterface): OverlayNoticeController {
+function setupOverlayNotice(config: GameConfig, license: License, innerMessageInterface: ParentMessageInterface): OverlayNoticeController {
     const controller = new OverlayNoticeController(GameSettings.overlayNoticeStyle ?? GameSettings.clockStyle ?? {});
 
     // await outerMessageInterface.waitForGameEvents(
@@ -268,7 +268,7 @@ function setupOverlayNotice(config: GameConfig, licence: License, innerMessageIn
 
     controller.add(new ClockController(config.clientTimeOffsetInMillis));
 
-    if (GameSettings.chromeless && licence === 'mga') {
+    if (GameSettings.chromeless && license === 'mga') {
         controller.addText(licenseMGA);
     }
 
